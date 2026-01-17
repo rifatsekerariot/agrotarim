@@ -25,7 +25,8 @@ async function init() {
                     user_id: user.id,
                     city: "Adana",
                     district: "Seyhan",
-                    station_id: 17351 // Adana MGM
+                    station_id: 17351, // Adana MGM
+                    crop_type: "Mısır" // Matches Akdeniz region in KB
                 }
             });
         }
