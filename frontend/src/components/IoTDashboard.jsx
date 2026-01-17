@@ -275,29 +275,54 @@ const IoTDashboard = ({ farmId, dailyData }) => {
     };
 
     // Helper: Calculate Avg & Trend
-    const computeMetric = (keys, codes) => {
-        if (!summaryConfig[keys.show]) return null;
-        let total = 0, count = 0, values = [];
+    const computeMetricWithTrend = (keys, codes) => {
+        if (!summaryConfig[keys.show]) return { value: null, trend: null };
+
+        let total = 0, count = 0;
+        let trendScore = 0; // >0 up, <0 down
+
         const selected = summaryConfig[keys.list] || [];
 
         devices.forEach(d => {
             const sensor = d.sensors.find(s => codes.includes(s.code));
-            if (sensor?.telemetry?.[0]) {
-                const val = Number(sensor.telemetry[0].value);
-                if ((selected.length === 0 || selected.includes(sensor.id.toString())) && val !== null) {
-                    total += val;
+            if (sensor && sensor.telemetry && sensor.telemetry.length > 0) {
+                // Latest value
+                const latestVal = Number(sensor.telemetry[0].value);
+
+                if ((selected.length === 0 || selected.includes(sensor.id.toString())) && latestVal !== null) {
+                    total += latestVal;
                     count++;
-                    values.push(val);
+
+                    // Trend Calculation: Compare latest vs avg of previous points
+                    if (sensor.telemetry.length > 1) {
+                        // Take up to 5 previous points for stability
+                        const historyPoints = sensor.telemetry.slice(1, 6).map(t => Number(t.value));
+                        if (historyPoints.length > 0) {
+                            const avgHistory = historyPoints.reduce((a, b) => a + b, 0) / historyPoints.length;
+                            const diff = latestVal - avgHistory;
+
+                            // Threshold for trend (e.g. 0.5 change is significant)
+                            if (diff > 0.2) trendScore++;
+                            else if (diff < -0.2) trendScore--;
+                        }
+                    }
                 }
             }
         });
 
-        if (count === 0) return null;
-        return (total / count).toFixed(1);
+        if (count === 0) return { value: null, trend: null };
+
+        const avgValue = (total / count).toFixed(1);
+
+        let trend = 'stable';
+        if (trendScore > 0) trend = 'up';
+        if (trendScore < 0) trend = 'down';
+
+        return { value: avgValue, trend };
     };
 
-    const tempVal = computeMetric({ show: 'showTemp', list: 'tempSensors' }, ['t_air', 'temperature', 'temp']);
-    const humVal = computeMetric({ show: 'showHum', list: 'humSensors' }, ['h_air', 'humidity', 'hum']);
+    const tempMetric = computeMetricWithTrend({ show: 'showTemp', list: 'tempSensors' }, ['t_air', 'temperature', 'temp']);
+    const humMetric = computeMetricWithTrend({ show: 'showHum', list: 'humSensors' }, ['h_air', 'humidity', 'hum']);
     const riskCount = advice?.alerts?.length || 0;
 
     if (loading && devices.length === 0) return <div className="text-center p-5"><Spinner animation="border" variant="primary" /></div>;
@@ -353,13 +378,13 @@ const IoTDashboard = ({ farmId, dailyData }) => {
                 {/* 2. KPI GRID */}
                 <Row className="g-4 mb-4">
                     <Col lg={4} md={6}>
-                        {tempVal ? (
+                        {tempMetric.value ? (
                             <KPICard
                                 label="Ortalama Sıcaklık"
-                                value={tempVal}
+                                value={tempMetric.value}
                                 unit="°C"
                                 icon={Thermometer}
-                                trend="stable" // Todo: Real trend logic
+                                trend={tempMetric.trend}
                                 idealRange="18-28°C"
                                 gradientClass="bg-gradient-temp"
                                 delay="delay-1"
@@ -367,13 +392,13 @@ const IoTDashboard = ({ farmId, dailyData }) => {
                         ) : <KPICard label="Sıcaklık" value="--" unit="°C" icon={Thermometer} gradientClass="bg-secondary" />}
                     </Col>
                     <Col lg={4} md={6}>
-                        {humVal ? (
+                        {humMetric.value ? (
                             <KPICard
                                 label="Ortalama Nem"
-                                value={humVal}
+                                value={humMetric.value}
                                 unit="%"
                                 icon={Droplets}
-                                trend="up"
+                                trend={humMetric.trend}
                                 idealRange="40-60%"
                                 gradientClass="bg-gradient-hum"
                                 delay="delay-2"
