@@ -343,7 +343,8 @@ const CustomDashboard = () => {
     // Edit Mode State
     const [editingWidgetId, setEditingWidgetId] = useState(null);
     const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
-    const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
+
+
 
     const handleEditWidgetClick = (widget) => {
         setNewWidget({
