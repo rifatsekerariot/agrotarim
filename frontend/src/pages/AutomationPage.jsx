@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, Alert, Toast, ToastContainer } from 'react-bootstrap';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Wifi, Thermometer, Droplets, Activity, Bell, Trash2, Plus } from 'lucide-react';
+import { Wifi, Thermometer, Droplets, Activity, Bell, Trash2, Plus, Edit } from 'lucide-react';
 
 const AutomationPage = () => {
     const token = localStorage.getItem('token') || '';
@@ -11,6 +10,12 @@ const AutomationPage = () => {
     const [logs, setLogs] = useState([]);
     const [farmId, setFarmId] = useState(1); // Default farm ID 1
     const [showModal, setShowModal] = useState(false);
+
+    // Edit & Notification State
+    const [editId, setEditId] = useState(null);
+    const [showToast, setShowToast] = useState(false);
+    const [lastLogId, setLastLogId] = useState(0);
+    const [toastMessage, setToastMessage] = useState({ title: '', msg: '', variant: 'info' });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -47,7 +52,24 @@ const AutomationPage = () => {
             const logsRes = await axios.get(`/api/automation/logs/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setLogs(logsRes.data);
+            const newLogs = logsRes.data;
+            setLogs(newLogs);
+
+            // Toast Notification Logic
+            if (newLogs.length > 0) {
+                const latest = newLogs[0];
+                // If we have a new log (ID is different/larger)
+                if (lastLogId !== 0 && latest.id !== lastLogId) {
+                    setToastMessage({
+                        title: latest.rule.name,
+                        msg: `${latest.message} (${new Date(latest.createdAt).toLocaleTimeString()})`,
+                        variant: 'danger'
+                    });
+                    setShowToast(true);
+                }
+                // Update tracking ID
+                if (latest.id !== lastLogId) setLastLogId(latest.id);
+            }
         } catch (error) {
             console.error("Error fetching automation data:", error);
         }
@@ -65,7 +87,22 @@ const AutomationPage = () => {
         }
     };
 
-    const handleCreate = async () => {
+    const handleEdit = (rule) => {
+        setEditId(rule.id);
+        const action = rule.actions[0] || { type: 'NOTIFICATION', target: '' };
+        setFormData({
+            name: rule.name,
+            deviceId: rule.deviceId,
+            sensorCode: rule.sensorCode,
+            condition: rule.condition,
+            threshold: rule.threshold,
+            actionType: action.type,
+            actionTarget: action.target || ''
+        });
+        setShowModal(true);
+    };
+
+    const handleSave = async () => {
         if (!formData.name || !formData.deviceId || !formData.threshold) {
             alert("Lütfen tüm zorunlu alanları (Ad, Cihaz, Eşik Değer) doldurun.");
             return;
@@ -84,18 +121,33 @@ const AutomationPage = () => {
                 ]
             };
 
-            await axios.post('/api/automation/rules', payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            if (editId) {
+                await axios.put(`/api/automation/rules/${editId}`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            } else {
+                await axios.post('/api/automation/rules', payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            }
 
             setShowModal(false);
+            setEditId(null); // Reset edit mode
             fetchData();
             // Reset form
-            setFormData({ ...formData, name: '', threshold: '' });
+            setFormData({
+                name: '',
+                deviceId: '',
+                sensorCode: 'temperature',
+                condition: 'GREATER_THAN',
+                threshold: '',
+                actionType: 'NOTIFICATION',
+                actionTarget: ''
+            });
         } catch (error) {
-            console.error("Rule Create Error Details:", error);
+            console.error("Rule Save Error Details:", error);
             const serverError = error.response?.data?.error || error.response?.data?.details || error.message;
-            alert("Oluşturulamadı: " + JSON.stringify(serverError));
+            alert("İşlem Başarısız: " + JSON.stringify(serverError));
         }
     };
 
@@ -110,7 +162,19 @@ const AutomationPage = () => {
                     <Card className="shadow-sm mb-4">
                         <Card.Header className="bg-white d-flex justify-content-between align-items-center py-3">
                             <h5 className="mb-0">Aktif Kurallar</h5>
-                            <Button variant="primary" size="sm" onClick={() => setShowModal(true)}>
+                            <Button variant="primary" size="sm" onClick={() => {
+                                setEditId(null);
+                                setFormData({
+                                    name: '',
+                                    deviceId: '',
+                                    sensorCode: 'temperature',
+                                    condition: 'GREATER_THAN',
+                                    threshold: '',
+                                    actionType: 'NOTIFICATION',
+                                    actionTarget: ''
+                                });
+                                setShowModal(true);
+                            }}>
                                 <Plus size={18} className="me-1" /> Yeni Kural Ekle
                             </Button>
                         </Card.Header>
@@ -149,6 +213,9 @@ const AutomationPage = () => {
                                                 ))}
                                             </td>
                                             <td>
+                                                <Button variant="link" className="text-primary p-0 me-2" onClick={() => handleEdit(rule)}>
+                                                    <Edit size={18} />
+                                                </Button>
                                                 <Button variant="link" className="text-danger p-0" onClick={() => handleDelete(rule.id)}>
                                                     <Trash2 size={18} />
                                                 </Button>
@@ -182,10 +249,10 @@ const AutomationPage = () => {
                 </Col>
             </Row>
 
-            {/* Create Modal */}
+            {/* Create/Edit Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
                 <Modal.Header closeButton>
-                    <Modal.Title>Yeni Otomasyon Kuralı</Modal.Title>
+                    <Modal.Title>{editId ? 'Kuralı Düzenle' : 'Yeni Otomasyon Kuralı'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
@@ -292,10 +359,15 @@ const AutomationPage = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
-                                    <Form.Label>Hedef (Tel/Email)</Form.Label>
+                                    <Form.Label>
+                                        {formData.actionType === 'SMS' ? 'Telefon Numarası' :
+                                            formData.actionType === 'EMAIL' ? 'E-posta Adresi' :
+                                                'Hedef (Opsiyonel)'}
+                                    </Form.Label>
                                     <Form.Control
                                         type="text"
-                                        placeholder="Opsiyonel"
+                                        placeholder={formData.actionType === 'SMS' ? '5XX...' : 'ornek@email.com'}
+                                        disabled={formData.actionType === 'NOTIFICATION'}
                                         value={formData.actionTarget}
                                         onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
                                     />
@@ -306,9 +378,23 @@ const AutomationPage = () => {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>İptal</Button>
-                    <Button variant="success" onClick={handleCreate}>Kuralı Oluştur</Button>
+                    <Button variant="success" onClick={handleSave}>{editId ? 'Güncelle' : 'Kuralı Oluştur'}</Button>
                 </Modal.Footer>
             </Modal>
+
+            {/* Notification Toast */}
+            <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+                <Toast onClose={() => setShowToast(false)} show={showToast} delay={5000} autohide bg={toastMessage.variant}>
+                    <Toast.Header>
+                        <Bell size={18} className="me-2 text-danger" />
+                        <strong className="me-auto">{toastMessage.title}</strong>
+                        <small>Şimdi</small>
+                    </Toast.Header>
+                    <Toast.Body className={toastMessage.variant === 'danger' ? 'text-white' : ''}>
+                        {toastMessage.msg}
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
         </Container>
     );
 };

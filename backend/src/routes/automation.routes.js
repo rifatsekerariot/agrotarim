@@ -81,6 +81,46 @@ router.post('/rules', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/automation/rules/:id
+router.put('/rules/:id', authenticateToken, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { farmId, name, deviceId, sensorCode, condition, threshold, actions } = req.body;
+
+        const parsedThreshold = parseFloat(threshold);
+
+        // Transaction to ensure atomicity
+        const rule = await prisma.$transaction(async (tx) => {
+            // 1. Delete existing actions (Simple replacement strategy)
+            await tx.ruleAction.deleteMany({ where: { ruleId: id } });
+
+            // 2. Update Rule and Create new Actions
+            return await tx.triggerRule.update({
+                where: { id },
+                data: {
+                    name,
+                    deviceId: parseInt(deviceId),
+                    sensorCode,
+                    condition,
+                    threshold: parsedThreshold,
+                    actions: {
+                        create: actions.map(a => ({
+                            type: a.type,
+                            target: a.target
+                        }))
+                    }
+                },
+                include: { actions: true }
+            });
+        });
+
+        res.json(rule);
+    } catch (error) {
+        console.error("[Rule Update Error]", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // DELETE /api/automation/rules/:id
 router.delete('/rules/:id', authenticateToken, async (req, res) => {
     try {
