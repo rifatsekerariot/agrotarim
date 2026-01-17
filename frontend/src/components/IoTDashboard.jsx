@@ -75,46 +75,54 @@ const IoTDashboard = ({ farmId }) => {
             )}
 
             {/* MAIN STATUS GRID */}
-            <Row>
-                {devices.map(device => (
-                    <Col key={device.id} md={6} lg={4} className="mb-4">
-                        <Card className="h-100 shadow-sm border-0">
-                            <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                                <span className="fw-bold text-dark"><MapPin size={16} /> {device.name}</span>
-                                <Badge bg={device.status === 'online' ? 'success' : 'secondary'}>
-                                    {device.status === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />} {device.status}
-                                </Badge>
-                            </Card.Header>
-                            <Card.Body>
-                                <div className="d-flex justify-content-around text-center">
-                                    <div className="mb-2">
-                                        <div className="text-muted small">Hava Sıcaklığı</div>
-                                        <div className="display-6 fw-bold text-primary">
-                                            {getSensorValue(device, 't_air')}°C
+            {devices.length === 0 ? (
+                <div className="text-center p-5 text-muted">
+                    <WifiOff size={48} className="mb-3" />
+                    <h4>Henüz Sensör Verisi Yok</h4>
+                    <p>Sensörlerden veri bekleniyor veya simülatör çalışmıyor.</p>
+                </div>
+            ) : (
+                <Row>
+                    {devices.map(device => (
+                        <Col key={device.id} md={6} lg={4} className="mb-4">
+                            <Card className="h-100 shadow-sm border-0">
+                                <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                                    <span className="fw-bold text-dark"><MapPin size={16} /> {device.name}</span>
+                                    <Badge bg={device.status === 'online' ? 'success' : 'secondary'}>
+                                        {device.status === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />} {device.status}
+                                    </Badge>
+                                </Card.Header>
+                                <Card.Body>
+                                    <div className="d-flex justify-content-around text-center">
+                                        <div className="mb-2">
+                                            <div className="text-muted small">Hava Sıcaklığı</div>
+                                            <div className="display-6 fw-bold text-primary">
+                                                {getSensorValue(device, 't_air')}°C
+                                            </div>
+                                        </div>
+                                        <div className="mb-2">
+                                            <div className="text-muted small">Nem</div>
+                                            <div className="display-6 fw-bold text-info">
+                                                %{getSensorValue(device, 'h_air')}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="mb-2">
-                                        <div className="text-muted small">Nem</div>
-                                        <div className="display-6 fw-bold text-info">
-                                            %{getSensorValue(device, 'h_air')}
-                                        </div>
+                                    <hr />
+                                    <div className="d-flex justify-content-between px-3">
+                                        <span className="text-muted"><Droplets size={16} /> Toprak Nemi:</span>
+                                        <span className={`fw-bold ${parseFloat(getSensorValue(device, 'm_soil')) < 20 ? 'text-danger' : 'text-success'}`}>
+                                            %{getSensorValue(device, 'm_soil')}
+                                        </span>
                                     </div>
-                                </div>
-                                <hr />
-                                <div className="d-flex justify-content-between px-3">
-                                    <span className="text-muted"><Droplets size={16} /> Toprak Nemi:</span>
-                                    <span className={`fw-bold ${parseFloat(getSensorValue(device, 'm_soil')) < 20 ? 'text-danger' : 'text-success'}`}>
-                                        %{getSensorValue(device, 'm_soil')}
-                                    </span>
-                                </div>
-                            </Card.Body>
-                            <Card.Footer className="bg-light text-muted small text-end">
-                                Son veri: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Yok'}
-                            </Card.Footer>
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
+                                </Card.Body>
+                                <Card.Footer className="bg-light text-muted small text-end">
+                                    Son veri: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Yok'}
+                                </Card.Footer>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+            )}
         </div>
     );
 };

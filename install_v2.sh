@@ -25,4 +25,9 @@ sudo docker compose exec -T backend npx prisma db push --accept-data-loss
 echo "🌱 Seeding..."
 sudo docker compose exec -T backend node scripts/seed_crops.js
 
-echo "✅ DONE! Check dashboard now."
+# 6. Auto-Start Simulator (Background)
+echo "🤖 Starting Sensor Simulator (Background)..."
+# -d runs in detached mode (background)
+sudo docker compose exec -d backend node scripts/simulator.js
+
+echo "✅ DONE! Dashboard should now show live data."
