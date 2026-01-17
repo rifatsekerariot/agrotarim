@@ -14,23 +14,47 @@ const VerifiableAI = ({ riskData }) => {
         }
     }, [riskData, isReady]);
 
+    // Helper to remove -9999 values to avoid confusing the AI
+    const filterInvalidValues = (obj) => {
+        const clean = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value !== -9999 && value !== "-9999" && value !== null) {
+                if (typeof value === 'object' && !Array.isArray(value)) {
+                    clean[key] = filterInvalidValues(value);
+                } else {
+                    clean[key] = value;
+                }
+            }
+        }
+        return clean;
+    };
+
     const runAnalysis = () => {
+        // Clean the data first
+        const cleanData = {
+            weather: filterInvalidValues(riskData.raw_data),
+            risks: riskData.risk_report
+        };
+
         const messages = [
             {
                 role: "system",
-                content: "Sen 'AgroMeta' adında uzman bir ziraat mühendisisin. Çiftçilere hava durumu verilerine göre net, anlaşılır ve Türkçe tavsiyeler verirsin. Sana verilen JSON verilerini analiz et. Risk raporunda 'true' olan durumları ASLA göz ardı etme. Cevabını SADECE Türkçe ver."
+                content: `Sen deneyimli bir Ziraat Mühendisisin. Adın 'AgroMeta'.
+Görevin: Aşağıdaki hava durumu verilerini inceleyerek çiftçiye samimi, anlaşılır ve Türkçe tavsiyeler vermek.
+
+Kurallar:
+1. ASLA "-9999" veya "null" gibi teknik hata kodlarından bahsetme. Bu verileri görmezden gel.
+2. Çiftçi diliyle konuş (Örn: "Nem oranı iyi", "Rüzgar biraz sert" gibi).
+3. "Risk Raporu"ndaki (risks) uyarılara mutlaka dikkat et.
+4. "spraying_suitable" (İlaçlama) true ise "İlaçlama yapabilirsiniz", false ise "İlaçlama için uygun değil" de.
+5. Cevabın kısa, öz olsun ve maddeler halinde ver.`
             },
             {
                 role: "user",
-                content: `Aşağıdaki tarımsal hava durumu verilerini yorumla ve çiftçiye tavsiye ver.
-                
-                Veriler:
-                ${JSON.stringify(riskData, null, 2)}
-                
-                Lütfen şu formatta cevap ver:
-                1. Genel Durum Özeti
-                2. Risk Uyarıları (Varsa)
-                3. Çiftçi İçin Eylem Tavsiyeleri`
+                content: `İşte sahadan gelen güncel veriler:
+${JSON.stringify(cleanData, null, 2)}
+
+Bu duruma göre çiftçiye ne tavsiye edersin?`
             }
         ];
         generate(messages);

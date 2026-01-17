@@ -11,8 +11,8 @@ export const useWebLLM = () => {
     const initEngine = async () => {
         setIsLoading(true);
         try {
-            // Switching to Gemma-2b-it which is better at following instructions and support Turkish better than TinyLlama
-            const selectedModel = "gemma-2b-it-q4f32_1-MLC";
+            // Switching to Phi-3 Mini which offers better reasoning and instruction following than Gemma
+            const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
             const eng = await webllm.CreateMLCEngine(selectedModel, {
                 initProgressCallback: (report) => {
                     setProgress(report.text);
