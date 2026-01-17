@@ -343,6 +343,7 @@ const CustomDashboard = () => {
     // Edit Mode State
     const [editingWidgetId, setEditingWidgetId] = useState(null);
     const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
+    const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
 
     const handleEditWidgetClick = (widget) => {
         setNewWidget({
@@ -602,7 +603,67 @@ const CustomDashboard = () => {
 
     return (
         <Container fluid className="p-4">
+            {/* Header */}
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div className="d-flex align-items-center gap-3">
+                    <div className="bg-primary bg-opacity-10 p-3 rounded">
+                        <i className={`bi ${viewMode === 'device' ? 'bi-cpu' : 'bi-grid-1x2-fill'} text-primary fs-4`}></i>
+                    </div>
+                    <div>
+                        <h2 className="mb-0">IoT Dashboard</h2>
+                        <small className="text-muted">
+                            {viewMode === 'device' ? 'Cihaz Durumları ve İzleme' : 'Kişiselleştirilebilir Özel Panel'}
+                        </small>
+                    </div>
+                </div>
 
+                <div className="d-flex align-items-center gap-2">
+                    {/* View Switcher */}
+                    {!isEditing && (
+                        <div className="btn-group me-2" role="group">
+                            <Button variant={viewMode === 'device' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('device')}>
+                                <i className="bi bi-cpu me-1"></i> Cihazlar
+                            </Button>
+                            <Button variant={viewMode === 'custom' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('custom')}>
+                                <i className="bi bi-grid-3x3 me-1"></i> Özel Panel
+                            </Button>
+                        </div>
+                    )}
+
+                    {viewMode === 'custom' && (
+                        <>
+                            {isEditing ? (
+                                <div className="d-flex gap-2 animate-fade-in">
+                                    <Button variant="outline-danger" onClick={() => {
+                                        if (window.confirm('Değişiklikleri iptal etmek istediğinize emin misiniz?')) {
+                                            setIsEditing(false);
+                                            fetchConfig(); // Revert changes
+                                        }
+                                    }}>
+                                        <i className="bi bi-x-lg me-1"></i> İptal
+                                    </Button>
+                                    <Button variant="success" onClick={() => {
+                                        // Save is handled by state updates automatically, but we can do a final verify or just close mode
+                                        saveConfig(widgets); // Force save just in case
+                                        setIsEditing(false);
+                                    }}>
+                                        <i className="bi bi-check-lg me-1"></i> Kaydet
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="d-flex gap-2">
+                                    <Button variant="outline-dark" onClick={() => setIsEditing(true)}>
+                                        <i className="bi bi-pencil-square me-1"></i> Düzenle
+                                    </Button>
+                                    <Button variant="primary" onClick={() => setShowModal(true)}>
+                                        <i className="bi bi-plus-lg me-1"></i> Ekle
+                                    </Button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
 
             {/* Content Switch */}
             {viewMode === 'device' ? (
