@@ -1,14 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const MgmService = require('../mgm/mgm.service');
+const ExpertEngine = require('./expert/expert.engine');
 
 const AdvisorService = {
     /**
-     * Generates advice for a specific farm based on its sensors and crop type.
+     * Generates advice for a specific farm using the Expert Engine.
+     * NEW: Uses 3-Layer Architecture (Data -> Inference -> Explanation)
      */
     async generateAdvice(farmId) {
         try {
-            // 1. Fetch Farm, Devices, and Crop Profile (with Stages)
+            // === DATA LAYER: Collect All Inputs ===
+
+            // 1. Fetch Farm, Devices, and Sensors with latest telemetry
             const farm = await prisma.farm.findUnique({
                 where: { id: parseInt(farmId) },
                 include: {
@@ -26,137 +30,80 @@ const AdvisorService = {
 
             if (!farm) throw new Error("Çiftlik bulunamadı.");
 
-            // Determine Crop from Farm settings
             const cropName = farm.crop_type || "Buğday";
             const region = farm.city ? (await guessRegion(farm.city)) : "Karadeniz";
-            console.log(`DEBUG: FarmId=${farm.id}, City=${farm.city}, GuessedRegion=${region}`); // DEBUG LOG
 
-            const profile = await prisma.cropProfile.findFirst({
-                where: {
-                    name: { contains: cropName, mode: 'insensitive' },
-                    region: { contains: region, mode: 'insensitive' }
-                },
-                include: { stages: true }
-            });
+            // 2. Aggregate IoT Sensor Data
+            let soilTemp = null;
+            let soilMoisture = null;
+            let airTemp = null;
+            let airHum = null;
 
-            console.log(`DEBUG: ProfileFound=${!!profile}, Crop=${cropName}, Region=${region}`); // DEBUG LOG
-
-            if (!profile) return {
-                crop: cropName,
-                raw_crop: farm.crop_type,
-                city: farm.city,
-                summary: `"${cropName}" (${region}) için detaylı veri bulunamadı.`,
-                alerts: [],
-                actions: ["Veri tabanında bu ürün/bölge için model tanımlanmamış."]
-            };
-
-            // 2. Determine Current Stage (Simplified by Month)
-            const currentMonth = new Date().getMonth() + 1; // 1-12
-            let currentStage = null;
-            const seasonStages = {
-                "Filizlenme": [3, 4, 5],
-                "Ekim": [3, 4, 5],
-                "Büyüme": [6, 7],
-                "Olgunlaşma": [7, 8],
-                "Hasat": [8, 9, 10],
-                "Kış": [11, 12, 1, 2]
-            };
-
-            for (const stage of profile.stages) {
-                if (stage.name === "Genel") currentStage = stage;
-                for (const [key, months] of Object.entries(seasonStages)) {
-                    if (months.includes(currentMonth) && stage.name.includes(key)) {
-                        currentStage = stage;
-                        break;
+            farm.devices.forEach(device => {
+                device.sensors.forEach(sensor => {
+                    if (sensor.telemetry.length > 0) {
+                        const val = sensor.telemetry[0].value;
+                        if (sensor.code === 't_soil') soilTemp = val;
+                        if (sensor.code === 'm_soil') soilMoisture = val;
+                        if (sensor.code === 't_air') airTemp = val;
+                        if (sensor.code === 'h_air') airHum = val;
                     }
-                }
-            }
-            if (!currentStage && profile.stages.length > 0) currentStage = profile.stages[0];
-
-            if (!currentStage) return {
-                crop: profile.name,
-                summary: "Şu anki tarih için uygun evre bulunamadı.",
-                alerts: [],
-                actions: []
-            };
-
-            // 3. HYBRID ANALYSIS: IoT + MGM
-            const alerts = [];
-            const actions = [];
-            let avgTemp = 0;
-            let tempCount = 0;
-
-            // 3a. IoT Sensor Check
-            farm.devices.forEach(d => {
-                const tSensor = d.sensors.find(s => s.code === 't_air');
-                if (tSensor && tSensor.telemetry.length > 0) {
-                    avgTemp += tSensor.telemetry[0].value;
-                    tempCount++;
-                }
+                });
             });
-            if (tempCount > 0) avgTemp /= tempCount;
 
-            if (tempCount > 0 && currentStage) {
-                if (currentStage.idealMax && avgTemp > currentStage.idealMax) {
-                    alerts.push({ level: 'warning', msg: `${currentStage.name} evresi için sıcaklık yüksek (${avgTemp.toFixed(1)}°C).` });
-                    actions.push("Sulama sıklığını artırmayı düşünün.");
-                }
-                if (currentStage.minTemp && avgTemp < currentStage.minTemp) {
-                    alerts.push({ level: 'critical', msg: `❄️ DON RİSKİ: Sıcaklık (${avgTemp.toFixed(1)}°C) ${currentStage.name} limiti altında!` });
-                }
-            }
+            // 3. Fetch Weather Forecast (MGM)
+            let minTempForecast = null;
+            let maxTempForecast = null;
+            let rainForecast = 0;
 
-            // 3b. MGM Forecast Check
             if (farm.station_id) {
                 try {
-                    // Check if MgmService is imported correctly
-                    if (MgmService && typeof MgmService.getDailyForecast === 'function') {
-                        const forecast = await MgmService.getDailyForecast(farm.station_id);
-                        const rainyDays = forecast.filter(f => f.hadise.code.includes('Y') || f.hadise.code.includes('S'));
-
-                        if (currentStage.conditions) {
-                            const cond = currentStage.conditions.toLowerCase();
-                            if ((cond.includes("kuru") || cond.includes("hasat")) && rainyDays.length > 0) {
-                                alerts.push({ level: 'danger', msg: `🌧️ HASAT RİSKİ: ${rainyDays.length} gün içinde yağış bekleniyor!` });
-                            }
-                            if ((cond.includes("sulama") || cond.includes("su")) && rainyDays.length > 0) {
-                                actions.push(`🌧️ Yağış beklendiği (${rainyDays.length} gün) için sulamayı erteleyebilirsiniz.`);
-                            }
-                        }
-                    } else {
-                        console.warn("MgmService not available or invalid.");
+                    const forecast = await MgmService.getDailyForecast(farm.station_id);
+                    if (forecast && forecast.length > 0) {
+                        minTempForecast = forecast[0].enDusukGun1;
+                        maxTempForecast = forecast[0].enYuksekGun1;
                     }
                 } catch (e) {
-                    console.log("MGM Forecast fetch failed inside Advisor:", e.message);
+                    console.log("MGM Forecast fetch failed in Advisor:", e.message);
                 }
             }
 
-            // 4. Construct Dynamic Summary
-            let summary = `${profile.region}, ${profile.name} (${currentStage.name}) analiz edildi. `;
-
-            if (alerts.length === 0 && actions.length === 0) {
-                summary += "Şu an için her şey yolunda. Sensör verileri ve hava durumu tahminleri ideal aralıkta görünüyor.";
-                if (currentStage.name === 'Genel') {
-                    summary += " (Genel evre için varsayılan limitler kullanıldı).";
+            // === INFERENCE LAYER: Call Expert Engine ===
+            const context = {
+                crop: cropName,
+                weather: {
+                    temp: airTemp || 15, // Fallback if no sensor
+                    hum: airHum || 50,
+                    wind: 0, // TODO: Add wind sensor or fetch from MGM
+                    rain: rainForecast
+                },
+                forecast: {
+                    minTemp: minTempForecast,
+                    maxTemp: maxTempForecast
+                },
+                soil: {
+                    temp: soilTemp,
+                    moisture: soilMoisture
                 }
-            } else if (alerts.some(a => a.level === 'critical')) {
-                summary = `⚠️ DİKKAT! ${profile.name} ürününüz için KRİTİK riskler tespit edildi. Lütfen aşağıdaki uyarıları dikkate alınız.`;
-            } else if (alerts.length > 0) {
-                summary = `Bazı riskler ve uyarılar mevcut. Özellikle hava durumu ve sulama önerilerini kontrol etmelisiniz.`;
-            }
+            };
 
+            const result = ExpertEngine.analyze(context);
+
+            // === EXPLANATION LAYER: Format for Frontend ===
             return {
-                crop: `${profile.name} (${currentStage.name})`,
-                raw_crop: farm.crop_type, // For Frontend Dropdown
-                city: farm.city,         // For Frontend Dropdown
-                summary,
-                alerts,
-                actions
+                crop: `${cropName} (${region})`,
+                raw_crop: farm.crop_type,
+                city: farm.city,
+                summary: result.summary,
+                riskLevel: result.riskLevel,
+                riskScore: result.riskScore,
+                alerts: result.alerts,
+                actions: result.actions,
+                details: result.details // GDD, breakdown
             };
 
         } catch (error) {
             console.error("Advisor Error:", error);
-            // Return ACTUAL error message for debugging
             return {
                 alerts: [{ level: 'danger', msg: `HATA: ${error.message}` }],
                 actions: [],

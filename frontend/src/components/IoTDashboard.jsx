@@ -231,10 +231,10 @@ const IoTDashboard = ({ farmId }) => {
                 </Col>
             </Row>
 
-            {/* 3. HERO AI SECTION */}
+            {/* 3. HERO AI SECTION - Enhanced with Expert Data */}
             {advice && (
                 <Card className="mb-4 border-0 shadow-sm overflow-hidden">
-                    <div className={`p-1 ${advice.alerts?.some(a => a.level === 'critical') ? 'bg-danger' : 'bg-success'}`} />
+                    <div className={`p-1 ${advice.riskLevel === 'KRİTİK' || advice.riskLevel === 'YÜKSEK' ? 'bg-danger' : 'bg-success'}`} />
                     <Card.Body className="p-4">
                         <Row className="align-items-center">
                             <Col md={8}>
@@ -246,10 +246,29 @@ const IoTDashboard = ({ farmId }) => {
                                         <h4 className="fw-bold mb-0 text-dark">AgroZeka Asistanı</h4>
                                         <small className="text-muted">
                                             {selectedCrop} ({selectedCity}) Analiz Raporu
-                                            {advice.summary?.includes("analiz ediliyor") && <Badge bg="info" className="ms-2">Hybrid Analiz</Badge>}
+                                            <Badge bg="info" className="ms-2">Kural Tabanlı Çıkarım</Badge>
                                         </small>
                                     </div>
                                 </div>
+
+                                {/* Risk Score & Growth Status Row */}
+                                <Row className="mb-3">
+                                    <Col>
+                                        <div className="small text-muted">Risk Seviyesi</div>
+                                        <Badge bg={advice.riskLevel === 'DÜŞÜK' ? 'success' : advice.riskLevel === 'ORTA' ? 'warning' : 'danger'} className="fs-6 px-3 py-2">
+                                            {advice.riskLevel || 'BELİRSİZ'} ({advice.riskScore || 0} Puan)
+                                        </Badge>
+                                    </Col>
+                                    {advice.details && (
+                                        <Col>
+                                            <div className="small text-muted">Büyüme Durumu</div>
+                                            <Badge bg="secondary" className="fs-6 px-3 py-2">
+                                                {advice.details.growthState} (GDD: {advice.details.gdd?.toFixed(1)})
+                                            </Badge>
+                                        </Col>
+                                    )}
+                                </Row>
+
                                 <p className="lead text-dark mb-4">
                                     "{advice.summary}"
                                 </p>
@@ -267,10 +286,22 @@ const IoTDashboard = ({ farmId }) => {
                                         </Badge>
                                     ))}
                                 </div>
+
+                                {/* Scoring Breakdown (Optional) */}
+                                {advice.details?.breakdown && (
+                                    <details className="mt-3">
+                                        <summary className="text-muted small" style={{ cursor: 'pointer' }}>🔍 Puanlama Detayları (Veri Kaynakları)</summary>
+                                        <ul className="mt-2 mb-0 small">
+                                            {advice.details.breakdown.map((b, i) => (
+                                                <li key={i}><strong>{b.msg}</strong>: +{b.points} Puan (Kod: {b.code})</li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                )}
                             </Col>
                             <Col md={4} className="text-center border-start opacity-75 d-none d-md-block">
                                 <Activity size={64} className="text-success mb-2" />
-                                <div className="text-muted small">Canlı Veri Akışı Aktif</div>
+                                <div className="text-muted small">Deterministik Analiz Motoru</div>
                             </Col>
                         </Row>
                     </Card.Body>
