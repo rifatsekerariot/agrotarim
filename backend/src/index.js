@@ -7,6 +7,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Fix: Handle BigInt serialization for Prisma (Telemetry IDs)
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+}
+
 // Middleware
 app.use(helmet());
 app.use(cors({
