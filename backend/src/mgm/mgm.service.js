@@ -89,8 +89,32 @@ const MgmService = {
     },
 
     getMeteoWarnings: async (centerId) => {
-        // centerId is used for meteo warnings (province/district id), not stationId
-        return makeRequest('/meteoalarm/towns', { id: centerId });
+        // Correct logic based on legacy code:
+        // 1. Fetch all active warnings for today
+        const warnings = await makeRequest('/meteoalarm/today');
+
+        const centerIdInt = parseInt(centerId);
+        const myWarnings = [];
+
+        if (!warnings || !Array.isArray(warnings)) return [];
+
+        // 2. Iterate and check if our centerId is in district lists
+        for (const w of warnings) {
+            // Check Yellow
+            if (w.towns && w.towns.yellow && w.towns.yellow.includes(centerIdInt)) {
+                myWarnings.push({ ...w, renkKod: 'sar', derece: 'Sarı' });
+            }
+            // Check Orange
+            if (w.towns && w.towns.orange && w.towns.orange.includes(centerIdInt)) {
+                myWarnings.push({ ...w, renkKod: 'tur', derece: 'Turuncu' });
+            }
+            // Check Red
+            if (w.towns && w.towns.red && w.towns.red.includes(centerIdInt)) {
+                myWarnings.push({ ...w, renkKod: 'kirm', derece: 'Kırmızı' });
+            }
+        }
+
+        return myWarnings;
     }
 };
 
