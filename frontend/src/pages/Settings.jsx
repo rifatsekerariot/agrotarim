@@ -388,6 +388,17 @@ const Settings = () => {
                     </Card>
                 </Tab>
 
+                {/* ========== SMS PROVIDERS TAB ========== */}
+                <Tab eventKey="sms" title={<><MessageSquare size={16} className="me-2" />SMS Providers ({smsProviders.length})</>}>
+                    <SmsProvidersTab
+                        providers={smsProviders}
+                        onEdit={handleEditSmsProvider}
+                        onDelete={handleDeleteSmsProvider}
+                        onTest={handleTestSmsProvider}
+                        loading={loading}
+                        onAdd={() => alert('SMS Provider ekleme özelliği yakında eklenecek')}
+                    />
+                </Tab>
 
             </Tabs>
 
