@@ -250,6 +250,7 @@ const CustomDashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [devices, setDevices] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [viewMode, setViewMode] = useState('device'); // 'device' or 'custom'
 
     const farmId = 1;
 
@@ -283,6 +284,7 @@ const CustomDashboard = () => {
     const fetchLiveData = async () => {
         const res = await fetch('/api/devices');
         const data = await res.json();
+        setDevices(data); // Update devices for Device View
         const telMap = {};
 
         data.forEach(d => {
@@ -370,71 +372,190 @@ const CustomDashboard = () => {
         }
     };
 
+    // Calculate time since last seen
+    const getTimeSince = (lastSeen) => {
+        if (!lastSeen) return 'Hiç bağlanmadı';
+        const diff = Date.now() - new Date(lastSeen).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Şimdi';
+        if (mins < 60) return `${mins} dk önce`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours} saat önce`;
+        return `${Math.floor(hours / 24)} gün önce`;
+    };
+
+    // Device Card Component for Device View
+    const DeviceCard = ({ device }) => {
+        const deviceTelemetry = telemetry[device.id] || {};
+        const isOnline = device.status === 'online';
+
+        return (
+            <Card className={`h-100 shadow-sm border-0 ${isOnline ? '' : 'opacity-75'}`}>
+                <Card.Header className={`d-flex justify-content-between align-items-center py-2 ${isOnline ? 'bg-success text-white' : 'bg-secondary text-white'}`}>
+                    <div className="d-flex align-items-center gap-2">
+                        <i className={`bi ${device.deviceModel?.category === 'soil' ? 'bi-moisture' : device.deviceModel?.category === 'weather' ? 'bi-cloud-sun' : 'bi-thermometer-half'}`}></i>
+                        <span className="fw-medium">{device.name}</span>
+                    </div>
+                    <Badge bg={isOnline ? 'light' : 'dark'} text={isOnline ? 'success' : 'white'} className="small">
+                        {isOnline ? '● Online' : '○ Offline'}
+                    </Badge>
+                </Card.Header>
+                <Card.Body className="p-3">
+                    {device.sensors.length === 0 ? (
+                        <div className="text-center text-muted small py-3">
+                            <i className="bi bi-inbox fs-4 d-block mb-2"></i>
+                            Sensör verisi yok
+                        </div>
+                    ) : (
+                        <div className="row g-2">
+                            {device.sensors.map(sensor => {
+                                const data = deviceTelemetry[sensor.code];
+                                return (
+                                    <div key={sensor.id} className="col-6">
+                                        <div className="bg-light rounded p-2 text-center">
+                                            <div className="small text-muted text-truncate">{sensor.name || sensor.code}</div>
+                                            <div className="fs-5 fw-bold text-primary">
+                                                {data ? data.value.toFixed(1) : '--'}
+                                                <span className="fs-6 text-secondary ms-1">{sensor.unit}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </Card.Body>
+                <Card.Footer className="bg-light border-0 py-2 d-flex justify-content-between align-items-center">
+                    <small className="text-muted">
+                        <i className="bi bi-clock me-1"></i>{getTimeSince(device.lastSeen)}
+                    </small>
+                    {device.batteryLevel && (
+                        <Badge bg={device.batteryLevel > 20 ? 'success' : 'danger'}>
+                            <i className="bi bi-battery-half me-1"></i>{device.batteryLevel}%
+                        </Badge>
+                    )}
+                </Card.Footer>
+            </Card>
+        );
+    };
+
     return (
         <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="text-primary"><i className="bi bi-grid-1x2-fill"></i> Özel Dashboard Tasarımı</h2>
-                <Button variant="success" onClick={() => setShowModal(true)}>
-                    <i className="bi bi-plus-lg"></i> Yeni Bileşen Ekle
-                </Button>
+            {/* Modern Header */}
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div className="d-flex align-items-center gap-3">
+                    <div className="bg-primary bg-opacity-10 p-3 rounded">
+                        <i className="bi bi-grid-1x2-fill text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h2 className="mb-0">IoT Dashboard</h2>
+                        <small className="text-muted">{devices.length} cihaz • Canlı veri</small>
+                    </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                    {/* View Mode Toggle */}
+                    <div className="btn-group" role="group">
+                        <Button
+                            variant={viewMode === 'device' ? 'primary' : 'outline-primary'}
+                            onClick={() => setViewMode('device')}
+                            className="d-flex align-items-center gap-1"
+                        >
+                            <i className="bi bi-cpu"></i> Cihazlar
+                        </Button>
+                        <Button
+                            variant={viewMode === 'custom' ? 'primary' : 'outline-primary'}
+                            onClick={() => setViewMode('custom')}
+                            className="d-flex align-items-center gap-1"
+                        >
+                            <i className="bi bi-grid-3x3"></i> Özel Panel
+                        </Button>
+                    </div>
+
+                    {viewMode === 'custom' && (
+                        <Button variant="success" onClick={() => setShowModal(true)}>
+                            <i className="bi bi-plus-lg me-1"></i> Widget Ekle
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            <Row>
-                {widgets.length === 0 ? (
-                    <div className="text-center text-muted p-5">
-                        <h4>Henüz bir bileşen eklemediniz.</h4>
-                        <p>Sağ üstteki butonu kullanarak göstergeler eklemeye başlayın.</p>
-                    </div>
-                ) : widgets.map(w => {
-                    const devData = telemetry[w.deviceId] || {};
-                    const sensorData = devData[w.sensorCode];
-                    const val = sensorData ? sensorData.value : null;
-                    const ts = sensorData ? sensorData.ts : null;
-                    const unit = sensorData ? sensorData.unit : '';
-
-                    const colWidth = w.width || 4;
-
-                    return (
-                        <Col key={w.id} md={colWidth} className="mb-4">
-                            <div style={{ position: 'relative', height: '100%' }}>
-                                <div style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.9 }} className="d-flex gap-1">
-                                    <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Küçült"
-                                        onClick={() => resizeWidget(w.id, -1)} disabled={colWidth <= 3}>
-                                        <i className="bi bi-dash-lg fw-bold"></i>
-                                    </Button>
-                                    <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Büyüt"
-                                        onClick={() => resizeWidget(w.id, 1)} disabled={colWidth >= 12}>
-                                        <i className="bi bi-plus-lg fw-bold"></i>
-                                    </Button>
-                                    <Button size="sm" variant="danger" className="shadow-sm py-0 px-2"
-                                        onClick={() => removeWidget(w.id)}>
-                                        <i className="bi bi-x-lg"></i>
-                                    </Button>
-                                </div>
-
-                                {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
-                                {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title || w.sensorCode} />}
-                                {w.type === 'chart' && (
-                                    <WidgetChart
-                                        deviceSerial={w.serialNumber}
-                                        sensorCode={w.sensorCode}
-                                        title={w.title}
-                                        unit={unit}
-                                    />
-                                )}
-                                {w.type === 'map' && (
-                                    <WidgetMap
-                                        widget={w}
-                                        devices={devices}
-                                        telemetry={telemetry}
-                                        onUpdate={handleWidgetUpdate}
-                                    />
-                                )}
-                            </div>
+            {/* Device View Mode */}
+            {viewMode === 'device' && (
+                <Row>
+                    {devices.length === 0 ? (
+                        <div className="text-center text-muted p-5">
+                            <i className="bi bi-cpu fs-1 d-block mb-3 opacity-50"></i>
+                            <h4>Henüz cihaz eklenmemiş</h4>
+                            <p>Ayarlar sayfasından yeni cihaz ekleyin.</p>
+                        </div>
+                    ) : devices.map(device => (
+                        <Col key={device.id} lg={4} md={6} className="mb-4">
+                            <DeviceCard device={device} />
                         </Col>
-                    );
-                })}
-            </Row>
+                    ))}
+                </Row>
+            )}
+
+            {/* Custom Widget View Mode */}
+            {viewMode === 'custom' && (
+                <Row>
+                    {widgets.length === 0 ? (
+                        <div className="text-center text-muted p-5">
+                            <h4>Henüz bir bileşen eklemediniz.</h4>
+                            <p>Sağ üstteki butonu kullanarak göstergeler eklemeye başlayın.</p>
+                        </div>
+                    ) : widgets.map(w => {
+                        const devData = telemetry[w.deviceId] || {};
+                        const sensorData = devData[w.sensorCode];
+                        const val = sensorData ? sensorData.value : null;
+                        const ts = sensorData ? sensorData.ts : null;
+                        const unit = sensorData ? sensorData.unit : '';
+
+                        const colWidth = w.width || 4;
+
+                        return (
+                            <Col key={w.id} md={colWidth} className="mb-4">
+                                <div style={{ position: 'relative', height: '100%' }}>
+                                    <div style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.9 }} className="d-flex gap-1">
+                                        <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Küçült"
+                                            onClick={() => resizeWidget(w.id, -1)} disabled={colWidth <= 3}>
+                                            <i className="bi bi-dash-lg fw-bold"></i>
+                                        </Button>
+                                        <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Büyüt"
+                                            onClick={() => resizeWidget(w.id, 1)} disabled={colWidth >= 12}>
+                                            <i className="bi bi-plus-lg fw-bold"></i>
+                                        </Button>
+                                        <Button size="sm" variant="danger" className="shadow-sm py-0 px-2"
+                                            onClick={() => removeWidget(w.id)}>
+                                            <i className="bi bi-x-lg"></i>
+                                        </Button>
+                                    </div>
+
+                                    {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
+                                    {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title || w.sensorCode} />}
+                                    {w.type === 'chart' && (
+                                        <WidgetChart
+                                            deviceSerial={w.serialNumber}
+                                            sensorCode={w.sensorCode}
+                                            title={w.title}
+                                            unit={unit}
+                                        />
+                                    )}
+                                    {w.type === 'map' && (
+                                        <WidgetMap
+                                            widget={w}
+                                            devices={devices}
+                                            telemetry={telemetry}
+                                            onUpdate={handleWidgetUpdate}
+                                        />
+                                    )}
+                                </div>
+                            </Col>
+                        );
+                    })}
+                </Row>
+            )}
 
             <Modal show={showModal} onHide={() => setShowModal(false)}>
                 <Modal.Header closeButton>

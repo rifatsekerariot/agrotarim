@@ -49,9 +49,13 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!', details: err.message });
 });
 
-// Initialize MQTT Service
+// Initialize MQTT Service (Local broker)
 const mqttService = require('./services/mqtt.service');
 mqttService.connect();
+
+// Initialize ChirpStack MQTT Service (LoRaWAN servers)
+const chirpStackService = require('./services/chirpstack.service');
+chirpStackService.initialize();
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
