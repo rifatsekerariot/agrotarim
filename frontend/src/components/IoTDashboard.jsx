@@ -68,20 +68,35 @@ const IoTDashboard = ({ farmId }) => {
             {error && <Alert variant="danger">{error}</Alert>}
 
             {/* EXPERT ADVICE SECTION */}
-            {advice && advice.alerts && (advice.alerts.length > 0 || (advice.actions && advice.actions.length > 0)) && (
-                <Card className="mb-4 border-0 shadow-sm" style={{ borderLeft: "5px solid #ffc107" }}>
+            {advice && (
+                <Card className="mb-4 border-0 shadow-sm" style={{ borderLeft: `5px solid ${advice.alerts?.some(a => a.level === 'critical') ? '#dc3545' : advice.alerts?.length > 0 ? '#ffc107' : '#198754'}` }}>
                     <Card.Body>
                         <h5 className="text-dark fw-bold">🤖 AgroZeka Asistanı: {advice.crop}</h5>
                         <p className="text-muted small mb-2">{advice.summary}</p>
                         <hr />
-                        {advice.alerts.map((alert, idx) => (
-                            <Alert key={idx} variant={alert.level === 'critical' ? 'danger' : alert.level} className="mb-2 py-2">
+
+                        {/* Alerts */}
+                        {advice.alerts && advice.alerts.map((alert, idx) => (
+                            <Alert key={idx} variant={alert.level === 'critical' ? 'danger' : 'warning'} className="mb-2 py-2">
                                 <strong>DİKKAT:</strong> {alert.msg}
                             </Alert>
                         ))}
+
+                        {/* Actions */}
                         {advice.actions && advice.actions.map((act, idx) => (
-                            <div key={idx} className="text-success fw-bold"><i className="bi bi-check-circle"></i> {act}</div>
+                            <div key={idx} className="text-success fw-bold mb-1"><i className="bi bi-check-circle"></i> {act}</div>
                         ))}
+
+                        {/* Empty State (Optimal) */}
+                        {(!advice.alerts || advice.alerts.length === 0) && (!advice.actions || advice.actions.length === 0) && (
+                            <div className="text-success d-flex align-items-center">
+                                <i className="bi bi-shield-check fs-4 me-2"></i>
+                                <div>
+                                    <strong>Durum Stabil:</strong> Şu an için bitki gelişimi ideal koşullarda devam ediyor.
+                                    <div className="small text-muted">Mevcut evre için risk tespit edilmedi.</div>
+                                </div>
+                            </div>
+                        )}
                     </Card.Body>
                 </Card>
             )}
