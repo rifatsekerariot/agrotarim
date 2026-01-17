@@ -21,6 +21,18 @@ fi
 echo "✅ Schema updated successfully"
 echo ""
 
+# Step 1.5: Regenerate Prisma Client
+echo "🔨 Regenerating Prisma Client..."
+sudo docker compose exec backend npx prisma generate
+
+if [ $? -ne 0 ]; then
+    echo "❌ Prisma Client generation failed!"
+    exit 1
+fi
+
+echo "✅ Prisma Client regenerated successfully"
+echo ""
+
 # Step 2: Seed SMS providers
 echo "🌱 Seeding SMS providers..."
 sudo docker compose exec backend node seed_sms_providers.js
