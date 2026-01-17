@@ -18,7 +18,7 @@ const Settings = () => {
 
     // Form States
     const [deviceForm, setDeviceForm] = useState({ name: '', serialNumber: '', devEui: '', deviceModelId: '', loraServerId: '', latitude: '', longitude: '' });
-    const [serverForm, setServerForm] = useState({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
+    const [serverForm, setServerForm] = useState({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
     const [modelForm, setModelForm] = useState({ brand: '', model: '', category: '', decoderType: 'milesight', sensorTemplate: [] });
 
     const [editingId, setEditingId] = useState(null);
@@ -128,7 +128,7 @@ const Settings = () => {
                 alert(editingId ? '✅ Sunucu güncellendi!' : '✅ Sunucu eklendi!');
                 setShowServerModal(false);
                 setEditingId(null);
-                setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
+                setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
                 fetchAll();
             } else {
                 const error = await res.json();
@@ -274,7 +274,7 @@ const Settings = () => {
                     <Card className="border-0 shadow-sm">
                         <Card.Header className="bg-white d-flex justify-content-between align-items-center">
                             <span className="fw-bold">ChirpStack / LoRaWAN Sunucuları</span>
-                            <Button size="sm" variant="success" onClick={() => { setEditingId(null); setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false }); setShowServerModal(true); }}>
+                            <Button size="sm" variant="success" onClick={() => { setEditingId(null); setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false }); setShowServerModal(true); }}>
                                 <Plus size={16} className="me-1" /> Yeni Sunucu
                             </Button>
                         </Card.Header>
@@ -485,10 +485,20 @@ const Settings = () => {
                                 </Form.Group>
                             </Col>
                         </Row>
-                        <Form.Group className="mb-3">
-                            <Form.Label>API Key (Token)</Form.Label>
-                            <Form.Control value={serverForm.apiKey || ''} onChange={e => setServerForm({ ...serverForm, apiKey: e.target.value })} placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp..." />
-                        </Form.Group>
+                        <Row>
+                            <Col md={8}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>API Key (Token)</Form.Label>
+                                    <Form.Control value={serverForm.apiKey || ''} onChange={e => setServerForm({ ...serverForm, apiKey: e.target.value })} placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp..." />
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Tenant ID</Form.Label>
+                                    <Form.Control value={serverForm.tenantId || ''} onChange={e => setServerForm({ ...serverForm, tenantId: e.target.value })} placeholder="v4 UUID" />
+                                </Form.Group>
+                            </Col>
+                        </Row>
 
                         <hr />
                         <h6>Bağlantı Ayarları</h6>
