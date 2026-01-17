@@ -269,6 +269,30 @@ const CustomDashboard = () => {
     const [selectedDeviceSensors, setSelectedDeviceSensors] = useState([]);
     const [telemetry, setTelemetry] = useState({});
 
+    // Edit Mode State
+    const [editingWidgetId, setEditingWidgetId] = useState(null);
+
+    const handleEditWidgetClick = (widget) => {
+        setNewWidget({
+            type: widget.type,
+            deviceId: widget.deviceId,
+            sensorCode: widget.sensorCode || '',
+            sensorCodes: widget.sensorCodes || [],
+            title: widget.title || '',
+            deviceName: widget.deviceName || '',
+            serialNumber: widget.serialNumber || ''
+        });
+
+        // Also update selected sensors UI logic
+        const dev = devices.find(d => d.id == widget.deviceId);
+        if (dev) {
+            setSelectedDeviceSensors(dev.sensors.map(s => s.code));
+        }
+
+        setEditingWidgetId(widget.id);
+        setShowModal(true);
+    };
+
     // ... (UseEffect and Fetch functions remain same as existing code, keeping them for brevity if not changing logic) ...
     // NOTE: In a real scenario I would duplicate them to be safe, but for this edit I will assume they are preserved or I will re-include them if I am replacing the whole block.
     // To ensure safety, I will include the full component logic.
@@ -349,6 +373,26 @@ const CustomDashboard = () => {
     };
 
     const handleAddWidget = () => {
+        if (editingWidgetId) {
+            // Update existing widget
+            const updatedWidgets = widgets.map(w => {
+                if (w.id === editingWidgetId) {
+                    return {
+                        ...w,
+                        ...newWidget,
+                        // Maintain resizing unless manually reset?
+                        // For now, let's allow type change to reset size logic if complex
+                    };
+                }
+                return w;
+            });
+            setWidgets(updatedWidgets);
+            saveConfig(updatedWidgets);
+            setShowModal(false);
+            setEditingWidgetId(null);
+            return;
+        }
+
         const id = Date.now().toString();
         let finalType = newWidget.type;
 
@@ -599,7 +643,7 @@ const CustomDashboard = () => {
                                         type={w.type}
                                         title={w.title || w.deviceName}
                                         onRemove={() => removeWidget(w.id)}
-                                        onEdit={() => console.log('Edit', w.id)}
+                                        onEdit={() => handleEditWidgetClick(w)}
                                     >
                                         {WidgetComp ? (
                                             <WidgetComp data={{
@@ -862,11 +906,11 @@ const CustomDashboard = () => {
 
                 </Modal.Body>
                 <Modal.Footer className="border-0 pt-0">
-                    <Button variant="link" className="text-muted text-decoration-none" onClick={() => setShowModal(false)}>İptal</Button>
+                    <Button variant="link" className="text-muted text-decoration-none" onClick={() => { setShowModal(false); setEditingWidgetId(null); }}>İptal</Button>
                     <Button variant="primary" className="px-4"
                         disabled={newWidget.type !== 'map' && (!newWidget.deviceId || newWidget.sensorCodes.length === 0)}
                         onClick={handleAddWidget}>
-                        Widget Ekle
+                        {editingWidgetId ? 'Güncelle' : 'Widget Ekle'}
                     </Button>
                 </Modal.Footer>
             </Modal>
