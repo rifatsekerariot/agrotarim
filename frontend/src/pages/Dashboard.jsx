@@ -121,21 +121,7 @@ const Dashboard = () => {
 
     return (
         <Container className="py-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="mb-0 text-success fw-bold">
-                    <i className="bi bi-flower1"></i> AgroMeta
-                    <span className="fs-6 ms-2 badge bg-success text-white">PRO</span>
-                </h1>
-                <div>
-                    <Button variant="outline-success" className="me-2" onClick={() => navigate('/custom')}>
-                        <i className="bi bi-grid-1x2-fill"></i> Özel Panel
-                    </Button>
-                    <Button variant="outline-primary" className="me-2" onClick={() => navigate('/settings')}>
-                        <i className="bi bi-gear-fill"></i> Ayarlar
-                    </Button>
-                    <Button variant="outline-danger" onClick={handleLogout}>Çıkış Yap</Button>
-                </div>
-            </div>
+
 
             <Tabs
                 activeKey={activeTab}
