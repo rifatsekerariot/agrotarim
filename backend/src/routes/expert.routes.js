@@ -25,7 +25,11 @@ router.post('/:farmId/config', async (req, res) => {
 
         const updateData = {};
         if (crop) updateData.crop_type = crop;
-        if (city) updateData.city = city;
+        if (city) {
+            updateData.city = city;
+            // Also update station_id for MGM forecasts
+            updateData.station_id = getStationIdForCity(city);
+        }
 
         await prisma.farm.update({
             where: { id: parseInt(farmId) },
@@ -38,6 +42,30 @@ router.post('/:farmId/config', async (req, res) => {
         res.status(500).json({ error: "Ayarlar güncellenemedi" });
     }
 });
+
+// Helper: Map cities to MGM station IDs
+function getStationIdForCity(city) {
+    const stationMap = {
+        'Adana': 17351,
+        'Ankara': 17130,
+        'Antalya': 17300,
+        'Bursa': 17116,
+        'Diyarbakır': 17280,
+        'İstanbul': 17064,
+        'İzmir': 17220,
+        'Konya': 17244,
+        'Trabzon': 17038,
+        'Samsun': 17030,
+        'Gaziantep': 17261,
+        'Şanlıurfa': 17270,
+        'Mersin': 17340,
+        'Hatay': 17372,
+        'Ardahan': 17045,
+        'Rize': 17040,
+        'Ordu': 17033
+    };
+    return stationMap[city] || null;
+}
 
 // GET Dashboard Layout
 router.get('/:farmId/dashboard', async (req, res) => {
