@@ -1,11 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+require('dotenv').config(); // Load environment variables
 
 const prisma = new PrismaClient();
 
 async function main() {
     const username = 'admin';
-    const password = 'Adana4455*';
+    const password = '12345'; // Default requested password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.upsert({
