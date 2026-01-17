@@ -344,18 +344,19 @@ const IoTDashboard = ({ farmId }) => {
 
                                 <p className="text-secondary lead fs-6 mb-4">{advice?.summary || 'Veriler toplanıyor...'}</p>
 
-                                <h6 className="text-muted fw-bold small text-uppercase mb-3">Tamamlanan İşlemler</h6>
-                                <div className="d-flex gap-3 overflow-auto pb-2">
-                                    <div className="d-flex align-items-center gap-2 px-3 py-2 bg-light rounded-pill border text-muted small text-nowrap">
-                                        <CheckCircle size={14} className="text-success" /> Sulama Planı Hazır
-                                    </div>
-                                    <div className="d-flex align-items-center gap-2 px-3 py-2 bg-light rounded-pill border text-muted small text-nowrap">
-                                        <CheckCircle size={14} className="text-success" /> Sensör Kalibrasyonu
-                                    </div>
-                                    <div className="d-flex align-items-center gap-2 px-3 py-2 bg-light rounded-pill border text-muted small text-nowrap">
-                                        <CheckCircle size={14} className="text-success" /> Günlük Yedekleme
-                                    </div>
-                                </div>
+                                {/* Dinamik 'Tamamlanan İşlemler' (Backend eklendiğinde açılacak) */}
+                                {advice?.actions && advice.actions.length > 0 && (
+                                    <>
+                                        <h6 className="text-muted fw-bold small text-uppercase mb-3">Tamamlanan İşlemler</h6>
+                                        <div className="d-flex gap-3 overflow-auto pb-2">
+                                            {advice.actions.map((action, idx) => (
+                                                <div key={idx} className="d-flex align-items-center gap-2 px-3 py-2 bg-light rounded-pill border text-muted small text-nowrap">
+                                                    <CheckCircle size={14} className="text-success" /> {action}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </Card.Body>
                         </Card>
                     </Col>
