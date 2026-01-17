@@ -7,9 +7,11 @@ import DeviceDetail from './pages/DeviceDetail';
 import Settings from './pages/Settings';
 import CustomDashboard from './pages/CustomDashboard';
 
+import MainLayout from './components/MainLayout';
+
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
-    return token ? children : <Navigate to="/login" />;
+    return token ? <MainLayout>{children}</MainLayout> : <Navigate to="/login" />;
 };
 
 function App() {
