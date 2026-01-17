@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Button as BSButton, Modal, Form, Badge } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import GridLayout from 'react-grid-layout';
 import 'leaflet/dist/leaflet.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import L from 'leaflet';
 
+const { Responsive, WidthProvider } = GridLayout;
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // Fix Leaflet Marker Icon
