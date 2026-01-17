@@ -79,14 +79,29 @@ router.post('/servers', async (req, res) => {
 // PUT /api/lora/servers/:id - Update LoRa server
 router.put('/servers/:id', async (req, res) => {
     try {
+        // Filter only valid fields to prevent Prisma errors
+        const {
+            name, serverType, host, port,
+            apiKey, tenantId,
+            mqttEnabled, mqttHost, mqttUsername, mqttPassword, mqttTopic,
+            httpEnabled, httpSecret,
+            isActive
+        } = req.body;
+
         const server = await prisma.loRaServer.update({
             where: { id: parseInt(req.params.id) },
-            data: req.body
+            data: {
+                name, serverType, host, port,
+                apiKey, tenantId,
+                mqttEnabled, mqttHost, mqttUsername, mqttPassword, mqttTopic,
+                httpEnabled, httpSecret,
+                isActive
+            }
         });
         res.json(server);
     } catch (error) {
         console.error('Error updating LoRa server:', error);
-        res.status(500).json({ error: 'Sunucu güncellenemedi' });
+        res.status(500).json({ error: 'Sunucu güncellenemedi', details: error.message });
     }
 });
 
