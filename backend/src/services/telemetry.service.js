@@ -54,6 +54,10 @@ const TelemetryService = {
                 await prisma.$transaction(operations);
             }
 
+            // 4. Trigger Alert Engine (Fire & Forget)
+            const AlertService = require('./alert.service');
+            AlertService.checkRules(device.farmId, readings).catch(err => console.error("Alert Trigger Failed:", err));
+
             return { success: true, processed: operations.length };
 
         } catch (error) {
@@ -79,6 +83,36 @@ const TelemetryService = {
                 }
             }
         });
+    },
+
+    /**
+     * Get historical data for charts (last 24h)
+     */
+    async getDeviceHistory(serialNumber) {
+        const device = await prisma.device.findUnique({
+            where: { serialNumber },
+            include: { sensors: true }
+        });
+
+        if (!device) throw new Error("Device not found");
+
+        const history = {};
+        const yesterday = new Date(new Date() - 24 * 60 * 60 * 1000);
+
+        for (const sensor of device.sensors) {
+            const data = await prisma.telemetry.findMany({
+                where: {
+                    sensorId: sensor.id,
+                    timestamp: { gte: yesterday }
+                },
+                orderBy: { timestamp: 'asc' },
+                // Take every Nth point to reduce volume if needed, 
+                // for now take all (assuming 5min interval = ~288 points)
+            });
+            history[sensor.code] = data; // { "t_air": [...], "h_air": [...] }
+        }
+
+        return { deviceName: device.name, history };
     }
 };
 

@@ -6,5 +6,6 @@ const TelemetryController = require('../controllers/telemetry.controller');
 
 router.post('/', TelemetryController.ingest);
 router.get('/farm/:farmId', TelemetryController.getFarmStatus);
+router.get('/history/:serial', TelemetryController.getHistory);
 
 module.exports = router;

@@ -30,6 +30,18 @@ const TelemetryController = {
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
+        res.status(500).json({ error: error.message });
+    },
+
+    // GET /api/telemetry/history/:serial
+    async getHistory(req, res) {
+        try {
+            const { serial } = req.params;
+            const data = await TelemetryService.getDeviceHistory(serial);
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 };
 
