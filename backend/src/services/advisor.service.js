@@ -23,7 +23,7 @@ const AdvisorService = {
         });
 
         if (!farm || !farm.crop_type) {
-            return { error: "Farm or Crop Type not configured." };
+            return { error: "Farm or Crop Type not configured.", alerts: [], actions: [] };
         }
 
         // 2. Fetch Knowledge Base for this Crop & Region
@@ -39,7 +39,8 @@ const AdvisorService = {
         if (!cropProfile) {
             return {
                 summary: `No specific knowledge found for ${farm.crop_type}.`,
-                alerts: []
+                alerts: [],
+                actions: []
             };
         }
 

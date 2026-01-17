@@ -56,7 +56,7 @@ const IoTDashboard = ({ farmId }) => {
             {error && <Alert variant="danger">{error}</Alert>}
 
             {/* EXPERT ADVICE SECTION */}
-            {advice && (advice.alerts.length > 0 || advice.actions.length > 0) && (
+            {advice && advice.alerts && (advice.alerts.length > 0 || (advice.actions && advice.actions.length > 0)) && (
                 <Card className="mb-4 border-0 shadow-sm" style={{ borderLeft: "5px solid #ffc107" }}>
                     <Card.Body>
                         <h5 className="text-dark fw-bold">🤖 AgroZeka Asistanı: {advice.crop}</h5>
