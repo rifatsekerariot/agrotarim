@@ -30,6 +30,7 @@ export default defineConfig({
         })
     ],
     server: {
-        host: true
+        host: true,
+        allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org']
     }
 })
