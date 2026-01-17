@@ -19,9 +19,14 @@ app.use(morgan('dev'));
 // Routes
 const authRoutes = require('./routes/auth.routes');
 const mgmRoutes = require('./routes/mgm.routes');
+const telemetryRoutes = require('./routes/telemetry.routes');
+const expertRoutes = require('./routes/expert.routes');
+
 // Prefix API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mgm', mgmRoutes);
+app.use('/api/telemetry', telemetryRoutes);
+app.use('/api/expert', expertRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'AgroMeta API is running', version: '1.0.0' });

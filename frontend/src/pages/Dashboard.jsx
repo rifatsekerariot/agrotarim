@@ -7,6 +7,7 @@ import DailyForecast from '../components/DailyForecast';
 import HourlyForecast from '../components/HourlyForecast';
 import AgriculturalForecast from '../components/AgriculturalForecast';
 import MeteoWarning from '../components/MeteoWarning';
+import IoTDashboard from '../components/IoTDashboard'; // New IoT Component
 
 const Dashboard = () => {
     const [provinces, setProvinces] = useState([]);
@@ -23,8 +24,14 @@ const Dashboard = () => {
     const [agriData, setAgriData] = useState(null);
     const [warnings, setWarnings] = useState(null);
 
+    // Tab State
+    const [activeTab, setActiveTab] = useState('iot'); // Default to IoT for the new product
+
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // For MVP, assuming User has Farm ID 1
+    const farmId = 1;
 
     useEffect(() => {
         const fetchProvinces = async () => {
@@ -117,83 +124,97 @@ const Dashboard = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="mb-0 text-success fw-bold">
                     <i className="bi bi-flower1"></i> AgroMeta
+                    <span className="fs-6 ms-2 badge bg-success text-white">PRO</span>
                 </h1>
                 <Button variant="outline-danger" onClick={handleLogout}>Çıkış Yap</Button>
             </div>
 
-            <Row className="mb-4">
-                <Col md={12}>
-                    <Card className="shadow-sm border-0">
-                        <Card.Body className="bg-light">
-                            <h5 className="mb-3">Konum Seçimi</h5>
-                            <Row>
-                                <Col md={4} sm={12}>
-                                    <Form.Select value={selectedProvince} onChange={handleProvinceChange} className="mb-2">
-                                        <option value="">İl Seçiniz</option>
-                                        {provinces.map(p => (
-                                            <option key={p.il} value={p.il}>{p.il}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Col>
-                                <Col md={4} sm={12}>
-                                    <Form.Select value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} disabled={!selectedProvince} className="mb-2">
-                                        <option value="">İlçe/Merkez Seçiniz</option>
-                                        {centers.map(c => (
-                                            <option key={c.merkezId} value={c.merkezId}>{c.ilce || c.il}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Col>
-                                <Col md={4} sm={12}>
-                                    <Form.Select value={selectedCrop} onChange={(e) => setSelectedCrop(e.target.value)} className="mb-2 border-success text-success fw-bold">
-                                        <option value="Genel">🌱 Genel Tarım</option>
-                                        <option value="Narenciye">🍊 Narenciye (Portakal/Limon)</option>
-                                        <option value="Misir">🌽 Mısır</option>
-                                        <option value="Pamuk">☁️ Pamuk</option>
-                                        <option value="Bugday">🌾 Buğday</option>
-                                    </Form.Select>
-                                </Col>
-                                <Col md={12} className="mt-2">
-                                    <Button
-                                        variant="success"
-                                        className="w-100"
-                                        onClick={handleAnalyze}
-                                        disabled={!selectedCenter || loading}
-                                    >
-                                        {loading ? <Spinner size="sm" animation="border" /> : 'Analiz Et'}
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
+            <Tabs
+                activeKey={activeTab}
+                onSelect={(k) => setActiveTab(k)}
+                className="mb-4"
+                variant="pills"
+            >
+                <Tab eventKey="iot" title="📡 Akıllı Tarla (Canlı)">
+                    <IoTDashboard farmId={farmId} />
+                </Tab>
 
-            {/* Main Content Area */}
-            {(analysisData || dailyData || hourlyData) && (
-                <Row>
-                    {/* Left Column: Warnings & AI & Agricultural Data */}
-                    <Col lg={4} className="mb-4">
-                        <MeteoWarning data={warnings} />
-                        <AgriculturalForecast data={agriData} />
+                <Tab eventKey="forecast" title="🌦️ MGM Tahminleri">
+                    <Row className="mb-4">
+                        <Col md={12}>
+                            <Card className="shadow-sm border-0">
+                                <Card.Body className="bg-light">
+                                    <h5 className="mb-3">Konum Seçimi</h5>
+                                    <Row>
+                                        <Col md={4} sm={12}>
+                                            <Form.Select value={selectedProvince} onChange={handleProvinceChange} className="mb-2">
+                                                <option value="">İl Seçiniz</option>
+                                                {provinces.map(p => (
+                                                    <option key={p.il} value={p.il}>{p.il}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Col>
+                                        <Col md={4} sm={12}>
+                                            <Form.Select value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} disabled={!selectedProvince} className="mb-2">
+                                                <option value="">İlçe/Merkez Seçiniz</option>
+                                                {centers.map(c => (
+                                                    <option key={c.merkezId} value={c.merkezId}>{c.ilce || c.il}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Col>
+                                        <Col md={4} sm={12}>
+                                            <Form.Select value={selectedCrop} onChange={(e) => setSelectedCrop(e.target.value)} className="mb-2 border-success text-success fw-bold">
+                                                <option value="Genel">🌱 Genel Tarım</option>
+                                                <option value="Narenciye">🍊 Narenciye (Portakal/Limon)</option>
+                                                <option value="Misir">🌽 Mısır</option>
+                                                <option value="Pamuk">☁️ Pamuk</option>
+                                                <option value="Bugday">🌾 Buğday</option>
+                                            </Form.Select>
+                                        </Col>
+                                        <Col md={12} className="mt-2">
+                                            <Button
+                                                variant="success"
+                                                className="w-100"
+                                                onClick={handleAnalyze}
+                                                disabled={!selectedCenter || loading}
+                                            >
+                                                {loading ? <Spinner size="sm" animation="border" /> : 'Analiz Et'}
+                                            </Button>
+                                        </Col>
+                                    </Row>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    </Row>
 
-                        {analysisData && (
-                            <VerifiableAI riskData={analysisData} cropType={selectedCrop} />
-                        )}
-                    </Col>
+                    {/* Main Content Area */}
+                    {(analysisData || dailyData || hourlyData) && (
+                        <Row>
+                            {/* Left Column: Warnings & AI & Agricultural Data */}
+                            <Col lg={4} className="mb-4">
+                                <MeteoWarning data={warnings} />
+                                <AgriculturalForecast data={agriData} />
 
-                    {/* Right Column: Detailed Graphic Forecasts */}
-                    <Col lg={8}>
-                        <Tabs defaultActiveKey="daily" id="forecast-tabs" className="mb-3 custom-tabs">
-                            <Tab eventKey="daily" title="5 Günlük Tahmin">
-                                <DailyForecast data={dailyData} />
-                            </Tab>
-                            <Tab eventKey="hourly" title="Saatlik Tahmin & İlaçlama">
-                                <HourlyForecast data={hourlyData} />
-                            </Tab>
-                        </Tabs>
-                    </Col>
-                </Row>
-            )}
+                                {analysisData && (
+                                    <VerifiableAI riskData={analysisData} cropType={selectedCrop} />
+                                )}
+                            </Col>
+
+                            {/* Right Column: Detailed Graphic Forecasts */}
+                            <Col lg={8}>
+                                <Tabs defaultActiveKey="daily" id="forecast-tabs" className="mb-3 custom-tabs">
+                                    <Tab eventKey="daily" title="5 Günlük Tahmin">
+                                        <DailyForecast data={dailyData} />
+                                    </Tab>
+                                    <Tab eventKey="hourly" title="Saatlik Tahmin & İlaçlama">
+                                        <HourlyForecast data={hourlyData} />
+                                    </Tab>
+                                </Tabs>
+                            </Col>
+                        </Row>
+                    )}
+                </Tab>
+            </Tabs>
         </Container>
     );
 };
