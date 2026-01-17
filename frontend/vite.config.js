@@ -31,6 +31,12 @@ export default defineConfig({
     ],
     server: {
         host: true,
-        allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org']
+        allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org'],
+        proxy: {
+            '/api': {
+                target: 'http://backend:3000',
+                changeOrigin: true
+            }
+        }
     }
 })

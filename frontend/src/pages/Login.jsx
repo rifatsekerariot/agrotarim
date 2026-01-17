@@ -29,11 +29,23 @@ const Login = () => {
                 <Form onSubmit={handleSubmit}>
                     <Form.Group className="mb-3">
                         <Form.Label>Kullanıcı Adı</Form.Label>
-                        <Form.Control type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                        <Form.Control
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                            autoComplete="username"
+                        />
                     </Form.Group>
                     <Form.Group className="mb-3">
                         <Form.Label>Şifre</Form.Label>
-                        <Form.Control type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <Form.Control
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                        />
                     </Form.Group>
                     <Button className="w-100" type="submit">Giriş Yap</Button>
                 </Form>
