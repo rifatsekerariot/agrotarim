@@ -179,16 +179,33 @@ router.post('/servers/:id/sync', async (req, res) => {
         const headers = { 'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}` };
 
         try {
-            // Get all applications first
-            const appsRes = await axios.get(`http://${server.host}:${server.port}/api/applications?limit=100`, { headers, timeout: 10000 });
+            let tenantId = server.tenantId;
+            const baseUrl = `http://${server.host}:${server.port}`;
+
+            // If no tenant ID configured, try to get it from API
+            if (!tenantId) {
+                const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 10000 });
+                if (tenantsRes.data?.result?.length > 0) {
+                    tenantId = tenantsRes.data.result[0].id;
+                } else {
+                    return res.status(400).json({ success: false, message: 'Tenant bulunamadı. Lütfen Tenant ID girin.' });
+                }
+            }
+
+            // Get applications for this tenant
+            const appsRes = await axios.get(`${baseUrl}/api/applications?limit=100&tenantId=${tenantId}`, { headers, timeout: 10000 });
             const applications = appsRes.data?.result || [];
+
+            if (applications.length === 0) {
+                return res.json({ success: true, message: 'Hiç Application bulunamadı.', applications: 0 });
+            }
 
             let synced = 0;
             let skipped = 0;
 
             // For each application, get devices
             for (const app of applications) {
-                const devicesRes = await axios.get(`http://${server.host}:${server.port}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
+                const devicesRes = await axios.get(`${baseUrl}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
                 const devices = devicesRes.data?.result || [];
 
                 for (const csDevice of devices) {
@@ -230,9 +247,10 @@ router.post('/servers/:id/sync', async (req, res) => {
                 applications: applications.length
             });
         } catch (apiError) {
+            console.error('ChirpStack API Error:', apiError.response?.data || apiError.message);
             res.status(400).json({
                 success: false,
-                message: `ChirpStack API hatası: ${apiError.message}`
+                message: `ChirpStack API hatası: ${apiError.response?.data?.message || apiError.message}`
             });
         }
     } catch (error) {
