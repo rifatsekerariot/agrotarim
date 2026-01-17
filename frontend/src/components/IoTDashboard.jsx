@@ -429,7 +429,6 @@ const IoTDashboard = ({ farmId, dailyData }) => {
                                     <Activity size={20} className="text-primary" />
                                     <h5 className="fw-bold mb-0">AgroZeka® Analiz</h5>
                                 </div>
-                                <small className="text-muted">Son analiz: 2 dakika önce</small>
                             </Card.Header>
                             <Card.Body className="p-4">
                                 <div className="d-flex align-items-center mb-4 p-3 bg-light bg-opacity-50 rounded-3">
@@ -451,21 +450,9 @@ const IoTDashboard = ({ farmId, dailyData }) => {
                                     </div>
                                 </div>
 
-                                <p className="text-secondary lead fs-6 mb-4">{advice?.summary || 'Veriler toplanıyor...'}</p>
+                                <p className="text-secondary lead fs-6 mb-0">{advice?.summary || 'Veriler toplanıyor...'}</p>
 
-                                {/* Dinamik 'Tamamlanan İşlemler' (Backend eklendiğinde açılacak) */}
-                                {advice?.actions && advice.actions.length > 0 && (
-                                    <>
-                                        <h6 className="text-muted fw-bold small text-uppercase mb-3">Tamamlanan İşlemler</h6>
-                                        <div className="d-flex gap-3 overflow-auto pb-2">
-                                            {advice.actions.map((action, idx) => (
-                                                <div key={idx} className="d-flex align-items-center gap-2 px-3 py-2 bg-light rounded-pill border text-muted small text-nowrap">
-                                                    <CheckCircle size={14} className="text-success" /> {action}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+
                             </Card.Body>
                         </Card>
                     </Col>
