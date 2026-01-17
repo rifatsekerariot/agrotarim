@@ -68,7 +68,7 @@ const IoTDashboard = ({ farmId }) => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000);
+        const interval = setInterval(fetchData, 10000); // Refresh every 10s for "instant" feel
         return () => clearInterval(interval);
     }, [farmId]);
 

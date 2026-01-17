@@ -7,19 +7,17 @@ const Settings = () => {
 
     // Devices State
     const [devices, setDevices] = useState([]);
-    const [deviceModels, setDeviceModels] = useState([]);
+
     const [loraServers, setLoraServers] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Modal States
     const [showDeviceModal, setShowDeviceModal] = useState(false);
     const [showServerModal, setShowServerModal] = useState(false);
-    const [showModelModal, setShowModelModal] = useState(false);
 
     // Form States
     const [deviceForm, setDeviceForm] = useState({ name: '', serialNumber: '', devEui: '', deviceModelId: '', loraServerId: '', latitude: '', longitude: '' });
     const [serverForm, setServerForm] = useState({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
-    const [modelForm, setModelForm] = useState({ brand: '', model: '', category: '', decoderType: 'milesight', sensorTemplate: [] });
 
     const [editingId, setEditingId] = useState(null);
     const [testResult, setTestResult] = useState(null);
@@ -31,9 +29,8 @@ const Settings = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [devRes, modelRes, serverRes] = await Promise.all([
+            const [devRes, serverRes] = await Promise.all([
                 fetch('/api/devices'),
-                fetch('/api/device-models'),
                 fetch('/api/lora/servers')
             ]);
 
@@ -46,13 +43,7 @@ const Settings = () => {
                 setDevices([]);
             }
 
-            if (modelRes.ok) {
-                const modelData = await modelRes.json();
-                setDeviceModels(Array.isArray(modelData) ? modelData : []);
-            } else {
-                console.error('Device models API error:', modelRes.status);
-                setDeviceModels([]);
-            }
+
 
             if (serverRes.ok) {
                 const serverData = await serverRes.json();
@@ -64,7 +55,7 @@ const Settings = () => {
         } catch (e) {
             console.error('Fetch error:', e);
             setDevices([]);
-            setDeviceModels([]);
+            setDevices([]);
             setLoraServers([]);
         }
         setLoading(false);
@@ -184,19 +175,7 @@ const Settings = () => {
         }
     };
 
-    // ========== DEVICE MODELS TAB ==========
-    const handleSeedModels = async () => {
-        const res = await fetch('/api/device-models/seed', { method: 'POST' });
-        const data = await res.json();
-        alert(data.message);
-        fetchAll();
-    };
 
-    const handleDeleteModel = async (id) => {
-        if (!window.confirm('Bu modeli silmek istediğinize emin misiniz?')) return;
-        await fetch(`/api/device-models/${id}`, { method: 'DELETE' });
-        fetchAll();
-    };
 
     if (loading) {
         return (
@@ -215,7 +194,7 @@ const Settings = () => {
                 </div>
                 <div>
                     <h2 className="mb-0">Sistem Ayarları</h2>
-                    <small className="text-muted">Cihazlar, LoRa Sunucuları ve Model Şablonları</small>
+                    <small className="text-muted">Cihazlar ve LoRa Sunucuları</small>
                 </div>
             </div>
 
@@ -235,7 +214,6 @@ const Settings = () => {
                                     <tr>
                                         <th>Cihaz Adı</th>
                                         <th>DevEUI</th>
-                                        <th>Model</th>
                                         <th>Sunucu</th>
                                         <th>Durum</th>
                                         <th>İşlemler</th>
@@ -248,7 +226,6 @@ const Settings = () => {
                                         <tr key={d.id}>
                                             <td className="fw-medium">{d.name}</td>
                                             <td><code className="small">{d.devEui || d.serialNumber}</code></td>
-                                            <td><Badge bg="secondary">{d.deviceModel?.model || d.model || '-'}</Badge></td>
                                             <td>{loraServers.find(s => s.id === d.loraServerId)?.name || '-'}</td>
                                             <td>
                                                 {d.status === 'online' ? (
@@ -327,56 +304,7 @@ const Settings = () => {
                     </Card>
                 </Tab>
 
-                {/* ========== DEVICE MODELS TAB ========== */}
-                <Tab eventKey="models" title={<><Cpu size={16} className="me-2" />Cihaz Modelleri ({deviceModels.length})</>}>
-                    <Card className="border-0 shadow-sm">
-                        <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                            <span className="fw-bold">Cihaz Model Şablonları (Milesight, vb.)</span>
-                            <div className="d-flex gap-2">
-                                <Button size="sm" variant="outline-primary" onClick={handleSeedModels}>
-                                    <RefreshCw size={14} className="me-1" /> Varsayılan Modelleri Yükle
-                                </Button>
-                            </div>
-                        </Card.Header>
-                        <Card.Body className="p-0">
-                            <Table responsive hover className="mb-0">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Marka</th>
-                                        <th>Model</th>
-                                        <th>Kategori</th>
-                                        <th>Sensörler</th>
-                                        <th>Kullanılan</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {deviceModels.length === 0 ? (
-                                        <tr><td colSpan="6" className="text-center text-muted py-4">
-                                            Henüz model eklenmemiş.
-                                            <Button variant="link" onClick={handleSeedModels}>Varsayılanları yükle</Button>
-                                        </td></tr>
-                                    ) : deviceModels.map(m => (
-                                        <tr key={m.id}>
-                                            <td><Badge bg="dark">{m.brand}</Badge></td>
-                                            <td className="fw-medium">{m.model}</td>
-                                            <td>{m.category}</td>
-                                            <td>
-                                                {m.sensorTemplate?.map((s, i) => (
-                                                    <Badge key={i} bg="light" text="dark" className="me-1 border">{s.code}</Badge>
-                                                ))}
-                                            </td>
-                                            <td>{m._count?.devices || 0} cihaz</td>
-                                            <td>
-                                                <Button size="sm" variant="outline-danger" onClick={() => handleDeleteModel(m.id)}><Trash2 size={14} /></Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                        </Card.Body>
-                    </Card>
-                </Tab>
+
             </Tabs>
 
             {/* ========== DEVICE MODAL ========== */}
@@ -401,17 +329,7 @@ const Settings = () => {
                             </Col>
                         </Row>
                         <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Cihaz Modeli</Form.Label>
-                                    <Form.Select value={deviceForm.deviceModelId} onChange={e => setDeviceForm({ ...deviceForm, deviceModelId: e.target.value })}>
-                                        <option value="">Model Seç...</option>
-                                        {deviceModels.map(m => (
-                                            <option key={m.id} value={m.id}>{m.brand} - {m.model}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
+
                             <Col md={6}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>LoRa Sunucu</Form.Label>

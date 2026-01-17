@@ -36,7 +36,8 @@ const TelemetryController = {
     async getHistory(req, res) {
         try {
             const { serial } = req.params;
-            const data = await TelemetryService.getDeviceHistory(serial);
+            const hours = req.query.hours ? parseInt(req.query.hours) : 24;
+            const data = await TelemetryService.getDeviceHistory(serial, hours);
             res.json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });

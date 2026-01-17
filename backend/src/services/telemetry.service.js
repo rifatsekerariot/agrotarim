@@ -129,7 +129,7 @@ const TelemetryService = {
     /**
      * Get historical data for charts (last 24h)
      */
-    async getDeviceHistory(serialNumber) {
+    async getDeviceHistory(serialNumber, hours = 24) {
         const device = await prisma.device.findUnique({
             where: { serialNumber },
             include: { sensors: true }
@@ -138,22 +138,24 @@ const TelemetryService = {
         if (!device) throw new Error("Device not found");
 
         const history = {};
-        const yesterday = new Date(new Date() - 24 * 60 * 60 * 1000);
+        const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
 
         for (const sensor of device.sensors) {
             const data = await prisma.telemetry.findMany({
                 where: {
                     sensorId: sensor.id,
-                    timestamp: { gte: yesterday }
+                    timestamp: { gte: startTime }
                 },
                 orderBy: { timestamp: 'asc' },
-                // Take every Nth point to reduce volume if needed, 
-                // for now take all (assuming 5min interval = ~288 points)
+                // Limit points if requesting long duration to prevent payload explosion
+                // For simplified logic, we take all unless > 7 days
+                take: hours > 168 ? 1000 : undefined
             });
             history[sensor.code] = data; // { "t_air": [...], "h_air": [...] }
         }
 
-        return { deviceName: device.name, history };
+        // Return history directly as frontend expects flat keys (history[sensorCode])
+        return history;
     }
 };
 

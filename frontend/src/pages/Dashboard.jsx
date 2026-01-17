@@ -129,7 +129,7 @@ const Dashboard = () => {
                 className="mb-4"
                 variant="pills"
             >
-                <Tab eventKey="iot" title="📡 Akıllı Tarla (Canlı)">
+                <Tab eventKey="iot" title={<><Activity size={18} className="me-2" />Genel Durum</>}>
                     <IoTDashboard farmId={farmId} />
                 </Tab>
 
