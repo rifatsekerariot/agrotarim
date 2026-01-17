@@ -113,6 +113,15 @@ const RiskCard = ({ count, delay }) => (
 
 // --- MAIN DASHBOARD ---
 
+// Metric Definitions used for Config & KPI logic
+const METRICS = [
+    { key: 'showTemp', codes: ['t_air', 'temperature', 'temp', 'sicaklik', 'air_temp'], label: 'Ort. Sıcaklık', unit: '°C' },
+    { key: 'showHum', codes: ['h_air', 'humidity', 'hum', 'nem', 'air_hum'], label: 'Ort. Nem', unit: '%' },
+    { key: 'showSoil', codes: ['soil_moisture', 'soil', 'toprak_nem', 'moisture'], label: 'Toprak Nemi', unit: '%' },
+    { key: 'showCo2', codes: ['co2', 'co2_level', 'karbondioksit'], label: 'CO2', unit: 'ppm' },
+    { key: 'showLight', codes: ['light', 'luminosity', 'isik'], label: 'Işık', unit: 'Lux' }
+];
+
 const IoTDashboard = ({ farmId }) => {
     const [devices, setDevices] = useState([]);
     const [advice, setAdvice] = useState(null);
@@ -384,7 +393,7 @@ const IoTDashboard = ({ farmId }) => {
                 <Modal.Body>
                     <p className="text-muted small">Bu alanda hangi verilerin ortalamasını görmek istediğinizi seçebilirsiniz.</p>
                     <div className="d-flex flex-column gap-3">
-                        {kpiData.metrics.map(m => {
+                        {METRICS.map(m => {
                             const configKey = m.key;
                             const listKey = m.key.replace('show', '').toLowerCase() + 'Sensors';
                             const selectedList = summaryConfig[listKey] || [];
