@@ -314,82 +314,109 @@ const IoTDashboard = ({ farmId }) => {
                 </Col>
             </Row>
 
-            {/* 3. HERO AI SECTION - Enhanced with Expert Data */}
+            {/* 3. HERO AI SECTION - Corporate Redesign */}
             {advice && (
-                <Card className="mb-4 border-0 shadow-sm overflow-hidden">
-                    <div className={`p-1 ${advice.riskLevel === 'KRİTİK' || advice.riskLevel === 'YÜKSEK' ? 'bg-danger' : 'bg-success'}`} />
+                <Card className="mb-4 border-0 shadow-sm overflow-hidden bg-white">
+                    <Card.Header className="bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                            <div className="bg-light p-2 rounded-circle me-3">
+                                <span className="fs-4">🤖</span>
+                            </div>
+                            <div>
+                                <h5 className="fw-bold mb-0 text-dark">AgroZeka Analiz Raporu</h5>
+                                <small className="text-muted">
+                                    {selectedCrop} ({selectedCity}) • {new Date().toLocaleDateString('tr-TR')}
+                                </small>
+                            </div>
+                        </div>
+                        {advice.riskLevel && (
+                            <div className={`px-3 py-1 rounded-pill small fw-bold ${advice.riskLevel === 'DÜŞÜK' ? 'bg-success bg-opacity-10 text-success' : advice.riskLevel === 'ORTA' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-danger bg-opacity-10 text-danger'}`}>
+                                {advice.riskLevel} RİSK
+                            </div>
+                        )}
+                    </Card.Header>
+
                     <Card.Body className="p-4">
-                        <Row className="align-items-center">
-                            <Col md={8}>
-                                <div className="d-flex align-items-center mb-3">
-                                    <div className="bg-success bg-opacity-10 p-2 rounded me-3">
-                                        <span className="fs-2">🤖</span>
+                        <Row>
+                            <Col lg={8}>
+                                {/* Summary Text */}
+                                <div className="mb-4">
+                                    <h6 className="text-secondary text-uppercase small fw-bold mb-2" style={{ fontSize: '0.75rem' }}>Analiz Özeti</h6>
+                                    <p className="lead fs-6 text-dark" style={{ lineHeight: '1.6' }}>
+                                        {advice.summary}
+                                    </p>
+                                </div>
+
+                                {/* Status Attributes Grid */}
+                                <div className="row g-3 mb-4 border-top border-bottom py-3 bg-light bg-opacity-25 rounded">
+                                    <div className="col-md-6 border-end">
+                                        <div className="d-flex align-items-center">
+                                            <i className="bi bi-shield-check fs-4 text-secondary me-3"></i>
+                                            <div>
+                                                <div className="small text-muted">Risk Puanı</div>
+                                                <div className="fw-bold text-dark">{advice.riskScore || 0}/100</div>
+                                            </div>
+                                        </div>
                                     </div>
+                                    {advice.details && (
+                                        <div className="col-md-6">
+                                            <div className="d-flex align-items-center">
+                                                <i className="bi bi-flower1 fs-4 text-secondary me-3"></i>
+                                                <div>
+                                                    <div className="small text-muted">Fenolojik Gelişim</div>
+                                                    <div className="fw-bold text-dark">{advice.details.growthState} <span className="fw-normal text-muted ms-1">(GDD: {advice.details.gdd?.toFixed(1)})</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Action Items List (Clean Vertical) */}
+                                {(advice.actions?.length > 0 || advice.alerts?.length > 0) && (
                                     <div>
-                                        <h4 className="fw-bold mb-0 text-dark">AgroZeka Asistanı</h4>
-                                        <small className="text-muted">
-                                            {selectedCrop} ({selectedCity}) Analiz Raporu
-                                            <Badge bg="info" className="ms-2">Kural Tabanlı Çıkarım</Badge>
+                                        <h6 className="text-secondary text-uppercase small fw-bold mb-3" style={{ fontSize: '0.75rem' }}>Önerilen Aksiyonlar & Uyarılar</h6>
+                                        <div className="d-flex flex-column gap-2">
+                                            {advice.alerts?.map((alert, idx) => (
+                                                <div key={`alert-${idx}`} className={`alert p-2 d-flex align-items-center mb-0 ${alert.level === 'critical' ? 'alert-danger' : 'alert-warning'}`}>
+                                                    <i className="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                                    <span className="small fw-medium">{alert.msg}</span>
+                                                </div>
+                                            ))}
+                                            {advice.actions?.map((act, idx) => (
+                                                <div key={idx} className="d-flex align-items-start p-2 border rounded bg-white">
+                                                    <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                                    <span className="text-dark small">{act}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sources Metadata */}
+                                {advice.details?.breakdown && (
+                                    <div className="mt-3">
+                                        <small className="text-muted fst-italic cursor-pointer" style={{ fontSize: '0.7rem' }}>
+                                            * Bu analiz, seçili sensörlerinizden alınan canlı veriler ve MGM tahminleri kullanılarak oluşturulmuştur.
                                         </small>
                                     </div>
-                                </div>
-
-                                {/* Risk Score & Growth Status Row */}
-                                <Row className="mb-3">
-                                    <Col>
-                                        <div className="small text-muted">Risk Seviyesi</div>
-                                        <Badge bg={advice.riskLevel === 'DÜŞÜK' ? 'success' : advice.riskLevel === 'ORTA' ? 'warning' : 'danger'} className="fs-6 px-3 py-2">
-                                            {advice.riskLevel || 'BELİRSİZ'} ({advice.riskScore || 0} Puan)
-                                        </Badge>
-                                    </Col>
-                                    {advice.details && (
-                                        <Col>
-                                            <div className="small text-muted">Büyüme Durumu</div>
-                                            <Badge bg="secondary" className="fs-6 px-3 py-2">
-                                                {advice.details.growthState} (GDD: {advice.details.gdd?.toFixed(1)})
-                                            </Badge>
-                                        </Col>
-                                    )}
-                                </Row>
-
-                                <p className="lead text-dark mb-4">
-                                    "{advice.summary}"
-                                </p>
-
-                                {/* Action Items as horizontal pills */}
-                                <div className="d-flex flex-wrap gap-2">
-                                    {advice.actions?.map((act, idx) => (
-                                        <Badge key={idx} bg="light" text="dark" className="border px-3 py-2 fw-normal d-flex align-items-center gap-2">
-                                            <i className="bi bi-check-circle-fill text-success"></i> {act}
-                                        </Badge>
-                                    ))}
-                                    {advice.alerts?.map((alert, idx) => (
-                                        <Badge key={`alert-${idx}`} bg={alert.level === 'critical' ? 'danger' : 'warning'} text="white" className="px-3 py-2 fw-normal d-flex align-items-center gap-2">
-                                            <i className="bi bi-exclamation-triangle-fill"></i> {alert.msg}
-                                        </Badge>
-                                    ))}
-                                </div>
-
-                                {/* Scoring Breakdown (Optional) */}
-                                {advice.details?.breakdown && (
-                                    <details className="mt-3">
-                                        <summary className="text-muted small" style={{ cursor: 'pointer' }}>🔍 Puanlama Detayları (Veri Kaynakları)</summary>
-                                        <ul className="mt-2 mb-0 small">
-                                            {advice.details.breakdown.map((b, i) => (
-                                                <li key={i}><strong>{b.msg}</strong>: +{b.points} Puan (Kod: {b.code})</li>
-                                            ))}
-                                        </ul>
-                                    </details>
                                 )}
                             </Col>
-                            <Col md={4} className="text-center border-start opacity-75 d-none d-md-block">
-                                <Activity size={64} className="text-success mb-2" />
-                                <div className="text-muted small">Deterministik Analiz Motoru</div>
+
+                            {/* Sidebar / Visual */}
+                            <Col lg={4} className="d-none d-lg-block ps-4 border-start">
+                                <div className="text-center h-100 d-flex flex-column justify-content-center opacity-75">
+                                    <Activity size={80} className="text-success mx-auto mb-3 opacity-50" />
+                                    <h6 className="text-secondary fw-bold">Deterministik Motor</h6>
+                                    <p className="small text-muted px-3">
+                                        AgroZeka, karmaşık tarımsal verileri işleyerek eyleme geçirilebilir içgörüler sunar.
+                                    </p>
+                                </div>
                             </Col>
                         </Row>
                     </Card.Body>
                 </Card>
             )}
+
 
             {/* 4. CONFIG MODAL */}
             <Modal show={showConfigModal} onHide={() => setShowConfigModal(false)} centered>
@@ -485,7 +512,7 @@ const IoTDashboard = ({ farmId }) => {
                     <button className="btn btn-success" onClick={handleSummaryConfigSave}>Kaydet</button>
                 </Modal.Footer>
             </Modal>
-        </div>
+        </div >
     );
 };
 

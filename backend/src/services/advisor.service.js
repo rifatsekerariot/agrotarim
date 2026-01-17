@@ -33,23 +33,41 @@ const AdvisorService = {
             const cropName = farm.crop_type || "Buğday";
             const region = farm.city ? (await guessRegion(farm.city)) : "Karadeniz";
 
-            // 2. Aggregate IoT Sensor Data
-            let soilTemp = null;
-            let soilMoisture = null;
-            let airTemp = null;
-            let airHum = null;
+            // 2. Aggregate IoT Sensor Data (Respecting Dashboard Config)
+            const summaryConfig = farm.dashboardConfig?.summary || {};
 
-            farm.devices.forEach(device => {
-                device.sensors.forEach(sensor => {
-                    if (sensor.telemetry.length > 0) {
-                        const val = sensor.telemetry[0].value;
-                        if (sensor.code === 't_soil') soilTemp = val;
-                        if (sensor.code === 'm_soil') soilMoisture = val;
-                        if (sensor.code === 't_air') airTemp = val;
-                        if (sensor.code === 'h_air') airHum = val;
-                    }
+            // Helper to calculate average of selected (or all matching) sensors
+            const calculateAverage = (devices, codes, selectedIds) => {
+                let total = 0;
+                let count = 0;
+
+                devices.forEach(device => {
+                    device.sensors.forEach(sensor => {
+                        if (codes.includes(sensor.code) && sensor.telemetry.length > 0) {
+                            const val = sensor.telemetry[0].value;
+                            // Check if this sensor is selected (if selection exists)
+                            // If selectedIds is empty/undefined, we include ALL matching sensors (Auto mode)
+                            if (!selectedIds || selectedIds.length === 0 || selectedIds.includes(sensor.id.toString())) {
+                                if (val !== null && !isNaN(val)) {
+                                    total += val;
+                                    count++;
+                                }
+                            }
+                        }
+                    });
                 });
-            });
+
+                return count > 0 ? (total / count) : null;
+            };
+
+            const airTemp = calculateAverage(farm.devices, ['t_air', 'temperature', 'temp', 'sicaklik', 'air_temp'], summaryConfig.tempSensors);
+            const airHum = calculateAverage(farm.devices, ['h_air', 'humidity', 'hum', 'nem', 'air_hum'], summaryConfig.humSensors);
+
+            // Use soilSensors for both temp and moisture if available, or fall back to code-based auto-detect
+            // Note: Soil sensors for temp often have different codes than moisture, but usually are paired.
+            // For now, we use the same 'soilSensors' list filter for both if it exists.
+            const soilTemp = calculateAverage(farm.devices, ['t_soil', 'soil_temp', 'toprak_sicaklik'], summaryConfig.soilSensors);
+            const soilMoisture = calculateAverage(farm.devices, ['m_soil', 'soil_moisture', 'toprak_nem', 'moisture'], summaryConfig.soilSensors);
 
             // 3. Fetch Weather Forecast (MGM)
             let minTempForecast = null;
