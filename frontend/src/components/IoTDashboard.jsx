@@ -1,17 +1,22 @@
+// Imports updated (removed Map-related)
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Alert, Spinner, Badge } from 'react-bootstrap';
 import { RefreshCcw, Wifi, WifiOff, MapPin, Thermometer, Droplets } from 'lucide-react';
-import IoTMap from './IoTMap'; // Import Map Component
 
 const IoTDashboard = ({ farmId }) => {
     const [devices, setDevices] = useState([]);
     const [advice, setAdvice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
+
+    // Controlled Inputs State
+    const [selectedCity, setSelectedCity] = useState('');
+    const [selectedCrop, setSelectedCrop] = useState('');
 
     const fetchData = async () => {
-        setLoading(true);
+        // Only set loading on partial refetch if we don't have devices yet
+        if (devices.length === 0) setLoading(true);
+
         try {
             // 1. Fetch Live Sensors
             const telRes = await fetch(`/api/telemetry/farm/${farmId}`);
@@ -19,10 +24,14 @@ const IoTDashboard = ({ farmId }) => {
             const deviceData = await telRes.json();
             setDevices(deviceData);
 
-            // 2. Fetch Expert Advice
+            // 2. Fetch Expert Advice & Config
             const expRes = await fetch(`/api/expert/${farmId}`);
             if (expRes.ok) {
-                setAdvice(await expRes.json());
+                const advData = await expRes.json();
+                setAdvice(advData);
+                // Sync dropdowns with backend state
+                if (advData.city) setSelectedCity(advData.city);
+                if (advData.raw_crop) setSelectedCrop(advData.raw_crop);
             }
 
         } catch (err) {
@@ -34,11 +43,9 @@ const IoTDashboard = ({ farmId }) => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000); // Poll every 30s
+        const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
     }, [farmId]);
-
-    if (loading && devices.length === 0) return <div className="text-center p-5"><Spinner animation="border" /></div>;
 
     const getSensorValue = (device, code) => {
         const sensor = device.sensors.find(s => s.code === code);
@@ -48,13 +55,14 @@ const IoTDashboard = ({ farmId }) => {
 
     const handleCropChange = async (e) => {
         const newCrop = e.target.value;
+        setSelectedCrop(newCrop); // Immediate UI update
         try {
             await fetch(`/api/expert/${farmId}/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ crop: newCrop })
             });
-            fetchData(); // Refresh analysis immediately
+            fetchData();
         } catch (err) {
             console.error("Crop update failed", err);
         }
@@ -62,6 +70,7 @@ const IoTDashboard = ({ farmId }) => {
 
     const handleCityChange = async (e) => {
         const newCity = e.target.value;
+        setSelectedCity(newCity); // Immediate UI update
         try {
             await fetch(`/api/expert/${farmId}/config`, {
                 method: 'POST',
@@ -74,6 +83,8 @@ const IoTDashboard = ({ farmId }) => {
         }
     };
 
+    if (loading && devices.length === 0) return <div className="text-center p-5"><Spinner animation="border" /></div>;
+
     return (
         <div className="iot-dashboard p-3">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -81,7 +92,8 @@ const IoTDashboard = ({ farmId }) => {
                     <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla</h2>
 
                     {/* City Selector */}
-                    <select className="form-select form-select-sm" style={{ width: '130px' }} onChange={handleCityChange} defaultValue="" >
+                    <select className="form-select form-select-sm" style={{ width: '130px' }}
+                        onChange={handleCityChange} value={selectedCity}>
                         <option value="" disabled>Şehir Seç</option>
                         <optgroup label="Akdeniz">
                             <option value="Adana">Adana</option>
@@ -112,7 +124,8 @@ const IoTDashboard = ({ farmId }) => {
                     </select>
 
                     {/* Crop Selector */}
-                    <select className="form-select form-select-sm" style={{ width: '150px' }} onChange={handleCropChange} defaultValue="">
+                    <select className="form-select form-select-sm" style={{ width: '150px' }}
+                        onChange={handleCropChange} value={selectedCrop}>
                         <option value="" disabled>Ürün Seç</option>
                         <optgroup label="Tahıllar">
                             <option value="Buğday">Buğday</option>
@@ -147,14 +160,6 @@ const IoTDashboard = ({ farmId }) => {
                     </select>
                 </div>
                 <div>
-                    <div className="btn-group me-2" role="group">
-                        <button type="button" className={`btn btn-sm ${viewMode === 'grid' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setViewMode('grid')}>
-                            <i className="bi bi-grid"></i> Liste
-                        </button>
-                        <button type="button" className={`btn btn-sm ${viewMode === 'map' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setViewMode('map')}>
-                            <MapPin size={16} /> Harita
-                        </button>
-                    </div>
                     <button className="btn btn-outline-secondary btn-sm" onClick={fetchData}>
                         <RefreshCcw size={16} /> Yenile
                     </button>
@@ -207,56 +212,50 @@ const IoTDashboard = ({ farmId }) => {
                     <p>Sensörlerden veri bekleniyor veya simülatör çalışmıyor.</p>
                 </div>
             ) : (
-                <>
-                    {viewMode === 'map' ? (
-                        <IoTMap devices={devices} />
-                    ) : (
-                        <Row>
-                            {devices.map(device => (
-                                <Col key={device.id} md={6} lg={4} className="mb-4">
-                                    <Card
-                                        className="h-100 shadow-sm border-0 cursor-pointer"
-                                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-                                        onClick={() => window.location.href = `/device/${device.serialNumber}`} // Simple nav for now, preferably use useNavigate if extracted
-                                    >
-                                        <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                                            <span className="fw-bold text-dark"><MapPin size={16} /> {device.name}</span>
-                                            <Badge bg={device.status === 'online' ? 'success' : 'secondary'}>
-                                                {device.status === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />} {device.status}
-                                            </Badge>
-                                        </Card.Header>
-                                        <Card.Body>
-                                            <div className="d-flex justify-content-around text-center">
-                                                <div className="mb-2">
-                                                    <div className="text-muted small">Hava Sıcaklığı</div>
-                                                    <div className="display-6 fw-bold text-primary">
-                                                        {getSensorValue(device, 't_air')}°C
-                                                    </div>
-                                                </div>
-                                                <div className="mb-2">
-                                                    <div className="text-muted small">Nem</div>
-                                                    <div className="display-6 fw-bold text-info">
-                                                        %{getSensorValue(device, 'h_air')}
-                                                    </div>
-                                                </div>
+                <Row>
+                    {devices.map(device => (
+                        <Col key={device.id} md={6} lg={4} className="mb-4">
+                            <Card
+                                className="h-100 shadow-sm border-0 cursor-pointer"
+                                style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+                                onClick={() => window.location.href = `/device/${device.serialNumber}`}
+                            >
+                                <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                                    <span className="fw-bold text-dark"><MapPin size={16} /> {device.name}</span>
+                                    <Badge bg={device.status === 'online' ? 'success' : 'secondary'}>
+                                        {device.status === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />} {device.status}
+                                    </Badge>
+                                </Card.Header>
+                                <Card.Body>
+                                    <div className="d-flex justify-content-around text-center">
+                                        <div className="mb-2">
+                                            <div className="text-muted small">Hava Sıcaklığı</div>
+                                            <div className="display-6 fw-bold text-primary">
+                                                {getSensorValue(device, 't_air')}°C
                                             </div>
-                                            <hr />
-                                            <div className="d-flex justify-content-between px-3">
-                                                <span className="text-muted"><Droplets size={16} /> Toprak Nemi:</span>
-                                                <span className={`fw-bold ${parseFloat(getSensorValue(device, 'm_soil')) < 20 ? 'text-danger' : 'text-success'}`}>
-                                                    %{getSensorValue(device, 'm_soil')}
-                                                </span>
+                                        </div>
+                                        <div className="mb-2">
+                                            <div className="text-muted small">Nem</div>
+                                            <div className="display-6 fw-bold text-info">
+                                                %{getSensorValue(device, 'h_air')}
                                             </div>
-                                        </Card.Body>
-                                        <Card.Footer className="bg-light text-muted small text-end">
-                                            Son veri: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Yok'}
-                                        </Card.Footer>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    )}
-                </>
+                                        </div>
+                                    </div>
+                                    <hr />
+                                    <div className="d-flex justify-content-between px-3">
+                                        <span className="text-muted"><Droplets size={16} /> Toprak Nemi:</span>
+                                        <span className={`fw-bold ${parseFloat(getSensorValue(device, 'm_soil')) < 20 ? 'text-danger' : 'text-success'}`}>
+                                            %{getSensorValue(device, 'm_soil')}
+                                        </span>
+                                    </div>
+                                </Card.Body>
+                                <Card.Footer className="bg-light text-muted small text-end">
+                                    Son veri: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Yok'}
+                                </Card.Footer>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
             )}
         </div>
     );

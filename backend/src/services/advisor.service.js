@@ -128,6 +128,8 @@ const AdvisorService = {
 
             return {
                 crop: `${profile.name} (${currentStage.name})`,
+                raw_crop: farm.crop_type, // For Frontend Dropdown
+                city: farm.city,         // For Frontend Dropdown
                 summary: `${profile.region}, ${profile.name} ürünü ${currentStage.name} evresinde analiz ediliyor.`,
                 alerts,
                 actions
