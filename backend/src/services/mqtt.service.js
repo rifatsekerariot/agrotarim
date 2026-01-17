@@ -52,9 +52,6 @@ class MqttService {
 
             if (!serialNumber) return;
 
-            // 1. Find Device to get Mappings
-            messageString = message.toString();
-
             // 1. Find Device (Cached or DB)
             // For now, DB lookup on every message (can be optimized later)
             const device = await prisma.device.findUnique({
