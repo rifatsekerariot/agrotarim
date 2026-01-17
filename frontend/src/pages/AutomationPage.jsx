@@ -84,7 +84,7 @@ const AutomationPage = () => {
                 ]
             };
 
-            await axios.post('http://localhost:3000/api/automation/rules', payload, {
+            await axios.post('/api/automation/rules', payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
