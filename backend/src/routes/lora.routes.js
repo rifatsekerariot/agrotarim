@@ -131,28 +131,44 @@ router.post('/servers/:id/test', async (req, res) => {
         if (server.serverType === 'chirpstack_v4') {
             const axios = require('axios');
 
-            // Sanitize host and build URL
-            // Strip any leading http/https and trailing slashes or /api paths
-            const cleanHost = server.host.trim()
-                .replace(/^https?:\/\//, '')
-                .replace(/\/api\/?$/, '')
-                .replace(/\/$/, '');
+            // Helper to build URL
+            const buildUrl = (host, port) => {
+                const cleanHost = host.trim()
+                    .replace(/^https?:\/\//, '')
+                    .replace(/\/api\/?$/, '')
+                    .replace(/\/$/, '');
+                const protocol = host.trim().startsWith('https') ? 'https' : 'http';
+                return cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${port}`;
+            };
 
-            const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
-            const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
-
+            let baseUrl = buildUrl(server.host, server.port);
             console.log(`[LoRa Test] Testing connection to: ${baseUrl}/api/tenants`);
 
-            try {
-                const headers = {
-                    'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`,
-                    'Authorization': `Bearer ${server.apiKey}` // Support both formats
-                };
+            const headers = {
+                'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`,
+                'Authorization': `Bearer ${server.apiKey}`
+            };
 
-                const response = await axios.get(`${baseUrl}/api/tenants`, {
-                    headers,
-                    timeout: 5000
-                });
+            const makeRequest = async (url) => {
+                return await axios.get(`${url}/api/tenants`, { headers, timeout: 5000 });
+            };
+
+            try {
+                let response;
+                try {
+                    response = await makeRequest(baseUrl);
+                } catch (firstErr) {
+                    // If 8080 fails with 404 (common for WebUI) or Refused, try 8090
+                    if (server.port === 8080 && (firstErr.response?.status === 404 || firstErr.code === 'ECONNREFUSED')) {
+                        console.log(`[LoRa Test] Port 8080 failed (${firstErr.response?.status || firstErr.code}). Trying fallback port 8090...`);
+                        const altUrl = buildUrl(server.host, 8090);
+                        response = await makeRequest(altUrl);
+                        // If successful, we could implicitly warn the user
+                        response.data.message = 'Bağlantı Başarılı! (Not: Otomatik olarak 8090 portuna yönlendirildi. Lütfen ayarlardan portu 8090 yapın.)';
+                    } else {
+                        throw firstErr;
+                    }
+                }
 
                 // Update lastSync
                 await prisma.loRaServer.update({
@@ -162,7 +178,7 @@ router.post('/servers/:id/test', async (req, res) => {
 
                 res.json({
                     success: true,
-                    message: 'Bağlantı başarılı (Global Admin yetkisi doğrulandı).',
+                    message: response.data.message || 'Bağlantı başarılı (Global Admin yetkisi doğrulandı).',
                     tenants: response.data?.result?.length || 0
                 });
             } catch (apiError) {
@@ -171,17 +187,16 @@ router.post('/servers/:id/test', async (req, res) => {
 
                 console.warn(`[LoRa Test] Info: ${status} - ${errMsg}`);
 
-                // If it's a 401/403 or 404 on /tenants, it might just be a Tenant-level key
                 if (status === 401 || status === 403 || status === 404) {
                     res.json({
                         success: true,
-                        message: 'Sunucuya ulaşıldı, ancak API Key bu işlem için (Tüm Tenantları Listeleme) yetkili değil. Bu normaldir. Lütfen Tenant ID\'yi manuel girerek sync yapmayı deneyin.',
+                        message: 'Sunucuya ulaşıldı, ancak API Key kısıtlı. Lütfen Tenant ID\'yi manuel girerek Sync yapın.',
                         restricted: true
                     });
                 } else {
                     res.status(400).json({
                         success: false,
-                        message: `Bağlantı hatası (${status || 'N/A'}): ${errMsg}`
+                        message: `Bağlantı hatası (${status || 'N/A'}): ${errMsg}. (Rest API portunun 8090 olduğundan emin olun)`
                     });
                 }
             }
@@ -206,116 +221,165 @@ router.post('/servers/:id/sync', async (req, res) => {
 
         const axios = require('axios');
 
-        // Sanitize host and build URL
-        const cleanHost = server.host.trim()
-            .replace(/^https?:\/\//, '')
-            .replace(/\/api\/?$/, '')
-            .replace(/\/$/, '');
-
-        const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
-        const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
-
-        const headers = {
-            'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`,
-            'Authorization': `Bearer ${server.apiKey}` // Support both formats
-        };
-
-        console.log(`[LoRa Sync] Starting sync from: ${baseUrl}`);
-
         try {
-            let tenantId = server.tenantId;
+            let tenantId = server.tenantId?.trim();
+            const apiKey = server.apiKey?.trim();
 
-            // 1. Fetch Tenant ID if not configured
-            if (!tenantId) {
+            if (apiKey && apiKey.length < 50) {
+                console.warn(`[LoRa Sync] Warning: API Key looks short (${apiKey.length} chars).`);
+            }
+
+            // Helper to build URL
+            const buildUrl = (host, port) => {
+                const cleanHost = host.trim()
+                    .replace(/^https?:\/\//, '')
+                    .replace(/\/api\/?$/, '')
+                    .replace(/\/$/, '');
+                const protocol = host.trim().startsWith('https') ? 'https' : 'http';
+                return cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${port}`;
+            };
+
+            let baseUrl = buildUrl(server.host, server.port);
+
+            const headers = {
+                'Grpc-Metadata-Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${apiKey}`
+            };
+
+            console.log(`[LoRa Sync] Starting sync from: ${baseUrl}`);
+
+            // === AUTO PORT FIX ===
+            // If configured as 8080, verify if we should switch to 8090
+            if (server.port === 8080) {
                 try {
-                    console.log(`[LoRa Sync] Auto-detecting tenant ID from ${baseUrl}/api/tenants`);
-                    const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 5000 });
-                    if (tenantsRes.data?.result?.length > 0) {
-                        tenantId = tenantsRes.data.result[0].id;
-                        console.log(`[LoRa Sync] Found tenant ID: ${tenantId}`);
+                    // Cheap probe: try to fetch versions or tenants on 8080
+                    // If it returns HTML (Web UI) or 404, switch to 8090
+                    await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 2000 });
+                } catch (probeErr) {
+                    if (probeErr.response?.status === 404 || probeErr.code === 'ECONNREFUSED' || (typeof probeErr.response?.data === 'string' && probeErr.response.data.includes('<!DOCTYPE html>'))) {
+                        console.log(`[LoRa Sync] Probe on 8080 failed/returned HTML. Switching to fallback port 8090.`);
+                        baseUrl = buildUrl(server.host, 8090);
                     }
-                } catch (tError) {
-                    console.warn(`[LoRa Sync] Could not auto-detect tenant ID (likely restricted key): ${tError.message}`);
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Tenant-seviyesinde API Key kullanıyorsunuz. Lütfen Tenant ID\'yi ayarlardan manuel olarak girin.'
-                    });
                 }
             }
+            // =====================
 
-            if (!tenantId) {
-                return res.status(400).json({ success: false, message: 'Tenant ID gerekli.' });
-            }
-
-            // 2. Fetch Applications
-            console.log(`[LoRa Sync] Fetching applications for tenant: ${tenantId}`);
-            const appsRes = await axios.get(`${baseUrl}/api/applications?limit=100&tenantId=${tenantId}`, { headers, timeout: 10000 });
-            const applications = appsRes.data?.result || [];
-
-            if (applications.length === 0) {
-                console.log(`[LoRa Sync] No applications found for tenant ${tenantId}`);
-                return res.json({ success: true, message: 'Hiç Application bulunamadı. Lütfen ChirpStack üzerinde en az bir uygulama olduğundan emin olun.', applications: 0 });
-            }
-
-            console.log(`[LoRa Sync] Found ${applications.length} applications`);
-            let synced = 0;
-            let skipped = 0;
-
-            // 3. Fetch Devices for each Application
-            for (const app of applications) {
-                console.log(`[LoRa Sync] Fetching devices for application: ${app.name} (${app.id})`);
-                const devicesRes = await axios.get(`${baseUrl}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
-                const devices = devicesRes.data?.result || [];
-
-                for (const csDevice of devices) {
-                    // Check if device already exists
-                    const existing = await prisma.device.findFirst({
-                        where: { devEui: csDevice.devEui }
-                    });
-
-                    if (existing) {
-                        await prisma.device.update({
-                            where: { id: existing.id },
-                            data: { name: csDevice.name, loraServerId: server.id }
+            try {
+                // 1. Fetch Tenant ID if not configured
+                if (!tenantId) {
+                    try {
+                        console.log(`[LoRa Sync] Auto-detecting tenant ID from ${baseUrl}/api/tenants`);
+                        const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 5000 });
+                        if (tenantsRes.data?.result?.length > 0) {
+                            tenantId = tenantsRes.data.result[0].id;
+                            console.log(`[LoRa Sync] Found tenant ID: ${tenantId}`);
+                        }
+                    } catch (tError) {
+                        console.warn(`[LoRa Sync] Could not auto-detect (restricted key?): ${tError.message}`);
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Tenant-seviyesinde API Key kullanıyorsunuz. Lütfen Tenant ID\'yi manuel girin.'
                         });
-                        skipped++;
+                    }
+                }
+
+                if (!tenantId) return res.status(400).json({ success: false, message: 'Tenant ID gerekli.' });
+
+                // 2. Fetch Applications (Try both camelCase and snake_case)
+                console.log(`[LoRa Sync] Fetching applications for tenant: ${tenantId} from ${baseUrl}`);
+                let appsRes;
+                try {
+                    appsRes = await axios.get(`${baseUrl}/api/applications?limit=100&tenantId=${tenantId}`, { headers, timeout: 10000 });
+                } catch (firstErr) {
+                    if (firstErr.response?.status === 404) {
+                        appsRes = await axios.get(`${baseUrl}/api/applications?limit=100&tenant_id=${tenantId}`, { headers, timeout: 10000 });
                     } else {
-                        await prisma.device.create({
-                            data: {
-                                farmId: 1,
-                                name: csDevice.name,
-                                serialNumber: csDevice.devEui,
-                                devEui: csDevice.devEui,
-                                loraServerId: server.id,
-                                status: 'offline'
-                            }
-                        });
-                        synced++;
+                        throw firstErr;
                     }
                 }
+
+                const applications = appsRes.data?.result || [];
+
+                if (applications.length === 0) {
+                    return res.json({ success: true, message: 'Hiç Application bulunamadı.', applications: 0 });
+                }
+
+                let synced = 0;
+                let skipped = 0;
+
+                // 3. Fetch Devices
+                for (const app of applications) {
+                    console.log(`[LoRa Sync] Fetching devices for application: ${app.name} (${app.id})`);
+                    const devicesRes = await axios.get(`${baseUrl}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
+                    const devices = devicesRes.data?.result || [];
+
+                    for (const csDevice of devices) {
+                        // Calculate status based on lastSeenAt
+                        let status = 'offline';
+                        let lastSeen = null;
+
+                        if (csDevice.lastSeenAt) {
+                            lastSeen = new Date(csDevice.lastSeenAt);
+                            // If seen in the last 24 hours, consider online
+                            const diffHours = (new Date() - lastSeen) / (1000 * 60 * 60);
+                            if (diffHours < 24) {
+                                status = 'online';
+                            }
+                        }
+
+                        // Prepare update data
+                        const updateData = {
+                            name: csDevice.name,
+                            loraServerId: server.id,
+                            status: status,
+                            lastSeen: lastSeen,
+                            batteryLevel: csDevice.deviceStatusBattery,
+                            signalQuality: csDevice.deviceStatusMargin
+                        };
+
+                        const existing = await prisma.device.findFirst({ where: { devEui: csDevice.devEui } });
+                        if (existing) {
+                            // Only update if changes found or just to refresh status
+                            await prisma.device.update({
+                                where: { id: existing.id },
+                                data: updateData
+                            });
+                            skipped++;
+                        } else {
+                            await prisma.device.create({
+                                data: {
+                                    farmId: 1,
+                                    name: csDevice.name,
+                                    serialNumber: csDevice.devEui,
+                                    devEui: csDevice.devEui,
+                                    loraServerId: server.id,
+                                    status: status,
+                                    lastSeen: lastSeen,
+                                    batteryLevel: csDevice.deviceStatusBattery,
+                                    signalQuality: csDevice.deviceStatusMargin
+                                }
+                            });
+                            synced++;
+                        }
+                    }
+                }
+
+                await prisma.loRaServer.update({ where: { id: server.id }, data: { lastSync: new Date() } });
+                res.json({ success: true, message: `${synced} yeni cihaz eklendi, ${skipped} cihaz güncellendi.`, applications: applications.length });
+            } catch (apiError) {
+                const status = apiError.response?.status || 'N/A';
+                const data = apiError.response?.data;
+                const errMsg = typeof data === 'string' ? data : (data?.message || apiError.message);
+                console.error(`[LoRa Sync] API Error at ${apiError.config?.url}: ${status}`, data);
+
+                res.status(400).json({
+                    success: false,
+                    message: `ChirpStack Hatası (${status}): ${errMsg}. (Kullanılan Port: ${baseUrl.split(':').pop()})`
+                });
             }
-
-            await prisma.loRaServer.update({
-                where: { id: server.id },
-                data: { lastSync: new Date() }
-            });
-
-            console.log(`[LoRa Sync] Complete. Synced: ${synced}, Updated: ${skipped}`);
-            res.json({
-                success: true,
-                message: `${synced} yeni cihaz eklendi, ${skipped} cihaz güncellendi.`,
-                applications: applications.length
-            });
-        } catch (apiError) {
-            const errMsg = apiError.response?.data?.message || apiError.message;
-            const status = apiError.response?.status || 'N/A';
-            const url = apiError.config?.url || 'N/A';
-            console.error(`[LoRa Sync] Error at ${url}: ${status} - ${errMsg}`);
-
-            res.status(400).json({
-                success: false,
-                message: `ChirpStack API hatası (${status}): ${errMsg}. Lütfen API URL ve Key bilgilerini kontrol edin.`
-            });
+        } catch (error) {
+            console.error('Error syncing:', error);
+            res.status(500).json({ error: 'Senkronizasyon başarısız' });
         }
     } catch (error) {
         console.error('Error syncing from ChirpStack:', error);
