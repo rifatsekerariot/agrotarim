@@ -182,6 +182,32 @@ const IoTDashboard = ({ farmId }) => {
         fetchData();
     };
 
+    const handleSummaryConfigSave = async () => {
+        try {
+            // 1. Get current config to merge
+            const res = await fetch(`/api/expert/${farmId}/dashboard`);
+            const currentConfig = await res.json();
+
+            // 2. Update summary part
+            const newConfig = {
+                ...currentConfig,
+                summary: summaryConfig
+            };
+
+            // 3. Save back
+            await fetch(`/api/expert/${farmId}/dashboard`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig)
+            });
+            setShowConfigModal(false);
+            fetchData();
+        } catch (err) {
+            console.error("Config save failed", err);
+            // Optionally set error state here
+        }
+    };
+
     // Helper: Calculate Avg & Trend
     const computeMetric = (keys, codes) => {
         if (!summaryConfig[keys.show]) return null;
