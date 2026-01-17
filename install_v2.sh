@@ -22,7 +22,7 @@ sudo docker compose exec -T backend npx prisma generate
 sudo docker compose exec -T backend npx prisma db push --accept-data-loss
 
 # 5. Seed
-console.log("🌱 Seeding Comprehensive Knowledge Base...");
+echo "🌱 Seeding Comprehensive Knowledge Base..."
 sudo docker compose exec -T backend node scripts/seed_full_data.js
 
 # 6. Auto-Start Simulator (Background)
