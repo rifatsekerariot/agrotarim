@@ -83,13 +83,16 @@ const Dashboard = () => {
             const stationId = centerObj.sondurumIstNo;
             const dailyStationId = centerObj.gunlukTahminIstNo;
             const hourlyStationId = centerObj.saatlikTahminIstNo;
+            const centerId = centerObj.merkezId;
 
             const [analysis, daily, hourly, agri, warn] = await Promise.all([
-                getAnalysis(stationId),
+                // Analysis (Latest Status) uses merkezId in MGM API
+                getAnalysis(centerId),
                 getDailyForecast(dailyStationId),
                 getHourlyForecast(hourlyStationId),
-                getAgriculturalForecast(stationId), // Angular used istNo, often same as sondurum
-                getMeteoWarnings(centerObj.merkezId)
+                // Agricultural forecast uses merkezId (passed as istNo)
+                getAgriculturalForecast(centerId),
+                getMeteoWarnings(centerId)
             ]);
 
             setAnalysisData(analysis);
