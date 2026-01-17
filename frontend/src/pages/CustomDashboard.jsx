@@ -53,9 +53,9 @@ L.Icon.Default.mergeOptions({
 
 // --- Widget Components ---
 
-const WidgetCard = ({ data, unit, title, lastUpdate }) => (
+const WidgetCard = ({ data, unit, title, lastUpdate, sensorName }) => (
     <div className="h-100 d-flex flex-column justify-content-center align-items-center text-center p-3">
-        <h6 className="text-muted mb-2">{title}</h6>
+        <h6 className="text-muted mb-2">{title || sensorName}</h6>
         <h2 className="display-4 fw-bold text-primary">
             {data !== null ? data : '-'} <span className="fs-5 text-secondary">{unit}</span>
         </h2>
@@ -63,7 +63,7 @@ const WidgetCard = ({ data, unit, title, lastUpdate }) => (
     </div>
 );
 
-const WidgetGauge = ({ data, min = 0, max = 100, unit, title }) => {
+const WidgetGauge = ({ data, min = 0, max = 100, unit, title, sensorName }) => {
     // Simple SVG Gauge
     const value = data || 0;
     const percentage = Math.min(Math.max((value - min) / (max - min), 0), 1);
@@ -71,7 +71,7 @@ const WidgetGauge = ({ data, min = 0, max = 100, unit, title }) => {
 
     return (
         <div className="h-100 d-flex flex-column justify-content-center align-items-center text-center p-3">
-            <h6 className="text-muted mb-3">{title}</h6>
+            <h6 className="text-muted mb-3">{title || sensorName}</h6>
             <div style={{ position: 'relative', height: '100px', overflow: 'hidden' }}>
                 <div style={{
                     width: '200px', height: '200px', borderRadius: '50%', border: '20px solid #eee',
@@ -89,7 +89,35 @@ const WidgetGauge = ({ data, min = 0, max = 100, unit, title }) => {
     );
 };
 
-const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
+const WidgetMultiList = ({ deviceId, sensorCodes, devices, telemetry, title }) => {
+    const devTel = telemetry[deviceId] || {};
+
+    return (
+        <div className="h-100 d-flex flex-column p-3 overflow-auto">
+            {title && <h6 className="text-muted mb-3 pb-2 border-bottom">{title}</h6>}
+            <div className="d-flex flex-column gap-2">
+                {sensorCodes.map(code => {
+                    const sensorData = devTel[code];
+                    const val = sensorData ? sensorData.value : '-';
+                    const unit = sensorData ? sensorData.unit : '';
+                    // Find safe name
+                    const device = devices.find(d => d.id == deviceId);
+                    const sensor = device?.sensors?.find(s => s.code === code);
+                    const name = sensor?.name || code;
+
+                    return (
+                        <div key={code} className="d-flex justify-content-between align-items-center bg-light p-2 rounded">
+                            <span className="text-muted small fw-medium">{name}</span>
+                            <span className="fw-bold fs-5 text-primary">{val} <small className="text-secondary fs-6">{unit}</small></span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+const WidgetChart = ({ deviceSerial, sensorCode, title, unit, sensorName }) => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -130,7 +158,7 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
     return (
         <div className="h-100 d-flex flex-column p-3">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="text-muted mb-0">{title || sensorCode} ({unit})</h6>
+                <h6 className="text-muted mb-0">{title || sensorName || sensorCode} ({unit})</h6>
                 <Badge bg="light" text="dark">Son 24 Saat</Badge>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
@@ -228,13 +256,16 @@ const WidgetMap = ({ widget, devices, telemetry, onUpdate }) => {
                         {isEditing ? 'Haritaya tıklayarak sensör ekleyin.' : 'Verileri görmek için işaretlere tıklayın.'}
                     </small>
                 </div>
+                {/* Drag handle STOPPER for button */}
                 <BSButton size="sm" variant={isEditing ? "warning" : "outline-primary"}
-                    onMouseDown={(e) => e.stopPropagation()} // Prevent drag start on click
+                    className="no-drag"
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={() => setIsEditing(!isEditing)}>
                     {isEditing ? <i className="bi bi-check-lg"></i> : <i className="bi bi-pencil-fill"></i>}
                 </BSButton>
             </div>
-            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            {/* Added no-drag class here so dragging map doesn't drag widget */}
+            <div className="no-drag" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 <MapContainer center={center} zoom={6} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                     <ResizeMap />
                     <TileLayer
@@ -271,7 +302,7 @@ const WidgetMap = ({ widget, devices, telemetry, onUpdate }) => {
 
             {/* Local Modal for Marker Adding */}
             {showModal && (
-                <div className="position-absolute top-50 start-50 translate-middle bg-white p-3 shadow rounded"
+                <div className="position-absolute top-50 start-50 translate-middle bg-white p-3 shadow rounded no-drag"
                     style={{ zIndex: 9999, width: '300px', border: '1px solid #ddd' }}
                     onMouseDown={(e) => e.stopPropagation()}>
                     <h6>Noktaya Sensör Ata</h6>
@@ -305,7 +336,8 @@ const CustomDashboard = () => {
 
     const farmId = 1;
 
-    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCode: '', type: 'card', title: '', width: 4 });
+    // Modified newWidget state to support array of sensorCodes
+    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCodes: [], type: 'card', title: '', width: 4 });
     const [selectedDeviceSensors, setSelectedDeviceSensors] = useState([]);
     const [telemetry, setTelemetry] = useState({});
 
@@ -320,13 +352,11 @@ const CustomDashboard = () => {
         try {
             const res = await fetch(`/api/expert/${farmId}/dashboard`);
             const config = await res.json();
-            // Transform legacy widgets if needed or use as is if already RGL compatible
             if (config.widgets) {
-                // Ensure every widget has layout properties
+                // Ensure every widget has layout properties & migrate old single sensorCode to array if needed
                 const rglWidgets = config.widgets.map((w, index) => ({
                     ...w,
-                    // If legacy (has width), convert to w/h/x/y. 
-                    // width 4 cols (bootstrap) -> w: 4 (RGL 12 cols total)
+                    sensorCodes: w.sensorCodes || (w.sensorCode ? [w.sensorCode] : []),
                     w: w.w || (w.width ? w.width : 4),
                     h: w.h || 4,
                     x: w.x !== undefined ? w.x : (index * 4) % 12,
@@ -383,7 +413,6 @@ const CustomDashboard = () => {
     };
 
     const onLayoutChange = (layout) => {
-        // Sync RGL layout changes back to widget state
         const updatedWidgets = widgets.map(w => {
             const layoutItem = layout.find(l => l.i === w.i);
             if (layoutItem) {
@@ -396,21 +425,36 @@ const CustomDashboard = () => {
 
     const handleAddWidget = () => {
         const id = Date.now().toString();
+        // Determine optimal type based on selection
+        let finalType = newWidget.type;
+        let finalW = 4;
+        let finalH = 4;
+
+        if (newWidget.type === 'card' && newWidget.sensorCodes.length > 1) {
+            finalType = 'multi'; // Auto-switch to list/multi view
+        }
+
+        if (newWidget.type === 'map') {
+            finalType = 'map';
+            finalW = 6;
+            finalH = 6;
+        }
+
         const widget = {
             ...newWidget,
             id: parseInt(id),
             i: id,
+            type: finalType,
             x: 0,
-            y: Infinity, // Put at bottom
-            w: 4,
-            h: 4
+            y: Infinity,
+            w: finalW,
+            h: finalH,
+            sensorCode: newWidget.sensorCodes[0] // Legacy compat
         };
 
         if (widget.type === 'map') {
             widget.deviceId = 'all';
-            widget.sensorCode = 'location';
-            widget.w = 6;
-            widget.h = 6;
+            widget.sensorCodes = ['location'];
             saveConfig([...widgets, widget]);
             setShowModal(false);
             return;
@@ -432,7 +476,7 @@ const CustomDashboard = () => {
     };
 
     const handleDeviceSelect = (devId) => {
-        setNewWidget({ ...newWidget, deviceId: devId, sensorCode: '', width: 4 });
+        setNewWidget({ ...newWidget, deviceId: devId, sensorCodes: [], width: 4 });
         const dev = devices.find(d => d.id == devId);
         if (dev) {
             const mapped = dev.telemetryMappings ? Object.values(dev.telemetryMappings) : [];
@@ -441,6 +485,15 @@ const CustomDashboard = () => {
             setSelectedDeviceSensors(combined);
         } else {
             setSelectedDeviceSensors([]);
+        }
+    };
+
+    const toggleSensorSelect = (sensor) => {
+        const current = newWidget.sensorCodes;
+        if (current.includes(sensor)) {
+            setNewWidget({ ...newWidget, sensorCodes: current.filter(c => c !== sensor) });
+        } else {
+            setNewWidget({ ...newWidget, sensorCodes: [...current, sensor] });
         }
     };
 
@@ -584,42 +637,63 @@ const CustomDashboard = () => {
                         layouts={{ lg: widgets }}
                         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-                        rowHeight={50} // 60px height per row unit
+                        rowHeight={50}
                         onLayoutChange={(layout) => onLayoutChange(layout)}
                         isDraggable={true}
                         isResizable={true}
                         draggableHandle=".drag-handle"
+                        draggableCancel=".no-drag"
                     >
                         {widgets.map(w => {
                             const devData = telemetry[w.deviceId] || {};
-                            const sensorData = devData[w.sensorCode];
+
+                            // Support legacy single code or new array
+                            const codes = w.sensorCodes && w.sensorCodes.length > 0 ? w.sensorCodes : (w.sensorCode ? [w.sensorCode] : []);
+                            const primaryCode = codes[0];
+                            const sensorData = devData[primaryCode];
                             const val = sensorData ? sensorData.value : null;
                             const ts = sensorData ? sensorData.ts : null;
                             const unit = sensorData ? sensorData.unit : '';
+
+                            // Find sensor name
+                            const device = devices.find(d => d.id == w.deviceId);
+                            const sensorObj = device?.sensors?.find(s => s.code === primaryCode);
+                            const sensorName = sensorObj?.name || primaryCode;
 
                             return (
                                 <div key={w.i} className="bg-white shadow-sm rounded border overflow-hidden" style={{ position: 'relative' }}>
                                     {/* Drag Handle & Controls */}
                                     <div className="drag-handle bg-light border-bottom d-flex justify-content-between align-items-center px-2 py-1"
                                         style={{ cursor: 'move', height: '30px' }}>
-                                        <small className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>
+                                        <small className="text-muted fw-bold text-uppercase d-flex align-items-center gap-2" style={{ fontSize: '0.65rem' }}>
+                                            <i className="bi bi-grip-vertical"></i>
                                             {w.type === 'map' ? 'Harita' : (w.deviceName || 'Widget')}
                                         </small>
-                                        <div onMouseDown={e => e.stopPropagation()}>
+                                        <div onMouseDown={e => e.stopPropagation()} className="no-drag">
                                             <i className="bi bi-x-lg text-danger small" style={{ cursor: 'pointer' }} onClick={() => removeWidget(w.id)}></i>
                                         </div>
                                     </div>
 
                                     {/* Content Area */}
                                     <div style={{ height: 'calc(100% - 30px)', overflow: 'hidden' }}>
-                                        {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
-                                        {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title || w.sensorCode} />}
+                                        {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title} lastUpdate={ts} sensorName={sensorName} />}
+                                        {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title} sensorName={sensorName} />}
+                                        {w.type === 'multi' && (
+                                            <WidgetMultiList
+                                                deviceId={w.deviceId}
+                                                sensorCodes={codes}
+                                                devices={devices}
+                                                telemetry={telemetry}
+                                                title={w.title || w.deviceName}
+                                            />
+                                        )}
                                         {w.type === 'chart' && (
                                             <WidgetChart
                                                 deviceSerial={w.serialNumber}
-                                                sensorCode={w.sensorCode}
+                                                sensorCode={primaryCode}
                                                 title={w.title}
                                                 unit={unit}
+                                                sensorName={sensorName}
                                             />
                                         )}
                                         {w.type === 'map' && (
@@ -646,8 +720,9 @@ const CustomDashboard = () => {
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label>Görünüm Tipi</Form.Label>
-                            <Form.Select onChange={e => setNewWidget({ ...newWidget, type: e.target.value })}>
+                            <Form.Select value={newWidget.type} onChange={e => setNewWidget({ ...newWidget, type: e.target.value })}>
                                 <option value="card">Sayı Kartı (Card)</option>
+                                <option value="multi">Detaylı Liste (MultiList)</option>
                                 <option value="gauge">İbreli Gösterge (Gauge)</option>
                                 <option value="chart">Zaman Grafiği (Line Chart)</option>
                                 <option value="map">Harita (Map)</option>
@@ -665,18 +740,33 @@ const CustomDashboard = () => {
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Veri Kaynağı (Sensör)</Form.Label>
-                                    <Form.Select onChange={e => setNewWidget({ ...newWidget, sensorCode: e.target.value })}>
-                                        <option value="">Seçiniz...</option>
-                                        {selectedDeviceSensors.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </Form.Select>
+                                    <Form.Label>Veri Kaynakları (Sensörler)</Form.Label>
+                                    <div className="border rounded p-2" style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                                        {selectedDeviceSensors.length === 0 && <small className="text-muted">Önce cihaz seçiniz.</small>}
+                                        {selectedDeviceSensors.map(s => {
+                                            const dev = devices.find(d => d.id == newWidget.deviceId);
+                                            const sName = dev?.sensors?.find(ds => ds.code === s)?.name || s;
+                                            return (
+                                                <Form.Check
+                                                    key={s}
+                                                    type="checkbox"
+                                                    label={sName}
+                                                    checked={newWidget.sensorCodes.includes(s)}
+                                                    onChange={() => toggleSensorSelect(s)}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <Form.Text className="text-muted">
+                                        Birden fazla sensör seçerseniz tip otomatik olarak listeye dönüşebilir.
+                                    </Form.Text>
                                 </Form.Group>
                             </>
                         )}
 
                         <Form.Group className="mb-3">
                             <Form.Label>Başlık (Opsiyonel)</Form.Label>
-                            <Form.Control type="text" placeholder="Örn: Sera Sıcaklığı"
+                            <Form.Control type="text" placeholder="Örn: Sera Özeti"
                                 onChange={e => setNewWidget({ ...newWidget, title: e.target.value })} />
                         </Form.Group>
                     </Form>
@@ -684,7 +774,7 @@ const CustomDashboard = () => {
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>İptal</Button>
                     <Button variant="primary"
-                        disabled={newWidget.type !== 'map' && (!newWidget.deviceId || !newWidget.sensorCode)}
+                        disabled={newWidget.type !== 'map' && (!newWidget.deviceId || newWidget.sensorCodes.length === 0)}
                         onClick={handleAddWidget}>Ekle</Button>
                 </Modal.Footer>
             </Modal>
