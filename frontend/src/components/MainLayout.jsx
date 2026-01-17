@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar, Container, Nav, Button } from 'react-bootstrap';
+import { Navbar, Container, Nav, Button, Toast, ToastContainer } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
+import axios from 'axios';
 
 const MainLayout = ({ children }) => {
     const location = useLocation();
@@ -10,10 +11,47 @@ const MainLayout = ({ children }) => {
         return localStorage.getItem('darkMode') === 'true';
     });
 
+    // Global Alert Notification State
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertData, setAlertData] = useState({ title: '', message: '' });
+    const [lastAlertId, setLastAlertId] = useState(0);
+
     useEffect(() => {
         document.documentElement.setAttribute('data-bs-theme', darkMode ? 'dark' : 'light');
         localStorage.setItem('darkMode', darkMode);
     }, [darkMode]);
+
+    // Poll for new alerts every 10 seconds
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const checkForNewAlerts = async () => {
+            try {
+                const response = await axios.get('/api/automation/logs/1', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const logs = response.data;
+                if (logs.length > 0) {
+                    const latest = logs[0];
+                    if (lastAlertId !== 0 && latest.id !== lastAlertId) {
+                        setAlertData({
+                            title: latest.rule.name,
+                            message: `${latest.message} (${new Date(latest.createdAt).toLocaleTimeString()})`
+                        });
+                        setShowAlert(true);
+                    }
+                    if (latest.id !== lastAlertId) setLastAlertId(latest.id);
+                }
+            } catch (error) {
+                console.error('Alert polling error:', error);
+            }
+        };
+
+        checkForNewAlerts();
+        const interval = setInterval(checkForNewAlerts, 10000);
+        return () => clearInterval(interval);
+    }, [lastAlertId]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -69,6 +107,19 @@ const MainLayout = ({ children }) => {
             <div className="flex-grow-1">
                 {children}
             </div>
+
+            {/* Global Alert Notification */}
+            <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 9999 }}>
+                <Toast onClose={() => setShowAlert(false)} show={showAlert} delay={8000} autohide bg="danger">
+                    <Toast.Header>
+                        <strong className="me-auto">🚨 {alertData.title}</strong>
+                        <small>Şimdi</small>
+                    </Toast.Header>
+                    <Toast.Body className="text-white">
+                        {alertData.message}
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
 
             <style>
                 {`
