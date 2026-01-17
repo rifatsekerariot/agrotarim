@@ -50,8 +50,9 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize MQTT Service (Local broker)
-const mqttService = require('./services/mqtt.service');
-mqttService.connect();
+// Initialize MQTT Service (Local broker - DISABLED in favor of ChirpStack Service)
+// const mqttService = require('./services/mqtt.service');
+// mqttService.connect();
 
 // Initialize ChirpStack MQTT Service (LoRaWAN servers)
 const chirpStackService = require('./services/chirpstack.service');

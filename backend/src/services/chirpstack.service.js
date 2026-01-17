@@ -131,7 +131,17 @@ class ChirpStackService {
             }
 
             // Decode payload
-            const decodedData = await this.decodePayload(device, data, fPort);
+            let decodedData = {};
+
+            // CASE A: Pre-decoded object (from ChirpStack codec)
+            if (payload.object && Object.keys(payload.object).length > 0) {
+                decodedData = payload.object;
+                console.log(`[ChirpStack] Using pre-decoded object from server`);
+            }
+            // CASE B: Raw Base64 data (needs local decoding)
+            else if (data) {
+                decodedData = await this.decodePayload(device, data, fPort);
+            }
 
             if (!decodedData || Object.keys(decodedData).length === 0) {
                 console.log('[ChirpStack] Decode returned empty data');
