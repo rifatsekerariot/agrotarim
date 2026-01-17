@@ -25,9 +25,8 @@ sudo docker compose exec -T backend npx prisma db push --accept-data-loss
 echo "🌱 Seeding Comprehensive Knowledge Base..."
 sudo docker compose exec -T backend node scripts/seed_full_data.js
 
-# 6. Auto-Start Simulator (Background)
-echo "🤖 Starting Sensor Simulator (Background)..."
-# -d runs in detached mode (background)
-sudo docker compose exec -d backend node scripts/simulator.js
+# 6. Auto-Start Simulator (DISABLED FOR PRODUCTION)
+# echo "🤖 Starting Sensor Simulator (Background)..."
+# sudo docker compose exec -d backend node scripts/simulator.js
 
 echo "✅ DONE! Dashboard should now show live data."

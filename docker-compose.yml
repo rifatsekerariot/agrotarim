@@ -16,6 +16,20 @@ services:
       - agrometa-network
     restart: always
 
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: agrometa_mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - agrometa-network
+    restart: always
+
   backend:
     build:
       context: ./backend

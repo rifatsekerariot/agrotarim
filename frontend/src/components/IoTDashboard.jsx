@@ -60,11 +60,58 @@ const IoTDashboard = ({ farmId }) => {
         }
     };
 
+    const handleCityChange = async (e) => {
+        const newCity = e.target.value;
+        try {
+            await fetch(`/api/expert/${farmId}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ city: newCity })
+            });
+            fetchData();
+        } catch (err) {
+            console.error("City update failed", err);
+        }
+    };
+
     return (
         <div className="iot-dashboard p-3">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="d-flex align-items-center gap-3">
                     <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla</h2>
+
+                    {/* City Selector */}
+                    <select className="form-select form-select-sm" style={{ width: '130px' }} onChange={handleCityChange} defaultValue="" >
+                        <option value="" disabled>Şehir Seç</option>
+                        <optgroup label="Akdeniz">
+                            <option value="Adana">Adana</option>
+                            <option value="Antalya">Antalya</option>
+                            <option value="Mersin">Mersin</option>
+                        </optgroup>
+                        <optgroup label="Karadeniz">
+                            <option value="Trabzon">Trabzon</option>
+                            <option value="Ordu">Ordu</option>
+                            <option value="Samsun">Samsun</option>
+                        </optgroup>
+                        <optgroup label="İç Anadolu">
+                            <option value="Konya">Konya</option>
+                            <option value="Ankara">Ankara</option>
+                        </optgroup>
+                        <optgroup label="Marmara">
+                            <option value="Bursa">Bursa</option>
+                            <option value="Edirne">Edirne</option>
+                        </optgroup>
+                        <optgroup label="Ege">
+                            <option value="İzmir">İzmir</option>
+                            <option value="Aydın">Aydın</option>
+                        </optgroup>
+                        <optgroup label="Güneydoğu">
+                            <option value="Şanlıurfa">Şanlıurfa</option>
+                            <option value="Diyarbakır">Diyarbakır</option>
+                        </optgroup>
+                    </select>
+
+                    {/* Crop Selector */}
                     <select className="form-select form-select-sm" style={{ width: '150px' }} onChange={handleCropChange} defaultValue="">
                         <option value="" disabled>Ürün Seç</option>
                         <optgroup label="Tahıllar">

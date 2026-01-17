@@ -18,17 +18,21 @@ router.get('/:farmId', async (req, res) => {
 router.post('/:farmId/config', async (req, res) => {
     try {
         const { farmId } = req.params;
-        const { crop } = req.body;
+        const { crop, city } = req.body;
 
         const { PrismaClient } = require('@prisma/client');
         const prisma = new PrismaClient();
 
+        const updateData = {};
+        if (crop) updateData.crop_type = crop;
+        if (city) updateData.city = city;
+
         await prisma.farm.update({
             where: { id: parseInt(farmId) },
-            data: { crop_type: crop }
+            data: updateData
         });
 
-        res.json({ success: true, message: `Ürün ${crop} olarak güncellendi.` });
+        res.json({ success: true, message: `Ayarlar güncellendi: ${crop || ''} ${city || ''}` });
     } catch (error) {
         console.error("Config Update Error:", error);
         res.status(500).json({ error: "Ayarlar güncellenemedi" });

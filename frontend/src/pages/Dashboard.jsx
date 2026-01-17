@@ -126,7 +126,12 @@ const Dashboard = () => {
                     <i className="bi bi-flower1"></i> AgroMeta
                     <span className="fs-6 ms-2 badge bg-success text-white">PRO</span>
                 </h1>
-                <Button variant="outline-danger" onClick={handleLogout}>Çıkış Yap</Button>
+                <div>
+                    <Button variant="outline-primary" className="me-2" onClick={() => navigate('/settings')}>
+                        <i className="bi bi-gear-fill"></i> Ayarlar
+                    </Button>
+                    <Button variant="outline-danger" onClick={handleLogout}>Çıkış Yap</Button>
+                </div>
             </div>
 
             <Tabs

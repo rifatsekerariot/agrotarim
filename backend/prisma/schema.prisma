@@ -46,6 +46,8 @@ model Device {
   status        String   @default("offline") // online, offline, maintenance
   lastSeen      DateTime?
   
+  telemetryMappings Json? // Store custom parsing rules: {"temp": "t_air", "hum": "h_air"}
+
   sensors       Sensor[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

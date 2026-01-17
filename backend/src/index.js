@@ -26,12 +26,14 @@ const authRoutes = require('./routes/auth.routes');
 const mgmRoutes = require('./routes/mgm.routes');
 const telemetryRoutes = require('./routes/telemetry.routes');
 const expertRoutes = require('./routes/expert.routes');
+const deviceRoutes = require('./routes/device.routes');
 
 // Prefix API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/mgm', mgmRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/expert', expertRoutes);
+app.use('/api/devices', deviceRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'AgroMeta API is running', version: '1.0.0' });
@@ -42,6 +44,10 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Something went wrong!', details: err.message });
 });
+
+// Initialize MQTT Service
+const mqttService = require('./services/mqtt.service');
+mqttService.connect();
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
