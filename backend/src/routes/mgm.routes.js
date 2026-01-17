@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { MgmService } = require('../mgm/mgm.service');
+const MgmService = require('../mgm/mgm.service');
 const { calculateRisk } = require('../risk/risk.engine');
 const authenticateToken = require('../auth/auth.middleware');
 

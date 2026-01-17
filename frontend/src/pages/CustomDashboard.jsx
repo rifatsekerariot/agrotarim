@@ -44,20 +44,86 @@ const WidgetGauge = ({ data, min = 0, max = 100, unit, title }) => {
     );
 };
 
+const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchHistory();
+        const interval = setInterval(fetchHistory, 30000); // Update every 30s
+        return () => clearInterval(interval);
+    }, [deviceSerial, sensorCode]);
+
+    const fetchHistory = async () => {
+        try {
+            // Fetch last 24h history
+            const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=24`);
+            const json = await res.json();
+
+            // API returns { "t_air": [...], "h_air": [...] }
+            // We need to extract the specific sensor array and format for Recharts
+            if (json[sensorCode]) {
+                const formatted = json[sensorCode].map(apiPoint => ({
+                    time: new Date(apiPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    value: apiPoint.value,
+                    timestamp: new Date(apiPoint.timestamp).getTime() // for sorting if needed
+                })).reverse(); // API usually returns newest first? verify. TelemetryService usually sorts desc. Recharts needs asc in X axis usually.
+
+                // Sort ascending by time
+                formatted.sort((a, b) => a.timestamp - b.timestamp);
+
+                setData(formatted);
+            }
+        } catch (error) {
+            console.error("Chart data fetch error", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Determine Color
+    let strokeColor = '#8884d8';
+    if (sensorCode.includes('temp') || sensorCode.includes('sicaklik') || title.toLowerCase().includes('sıcaklık')) strokeColor = '#dc3545'; // Red
+    else if (sensorCode.includes('hum') || sensorCode.includes('nem')) strokeColor = '#0dcaf0'; // Blue
+    else if (sensorCode.includes('soil') || sensorCode.includes('toprak')) strokeColor = '#198754'; // Green
+
+    return (
+        <Card className="h-100 shadow-sm border-0">
+            <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h6 className="text-muted mb-0">{title || sensorCode} ({unit})</h6>
+                    <Badge bg="light" text="dark">Son 24 Saat</Badge>
+                </div>
+                <div style={{ width: '100%', height: 250 }}>
+                    {loading ? <p className="text-center mt-5">Yükleniyor...</p> : (
+                        <ResponsiveContainer>
+                            <LineChart data={data}>
+                                <XAxis dataKey="time" tick={{ fontSize: 12 }} interval="preserveStartEnd" minTickGap={30} />
+                                <YAxis domain={['auto', 'auto']} width={40} />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+            </Card.Body>
+        </Card>
+    );
+};
+
 const CustomDashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [devices, setDevices] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
 
     // Config State
     const farmId = 1; // Default MVP
 
     // New Widget Form State
-    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCode: '', type: 'card', title: '' });
+    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCode: '', type: 'chart', title: '' });
     const [selectedDeviceSensors, setSelectedDeviceSensors] = useState([]);
 
-    // Live Data Storage
+    // Live Data Storage for gauges/cards
     const [telemetry, setTelemetry] = useState({}); // { deviceSerial: { sensors: {...} } }
 
     useEffect(() => {
@@ -76,8 +142,6 @@ const CustomDashboard = () => {
             if (config.widgets) setWidgets(config.widgets);
         } catch (e) {
             console.error("Layout load failed", e);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -88,15 +152,6 @@ const CustomDashboard = () => {
     };
 
     const fetchLiveData = async () => {
-        // Fetch status for all devices
-        // For simple MVP we can rely on what we have or hit a telemetry/latest endpoint.
-        // Assuming we have a way to get latest data.
-        // Let's iterate widgets and fetch? No, too inefficient.
-        // Use existing devices status endpoint from Dashboard or specific one.
-        // For now, let's just re-fetch devices which contains some status or create a bulk telemetry fetch.
-        // Let's assume we can fetch devices and they have latest telemetry attached?
-        // Controller currently returns: devices -> sensors -> telemetry (take:1).
-        // PERFECT.
         const res = await fetch('/api/devices');
         const data = await res.json();
         const telMap = {};
@@ -107,7 +162,8 @@ const CustomDashboard = () => {
                 if (s.telemetry && s.telemetry[0]) {
                     sensors[s.code] = {
                         value: s.telemetry[0].value,
-                        ts: new Date(s.telemetry[0].timestamp).toLocaleTimeString()
+                        ts: new Date(s.telemetry[0].timestamp).toLocaleTimeString(),
+                        unit: s.unit
                     };
                 }
             });
@@ -130,9 +186,6 @@ const CustomDashboard = () => {
         // Find unit of selected sensor
         const device = devices.find(d => d.id == widget.deviceId);
         if (device) {
-            // We need to know sensor unit. We can guess or find existing sensor.
-            // For dynamic MQTT, sensor might not exist in Sensor table yet if not ingested.
-            // Assume user knows.
             widget.serialNumber = device.serialNumber;
             widget.deviceName = device.name;
         }
@@ -182,23 +235,24 @@ const CustomDashboard = () => {
                     const sensorData = devData[w.sensorCode];
                     const val = sensorData ? sensorData.value : null;
                     const ts = sensorData ? sensorData.ts : null;
+                    const unit = sensorData ? sensorData.unit : '';
 
                     return (
                         <Col key={w.id} md={w.type === 'chart' ? 12 : 4} className="mb-4">
-                            <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'relative', height: '100%' }}>
                                 <Button size="sm" variant="danger"
                                     style={{ position: 'absolute', right: 5, top: 5, zIndex: 10, opacity: 0.5 }}
                                     onClick={() => removeWidget(w.id)}>x</Button>
 
-                                {w.type === 'card' && <WidgetCard data={val} unit="" title={w.title || w.sensorCode} lastUpdate={ts} />}
-                                {w.type === 'gauge' && <WidgetGauge data={val} unit="" title={w.title || w.sensorCode} />}
+                                {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
+                                {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title || w.sensorCode} />}
                                 {w.type === 'chart' && (
-                                    <Card className="h-100 shadow-sm border-0">
-                                        <Card.Body>
-                                            <h6>{w.title} (Grafik Modu - Beta)</h6>
-                                            <div className="alert alert-info">Grafik verisi için detaylı sayfa önerilir.</div>
-                                        </Card.Body>
-                                    </Card>
+                                    <WidgetChart
+                                        deviceSerial={w.serialNumber}
+                                        sensorCode={w.sensorCode}
+                                        title={w.title}
+                                        unit={unit}
+                                    />
                                 )}
                             </div>
                         </Col>
@@ -232,9 +286,9 @@ const CustomDashboard = () => {
                         <Form.Group className="mb-3">
                             <Form.Label>Görünüm Tipi</Form.Label>
                             <Form.Select onChange={e => setNewWidget({ ...newWidget, type: e.target.value })}>
+                                <option value="chart">Zaman Grafiği (Line Chart)</option>
                                 <option value="card">Sayı Kartı (Card)</option>
                                 <option value="gauge">İbreli Gösterge (Gauge)</option>
-                                {/* <option value="chart">Grafik (Chart)</option> */}
                             </Form.Select>
                         </Form.Group>
 
