@@ -162,20 +162,32 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [range, setRange] = useState('24H');
+    const [range, setRange] = useState('24S');
 
     const COLORS = ['#dc3545', '#0dcaf0', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#0d6efd', '#20c997'];
+
+    // Map range to hours
+    const getHoursForRange = (r) => {
+        switch (r) {
+            case '1S': return 1;
+            case '24S': return 24;
+            case '7G': return 168; // 7 days
+            default: return 24;
+        }
+    };
 
     useEffect(() => {
         if (!deviceSerial || allCodes.length === 0) return;
         fetchHistory();
         const interval = setInterval(fetchHistory, 30000);
         return () => clearInterval(interval);
-    }, [deviceSerial, JSON.stringify(allCodes)]);
+    }, [deviceSerial, JSON.stringify(allCodes), range]); // Added range as dependency
 
     const fetchHistory = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=24`);
+            const hours = getHoursForRange(range);
+            const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=${hours}`);
             const json = await res.json();
 
             // Build combined data structure with all sensor values by timestamp
@@ -185,7 +197,13 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
                 if (json[code]) {
                     json[code].forEach(point => {
                         const ts = new Date(point.timestamp).getTime();
-                        const timeStr = new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        // Format time differently based on range
+                        let timeStr;
+                        if (range === '7G') {
+                            timeStr = new Date(point.timestamp).toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+                        } else {
+                            timeStr = new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        }
 
                         if (!dataMap.has(ts)) {
                             dataMap.set(ts, { timestamp: ts, time: timeStr });
@@ -699,6 +717,8 @@ const CustomDashboard = () => {
                                                     ...devData // Pass full device telemetry for multi-sensor widgets
                                                 }}
                                                 settings={w.settings || {}}
+                                                deviceSerial={w.serialNumber}
+                                                sensorCode={primaryCode}
                                             />
                                         ) : (
                                             <>
