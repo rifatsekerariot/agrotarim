@@ -25,22 +25,28 @@ const RiskScorer = {
      * @param {Object} context - { temp, minTempForecast, soilTemp, soilMoisture, rain, wind }
      * @returns {Object} { score: Number, details: Array }
      */
-    evaluate(context) {
+    evaluate(context, cropConfig = {}) {
         let riskScore = 0;
         let reasons = [];
+
+        // Defaults if config is missing properties
+        const lethalMin = cropConfig.lethalMin !== undefined ? cropConfig.lethalMin : -4;
+        const frostThreshold = cropConfig.baseTemp !== undefined ? Math.min(0, cropConfig.baseTemp) : 0; // Usually frost is 0, but valid to check base
+        const stressTemp = cropConfig.stressTemp || 35;
 
         // 1. Forecast / Air Temp Check
         const t = context.minTempForecast !== undefined ? context.minTempForecast : context.temp;
 
-        if (t <= -4) {
+        if (t <= lethalMin) {
             riskScore += 40;
-            reasons.push({ code: 'FORCE_MAJEURE', msg: 'Kuvvetli Zirai Don (-4°C altı)', points: 40 });
+            reasons.push({ code: 'FORCE_MAJEURE', msg: `Kritik Düşük Sıcaklık (${lethalMin}°C altı)`, points: 40 });
         } else if (t <= 0) {
-            riskScore += 25; // Adjusted from plan to be slightly distinct
+            // General Frost Risk (Warning) typically starts at 0 regardless of crop, but severity varies
+            riskScore += 25;
             reasons.push({ code: 'FROST', msg: 'Zirai Don Riski (0°C altı)', points: 25 });
-        } else if (context.temp > 35) {
+        } else if (context.temp > stressTemp) {
             riskScore += 15;
-            reasons.push({ code: 'HEAT', msg: 'Yüksek Sıcaklık Stresi', points: 15 });
+            reasons.push({ code: 'HEAT', msg: `Yüksek Sıcaklık Stresi (>${stressTemp}°C)`, points: 15 });
         }
 
         // 2. IoT Sensor Checks

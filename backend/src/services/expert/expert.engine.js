@@ -30,7 +30,7 @@ const ExpertEngine = {
             rain: data.weather.rain
         };
 
-        const riskResult = RiskScorer.evaluate(riskContext);
+        const riskResult = RiskScorer.evaluate(riskContext, config);
         const riskLevel = RiskScorer.getLevel(riskResult.score);
 
         // 3. Action Generation

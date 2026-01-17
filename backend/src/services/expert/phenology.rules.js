@@ -5,11 +5,14 @@
 
 // Base Temperatures (Thresholds for Growth)
 const CROP_CONSTANTS = {
-    'Bugday': { baseTemp: 0, lethalMin: -4 },
-    'Misir': { baseTemp: 10, lethalMin: -1 },
-    'Pamuk': { baseTemp: 15, lethalMin: 5 },
-    'Narenciye': { baseTemp: 13, lethalMin: -2 }, // Sensitive
-    'Genel': { baseTemp: 5, lethalMin: 0 }
+    'Bugday': { baseTemp: 0, lethalMin: -4, stressTemp: 32 },
+    'Misir': { baseTemp: 10, lethalMin: -1, stressTemp: 35 },
+    'Pamuk': { baseTemp: 15, lethalMin: 5, stressTemp: 38 },
+    'Narenciye': { baseTemp: 13, lethalMin: -2, stressTemp: 35 }, // Sensitive
+    'Genel': { baseTemp: 5, lethalMin: 0, stressTemp: 35 },
+    // Defaults for others in case
+    'Domates': { baseTemp: 10, lethalMin: 2, stressTemp: 32 },
+    'Biber': { baseTemp: 12, lethalMin: 5, stressTemp: 34 }
 };
 
 const PhenologyRules = {
