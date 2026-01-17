@@ -1,13 +1,27 @@
 import React from 'react';
-import { Card } from 'react-bootstrap';
 
 const WaterTankWidget = ({ data, settings = {} }) => {
-    // Use settings or fallback to data or defaults
-    const capacity = settings.capacity || data?.capacity || 4000;
+    // Current value from sensor (typically 0-100%)
+    const level = data?.value ?? null;
+
+    // Configuration from settings
+    const capacity = settings.capacity || 4000;
     const consumptionRate = settings.consumptionRate || 150;
-    const level = data?.value || 65; // percentage
+    const lowThreshold = settings.lowThreshold || 20;
+
+    // No Data State
+    if (level === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🔋</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
     const currentLiters = (capacity * level) / 100;
     const daysLeft = (currentLiters / consumptionRate).toFixed(1);
+    const isLow = level <= lowThreshold;
 
     return (
         <div className="d-flex flex-column h-100 p-2">
@@ -16,11 +30,12 @@ const WaterTankWidget = ({ data, settings = {} }) => {
                 <div style={{
                     width: '80px',
                     height: '100px',
-                    border: '3px solid #e0e0e0',
+                    border: `3px solid ${isLow ? '#dc3545' : '#e0e0e0'}`,
                     borderRadius: '8px',
                     position: 'relative',
                     overflow: 'hidden',
-                    background: '#f8f9fa'
+                    background: '#f8f9fa',
+                    boxShadow: isLow ? '0 0 10px rgba(220, 53, 69, 0.2)' : 'none'
                 }}>
                     {/* Water Level */}
                     <div style={{
@@ -29,11 +44,10 @@ const WaterTankWidget = ({ data, settings = {} }) => {
                         left: 0,
                         width: '100%',
                         height: `${level}%`,
-                        background: 'linear-gradient(to top, #2196f3, #4fc3f7)',
+                        background: isLow ? 'linear-gradient(to top, #dc3545, #ff6b6b)' : 'linear-gradient(to top, #2196f3, #4fc3f7)',
                         transition: 'height 1s ease-in-out',
                         opacity: 0.8
                     }}>
-                        {/* Wave Animation (Simple CSS Mock) */}
                         <div style={{
                             position: 'absolute',
                             top: '-5px',
@@ -46,7 +60,6 @@ const WaterTankWidget = ({ data, settings = {} }) => {
                         }}></div>
                     </div>
 
-                    {/* Percentage Text Overlay */}
                     <div style={{
                         position: 'absolute',
                         top: '50%',
@@ -57,13 +70,13 @@ const WaterTankWidget = ({ data, settings = {} }) => {
                         zIndex: 2,
                         textShadow: '0 1px 2px rgba(0,0,0,0.1)'
                     }}>
-                        {level}%
+                        {level.toFixed(0)}%
                     </div>
                 </div>
             </div>
 
             <div className="text-center">
-                <div className="h4 mb-0 fw-bold">{currentLiters.toLocaleString()} <span className="fs-6 text-muted fw-normal">/ {capacity.toLocaleString()} L</span></div>
+                <div className="h4 mb-0 fw-bold">{currentLiters.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="fs-6 text-muted fw-normal">/ {capacity.toLocaleString()} L</span></div>
                 <div className="text-muted small mt-1">
                     <i className="bi bi-clock-history me-1"></i> ~{daysLeft} gün yeter
                 </div>

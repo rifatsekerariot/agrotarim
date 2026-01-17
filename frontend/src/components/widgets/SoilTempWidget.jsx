@@ -1,11 +1,22 @@
 import React from 'react';
 
-const SoilTempWidget = ({ data }) => {
-    const temp = data?.value || 18.5;
-    const min = 10;
-    const max = 30;
-    const idealMin = 15;
-    const idealMax = 25;
+const SoilTempWidget = ({ data, settings = {} }) => {
+    const temp = data?.value ?? null;
+    const { idealMin = 15, idealMax = 25 } = settings;
+
+    // Limits for the gauge
+    const min = settings.minTemp || 0;
+    const max = settings.maxTemp || 40;
+
+    // No Data State
+    if (temp === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🌡️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
 
     // Calculate position percent
     const percent = Math.min(Math.max(((temp - min) / (max - min)) * 100, 0), 100);
@@ -17,29 +28,24 @@ const SoilTempWidget = ({ data }) => {
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-
             <div className="mb-4">
-                <span className="display-6 fw-bold text-dark">{temp}</span>
+                <span className="display-6 fw-bold text-dark">{temp.toFixed(1)}</span>
                 <span className="fs-5 text-muted">°C</span>
             </div>
 
             <div className="position-relative mb-2 mx-3">
-                {/* Track */}
                 <div style={{ height: '6px', background: '#e9ecef', borderRadius: '3px', width: '100%' }}></div>
-
-                {/* Ideal Range Marker */}
                 <div style={{
                     position: 'absolute',
                     top: 0,
                     left: `${((idealMin - min) / (max - min)) * 100}%`,
                     width: `${((idealMax - idealMin) / (max - min)) * 100}%`,
                     height: '6px',
-                    background: '#198754', // success color
+                    background: '#198754',
                     opacity: 0.3,
                     borderRadius: '2px'
                 }}></div>
 
-                {/* Thumb/Indicator */}
                 <div style={{
                     position: 'absolute',
                     top: '-6px',
@@ -54,7 +60,6 @@ const SoilTempWidget = ({ data }) => {
                     transition: 'left 0.5s ease'
                 }}></div>
 
-                {/* Labels */}
                 <div className="d-flex justify-content-between mt-2 text-muted small" style={{ fontSize: '0.75rem' }}>
                     <span>{min}°</span>
                     <span>{max}°</span>

@@ -166,10 +166,10 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
 
     const COLORS = ['#dc3545', '#0dcaf0', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#0d6efd', '#20c997'];
 
-    // Map range to hours
+    // Map range to hours (using 4h for 1S to account for potential 3h timezone diff)
     const getHoursForRange = (r) => {
         switch (r) {
-            case '1S': return 1;
+            case '1S': return 4;
             case '24S': return 24;
             case '7G': return 168; // 7 days
             default: return 24;
@@ -178,13 +178,13 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
 
     useEffect(() => {
         if (!deviceSerial || allCodes.length === 0) return;
-        fetchHistory();
-        const interval = setInterval(fetchHistory, 30000);
+        fetchHistory(true); // Initial load
+        const interval = setInterval(() => fetchHistory(false), 30000); // Background refresh
         return () => clearInterval(interval);
     }, [deviceSerial, JSON.stringify(allCodes), range]); // Added range as dependency
 
-    const fetchHistory = async () => {
-        setLoading(true);
+    const fetchHistory = async (isInitial = false) => {
+        if (isInitial) setLoading(true);
         try {
             const hours = getHoursForRange(range);
             const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=${hours}`);
@@ -237,30 +237,36 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
             </div>
 
             {/* Chart */}
-            <div style={{ flex: 1, minHeight: 0, padding: '10px' }}>
-                {loading ? <p className="text-center mt-4">Yükleniyor...</p> : (
-                    <ResponsiveContainer>
-                        <LineChart data={data}>
-                            <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} axisLine={false} tickLine={false} />
-                            <YAxis domain={['auto', 'auto']} width={35} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                formatter={(value, name) => [value?.toFixed(2), name]}
-                            />
-                            {allCodes.map((code, idx) => (
-                                <Line
-                                    key={code}
-                                    type="monotone"
-                                    dataKey={code}
-                                    stroke={COLORS[idx % COLORS.length]}
-                                    strokeWidth={2}
-                                    dot={false}
-                                    activeDot={{ r: 5, strokeWidth: 0 }}
-                                    name={code}
+            <div style={{ flex: 1, minHeight: 0, padding: '10px', position: 'relative' }}>
+                {loading && data.length === 0 ? (
+                    <div className="d-flex h-100 align-items-center justify-content-center">
+                        <p className="text-muted">Yükleniyor...</p>
+                    </div>
+                ) : (
+                    <div className="h-100" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+                        <ResponsiveContainer>
+                            <LineChart data={data}>
+                                <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} axisLine={false} tickLine={false} />
+                                <YAxis domain={['auto', 'auto']} width={35} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    formatter={(value, name) => [value?.toFixed(2), name]}
                                 />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+                                {allCodes.map((code, idx) => (
+                                    <Line
+                                        key={code}
+                                        type="monotone"
+                                        dataKey={code}
+                                        stroke={COLORS[idx % COLORS.length]}
+                                        strokeWidth={2}
+                                        dot={false}
+                                        activeDot={{ r: 5, strokeWidth: 0 }}
+                                        name={code}
+                                    />
+                                ))}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
                 )}
             </div>
 

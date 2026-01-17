@@ -1,49 +1,58 @@
 import React from 'react';
 import { ProgressBar } from 'react-bootstrap';
 
-const WaterPressureWidget = ({ data }) => {
-    // Mock Data
-    const pressure = data?.value || 2.8; // bar
+const WaterPressureWidget = ({ data, settings = {} }) => {
+    const pressure = data?.value ?? null;
+    const { normalMin = 2.0, normalMax = 4.0, unit = 'bar' } = settings;
+
+    // Scale for visual bar
     const min = 0;
-    const max = 6;
-    const idealMin = 2;
-    const idealMax = 4;
+    const max = settings.maxPressure || 6;
+
+    // No Data State
+    if (pressure === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>⏲️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
 
     // Determine status
     let status = 'Normal';
     let variant = 'success';
-    if (pressure < idealMin) { status = 'Düşük'; variant = 'warning'; }
-    else if (pressure > idealMax) { status = 'Yüksek'; variant = 'danger'; }
+    if (pressure < normalMin) { status = 'Düşük'; variant = 'warning'; }
+    else if (pressure > normalMax) { status = 'Yüksek'; variant = 'danger'; }
 
-    const percentage = ((pressure - min) / (max - min)) * 100;
+    const percentage = Math.min(Math.max(((pressure - min) / (max - min)) * 100, 0), 100);
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center">
             <div className="text-center mb-3">
-                <div className="display-6 fw-bold text-dark">{pressure} <span className="fs-5 text-muted">bar</span></div>
+                <div className="display-6 fw-bold text-dark">{pressure.toFixed(1)} <span className="fs-5 text-muted">{unit}</span></div>
             </div>
 
             <div className="mb-2 position-relative">
                 <ProgressBar now={percentage} variant={variant} style={{ height: '12px', borderRadius: '6px' }} />
-                {/* Ideal Zone Markers (Visual Only) */}
                 <div style={{
                     position: 'absolute',
                     top: '0',
-                    left: `${((idealMin - min) / (max - min)) * 100}%`,
+                    left: `${((normalMin - min) / (max - min)) * 100}%`,
                     width: '2px',
                     height: '12px',
                     background: '#fff',
                     opacity: 0.5
-                }} title="İdeal Alt Sınır"></div>
+                }} title="Normal Alt Sınır"></div>
                 <div style={{
                     position: 'absolute',
                     top: '0',
-                    left: `${((idealMax - min) / (max - min)) * 100}%`,
+                    left: `${((normalMax - min) / (max - min)) * 100}%`,
                     width: '2px',
                     height: '12px',
                     background: '#fff',
                     opacity: 0.5
-                }} title="İdeal Üst Sınır"></div>
+                }} title="Normal Üst Sınır"></div>
             </div>
 
             <div className="d-flex justify-content-between align-items-center">
@@ -51,7 +60,7 @@ const WaterPressureWidget = ({ data }) => {
                     <i className={`bi bi-${variant === 'success' ? 'check-circle' : 'exclamation-triangle'} me-1`}></i>
                     {status}
                 </span>
-                <small className="text-muted">{idealMin}-{idealMax} bar arası ideal</small>
+                <small className="text-muted">{normalMin}-{normalMax} {unit} ideal</small>
             </div>
         </div>
     );
