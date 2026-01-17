@@ -261,3 +261,147 @@ body {
   background-color: #f8f9fa;
   transform: translateY(-2px);
 }
+
+/* --- Device List Table Styles --- */
+.device-table-container {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.device-table thead th {
+  background-color: #f9fafb !important;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.device-row {
+  transition: all 0.2s ease;
+}
+
+.device-row:hover {
+  background-color: #f3f4f6 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transform: scale(1.002);
+  z-index: 10;
+  position: relative;
+}
+
+.device-row td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f3f4f6;
+  color: #1f2937;
+  font-size: 0.875rem;
+}
+
+/* Status Badges */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-dot.online {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status-dot.offline {
+  background-color: #6b7280;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+}
+
+.status-badge.online {
+  color: #065f46;
+  background-color: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.status-badge.offline {
+  color: #374151;
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+/* DevEUI Styling */
+.deveui-badge {
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  color: #ec4899;
+  background-color: #fdf2f8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.deveui-badge:hover {
+  background-color: #fce7f3;
+  text-decoration: underline;
+}
+
+/* Action Menu */
+.action-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 6px;
+  border-radius: 6px;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #f9fafb;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+/* Pagination */
+.pagination-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pagination-btn.active {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
