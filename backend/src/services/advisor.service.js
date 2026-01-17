@@ -131,11 +131,25 @@ const AdvisorService = {
                 }
             }
 
+            // 4. Construct Dynamic Summary
+            let summary = `${profile.region}, ${profile.name} (${currentStage.name}) analiz edildi. `;
+
+            if (alerts.length === 0 && actions.length === 0) {
+                summary += "Şu an için her şey yolunda. Sensör verileri ve hava durumu tahminleri ideal aralıkta görünüyor.";
+                if (currentStage.name === 'Genel') {
+                    summary += " (Genel evre için varsayılan limitler kullanıldı).";
+                }
+            } else if (alerts.some(a => a.level === 'critical')) {
+                summary = `⚠️ DİKKAT! ${profile.name} ürününüz için KRİTİK riskler tespit edildi. Lütfen aşağıdaki uyarıları dikkate alınız.`;
+            } else if (alerts.length > 0) {
+                summary = `Bazı riskler ve uyarılar mevcut. Özellikle hava durumu ve sulama önerilerini kontrol etmelisiniz.`;
+            }
+
             return {
                 crop: `${profile.name} (${currentStage.name})`,
                 raw_crop: farm.crop_type, // For Frontend Dropdown
                 city: farm.city,         // For Frontend Dropdown
-                summary: `${profile.region}, ${profile.name} ürünü ${currentStage.name} evresinde analiz ediliyor.`,
+                summary,
                 alerts,
                 actions
             };
