@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Row, Col, Badge, Modal, Spinner, Dropdown, InputGroup } from 'react-bootstrap';
-import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy, MessageSquare } from 'lucide-react';
+import SmsProvidersTab from '../components/SmsProvidersTab';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('devices');
@@ -14,6 +15,14 @@ const Settings = () => {
 
     const [loraServers, setLoraServers] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // SMS Providers State
+    const [smsProviders, setSmsProviders] = useState([]);
+    const [showSmsModal, setShowSmsModal] = useState(false);
+    const [smsForm, setSmsForm] = useState({ name: '', displayName: '', priority: 0, isActive: false, config: {} });
+    const [editingSmsId, setEditingSmsId] = useState(null);
+    const [testSmsPhone, setTestSmsPhone] = useState('');
+    const [smsTestResult, setSmsTestResult] = useState(null);
 
     // Modal States
     const [showDeviceModal, setShowDeviceModal] = useState(false);
@@ -36,9 +45,13 @@ const Settings = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [devRes, serverRes] = await Promise.all([
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            const [devRes, serverRes, smsRes] = await Promise.all([
                 fetch('/api/devices'),
-                fetch('/api/lora/servers')
+                fetch('/api/lora/servers'),
+                fetch('/api/sms/providers', { headers })
             ]);
 
             if (devRes.ok) {
@@ -50,10 +63,16 @@ const Settings = () => {
                 const serverData = await serverRes.json();
                 setLoraServers(Array.isArray(serverData) ? serverData : []);
             } else { setLoraServers([]); }
+
+            if (smsRes.ok) {
+                const smsData = await smsRes.json();
+                setSmsProviders(Array.isArray(smsData) ? smsData : []);
+            } else { setSmsProviders([]); }
         } catch (e) {
             console.error('Fetch error:', e);
             setDevices([]);
             setLoraServers([]);
+            setSmsProviders([]);
         }
         setLoading(false);
     };
