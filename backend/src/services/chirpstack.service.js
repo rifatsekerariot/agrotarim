@@ -161,6 +161,12 @@ class ChirpStackService {
                 }
             });
 
+            // Trigger Automation Rules
+            const RuleEngine = require('./automation/rule.engine');
+            await RuleEngine.evaluate(device.id, decodedData).catch(err => {
+                console.error('[ChirpStack] RuleEngine evaluation failed:', err);
+            });
+
         } catch (error) {
             console.error('[ChirpStack] Message handling error:', error);
         }
