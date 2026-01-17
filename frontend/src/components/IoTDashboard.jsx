@@ -1,7 +1,6 @@
-// Imports
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Spinner, Badge, Modal, ProgressBar, Button } from 'react-bootstrap';
-import { RefreshCcw, Thermometer, Droplets, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Wind, AlertOctagon, Sun, CloudRain, CloudSun } from 'lucide-react';
+import { Card, Row, Col, Spinner, Badge, Modal, ProgressBar, Button, Form } from 'react-bootstrap';
+import { RefreshCcw, Thermometer, Droplets, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Wind, AlertOctagon, Sun, CloudRain, CloudSun, Settings } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
 // --- SUB-COMPONENTS ---
@@ -216,12 +215,19 @@ const IoTDashboard = ({ farmId }) => {
         if (field === 'city') setSelectedCity(value);
         if (field === 'crop') setSelectedCrop(value);
 
-        await fetch(`/api/expert/${farmId}/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value })
-        });
-        fetchData();
+        try {
+            await fetch(`/api/expert/${farmId}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value })
+            });
+
+            // Refresh advice after config change
+            console.log('[IoT Dashboard] Config updated, refreshing advice...');
+            setTimeout(() => fetchData(), 500); // Small delay to let backend save
+        } catch (error) {
+            console.error('[IoT Dashboard] Config save failed:', error);
+        }
     };
 
     const handleSummaryConfigSave = async () => {
@@ -315,6 +321,13 @@ const IoTDashboard = ({ farmId }) => {
                     <div className="d-flex gap-2">
                         <button className="btn btn-white shadow-sm rounded-circle p-2 text-primary" onClick={fetchData}>
                             <RefreshCcw size={20} />
+                        </button>
+                        <button
+                            className="btn btn-primary shadow-sm rounded-circle p-2"
+                            onClick={() => setShowConfigModal(true)}
+                            title="IoT Cihaz Ayarları"
+                        >
+                            <Settings size={20} />
                         </button>
                     </div>
                 </div>
@@ -534,6 +547,44 @@ const IoTDashboard = ({ farmId }) => {
                                 </div>
                             );
                         })}
+                    </div>
+
+                    <hr className="my-4" />
+
+                    <div>
+                        <h6 className="mb-2">🔌 IoT Cihaz Seçimi</h6>
+                        <p className="text-muted small mb-3">
+                            AgroZeka analizi için hangi cihazların verilerinin kullanılacağını seçin
+                        </p>
+                        <div className="d-flex flex-column gap-2">
+                            {devices.length > 0 ? devices.map(device => (
+                                <Form.Check
+                                    key={device.id}
+                                    type="checkbox"
+                                    id={`device-${device.id}`}
+                                    label={
+                                        <span>
+                                            <strong>{device.name}</strong>
+                                            {device.sensors?.length > 0 && (
+                                                <span className="text-muted small ms-2">
+                                                    ({device.sensors.map(s => s.name).join(', ')})
+                                                </span>
+                                            )}
+                                        </span>
+                                    }
+                                    checked={summaryConfig.selectedDevices?.includes(device.id) || false}
+                                    onChange={() => {
+                                        const current = summaryConfig.selectedDevices || [];
+                                        const updated = current.includes(device.id)
+                                            ? current.filter(id => id !== device.id)
+                                            : [...current, device.id];
+                                        setSummaryConfig({ ...summaryConfig, selectedDevices: updated });
+                                    }}
+                                />
+                            )) : (
+                                <p className="text-muted small mb-0">Henüz IoT cihaz yok</p>
+                            )}
+                        </div>
                     </div>
                 </Modal.Body>
                 <Modal.Footer>
