@@ -2,9 +2,12 @@ import React from 'react';
 import { Badge } from 'react-bootstrap';
 
 const FeelsLikeWidget = ({ data, settings = {} }) => {
-    const rawTemp = data?.temperature ?? data?.value ?? null;
+    const getValue = (val) => (val && typeof val === 'object' && 'value' in val) ? val.value : val;
+
+    const rawTemp = getValue(data?.temperature) ?? getValue(data?.value) ?? null;
     const temp = rawTemp !== null ? Number(rawTemp) : null;
-    const humidity = data?.humidity != null ? Number(data.humidity) : null;
+    const rawHumidity = getValue(data?.humidity);
+    const humidity = rawHumidity != null ? Number(rawHumidity) : null;
 
     // No data state
     if (temp === null || isNaN(temp)) {
