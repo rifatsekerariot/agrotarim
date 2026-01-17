@@ -223,9 +223,26 @@ const AutomationPage = () => {
                                         value={formData.sensorCode}
                                         onChange={e => setFormData({ ...formData, sensorCode: e.target.value })}
                                     >
-                                        <option value="temperature">Sıcaklık (°C)</option>
-                                        <option value="humidity">Nem (%)</option>
-                                        <option value="battery">Batarya (%)</option>
+                                        <option value="">Sensör Seç...</option>
+                                        {(() => {
+                                            const selectedDevice = devices.find(d => d.id == formData.deviceId);
+                                            if (selectedDevice && selectedDevice.sensors && selectedDevice.sensors.length > 0) {
+                                                return selectedDevice.sensors.map(s => (
+                                                    <option key={s.id} value={s.code}>
+                                                        {s.name} ({s.type} - {s.unit})
+                                                    </option>
+                                                ));
+                                            } else {
+                                                // Fallback defaults if no sensors defined (e.g. for simple devices)
+                                                return (
+                                                    <>
+                                                        <option value="temperature">Sıcaklık (°C)</option>
+                                                        <option value="humidity">Nem (%)</option>
+                                                        <option value="battery">Batarya (%)</option>
+                                                    </>
+                                                );
+                                            }
+                                        })()}
                                     </Form.Select>
                                 </Form.Group>
                             </Col>
