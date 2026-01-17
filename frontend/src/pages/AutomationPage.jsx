@@ -34,17 +34,17 @@ const AutomationPage = () => {
     const fetchData = async () => {
         try {
             // Fetch Devices
-            const devicesRes = await axios.get('http://localhost:3000/api/devices', {
+            const devicesRes = await axios.get('/api/devices', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDevices(devicesRes.data);
 
-            const rulesRes = await axios.get(`http://localhost:3000/api/automation/rules/${farmId}`, {
+            const rulesRes = await axios.get(`/api/automation/rules/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRules(rulesRes.data);
 
-            const logsRes = await axios.get(`http://localhost:3000/api/automation/logs/${farmId}`, {
+            const logsRes = await axios.get(`/api/automation/logs/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setLogs(logsRes.data);
@@ -56,7 +56,7 @@ const AutomationPage = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Bu kuralı silmek istediğinize emin misiniz?")) return;
         try {
-            await axios.delete(`http://localhost:3000/api/automation/rules/${id}`, {
+            await axios.delete(`/api/automation/rules/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData();
