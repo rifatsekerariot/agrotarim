@@ -607,19 +607,94 @@ const CustomDashboard = () => {
 
             {/* Device View Mode */}
             {viewMode === 'device' && (
-                <Row>
-                    {devices.length === 0 ? (
-                        <div className="text-center text-muted p-5">
-                            <i className="bi bi-cpu fs-1 d-block mb-3 opacity-50"></i>
-                            <h4>Henüz cihaz eklenmemiş</h4>
-                            <p>Ayarlar sayfasından yeni cihaz ekleyin.</p>
+                <>
+                    {/* Summary Bar */}
+                    <div className="bg-white p-3 rounded shadow-sm border mb-4 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span className="fw-bold text-dark me-3">{devices.length} Cihaz</span>
+                            <span className="badge bg-success me-2">{devices.filter(d => d.status === 'online').length} Online</span>
+                            <span className="badge bg-secondary">{devices.filter(d => d.status !== 'online').length} Offline</span>
                         </div>
-                    ) : devices.map(device => (
-                        <Col key={device.id} lg={4} md={6} className="mb-4">
-                            <DeviceCard device={device} />
-                        </Col>
-                    ))}
-                </Row>
+                        <div className="text-muted small">
+                            <i className="bi bi-clock-history me-1"></i>
+                            Son güncelleme: {new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+
+                    {/* Online Devices Section */}
+                    {devices.filter(d => d.status === 'online').length > 0 && (
+                        <Row className="g-4 mb-5">
+                            {devices.filter(d => d.status === 'online').map(device => {
+                                const deviceTelemetry = telemetry[device.id] || {};
+                                return (
+                                    <Col key={device.id} lg={4} md={6}>
+                                        <Card className="h-100 border-0 shadow text-white bg-gradient-green overflow-hidden" style={{ borderRadius: '16px' }}>
+                                            <Card.Body className="p-4 position-relative">
+                                                {/* Header */}
+                                                <div className="d-flex justify-content-between align-items-start mb-4">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <div className={`p-2 rounded-circle bg-white bg-opacity-25 backdrop-blur ${device.status === 'online' ? 'animate-pulse-green' : ''}`}>
+                                                            <i className={`bi ${device.deviceModel?.category === 'soil' ? 'bi-moisture' : device.deviceModel?.category === 'weather' ? 'bi-cloud-sun' : 'bi-thermometer-high'} fs-5 text-white`}></i>
+                                                        </div>
+                                                        <h5 className="mb-0 fw-bold text-shadow">{device.name}</h5>
+                                                    </div>
+                                                    {device.batteryLevel && (
+                                                        <Badge bg="white" text="success" className="shadow-sm">
+                                                            <i className="bi bi-battery-charging me-1"></i>{device.batteryLevel}%
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* Main Values Grid */}
+                                                <div className="row g-3">
+                                                    {device.sensors.slice(0, 3).map(sensor => { // Show max 3 sensors prominent
+                                                        const data = deviceTelemetry[sensor.code];
+                                                        return (
+                                                            <div key={sensor.id} className="col-4">
+                                                                <div className="text-white-50 small text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem' }}>{sensor.name || sensor.code}</div>
+                                                                <div className="fw-bold text-white text-shadow" style={{ fontSize: '1.8rem', lineHeight: 1.1 }}>
+                                                                    {data ? data.value.toFixed(1) : '--'}
+                                                                </div>
+                                                                <div className="text-white-75 small">{sensor.unit}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Footer Info */}
+                                                <div className="position-absolute bottom-0 end-0 p-3 opacity-75 small">
+                                                    <i className="bi bi-stopwatch me-1"></i> {getTimeSince(device.lastSeen)}
+                                                </div>
+                                            </Card.Body>
+                                        </Card>
+                                    </Col>
+                                );
+                            })}
+                        </Row>
+                    )}
+
+                    {/* Offline Devices Section */}
+                    {devices.filter(d => d.status !== 'online').length > 0 && (
+                        <>
+                            <h6 className="text-muted border-bottom pb-2 mb-3">Offline Cihazlar ({devices.filter(d => d.status !== 'online').length})</h6>
+                            <Row className="g-3">
+                                {devices.filter(d => d.status !== 'online').map(device => (
+                                    <Col key={device.id} lg={2} md={3} sm={4} xs={6}>
+                                        <Card className="mini-card h-100 bg-light text-muted">
+                                            <Card.Body className="d-flex flex-column justify-content-center align-items-center text-center p-2">
+                                                <div className="d-flex align-items-center gap-2 mb-1">
+                                                    <span className="badge bg-secondary rounded-circle p-1" style={{ width: '8px', height: '8px' }}> </span>
+                                                    <span className="fw-bold text-truncate" style={{ maxWidth: '100px' }}>{device.name}</span>
+                                                </div>
+                                                <small style={{ fontSize: '0.7em' }}>{getTimeSince(device.lastSeen)}</small>
+                                            </Card.Body>
+                                        </Card>
+                                    </Col>
+                                ))}
+                            </Row>
+                        </>
+                    )}
+                </>
             )}
 
             {/* Custom Widget View Mode (React Grid Layout) */}

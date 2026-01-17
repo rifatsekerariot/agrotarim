@@ -138,3 +138,46 @@ body {
   background-color: #dee2e6;
   border-radius: 3px;
 }
+
+/* --- New Device Card Styles --- */
+
+.bg-gradient-green {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    transform: scale(1);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    transform: scale(1.05);
+    /* Slightly stronger pulse for dot */
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(1);
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s infinite;
+}
+
+.mini-card {
+  transition: all 0.2s ease;
+  border: 1px solid #dee2e6;
+  font-size: 0.85rem;
+}
+
+.mini-card:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+}
+
+.mini-card .card-body {
+  padding: 0.5rem 1rem;
+}
