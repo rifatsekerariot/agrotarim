@@ -277,64 +277,7 @@ const IoTDashboard = ({ farmId }) => {
                 </Card>
             )}
 
-            {/* 4. DEVICES GRID WITH SPARKLINES */}
-            {devices.length === 0 ? (
-                <div className="text-center p-5 text-muted border rounded bg-light">
-                    <WifiOff size={48} className="mb-3" />
-                    <h4>Sensör Verisi Bekleniyor...</h4>
-                </div>
-            ) : (
-                <>
-                    <h5 className="mb-3 text-muted fw-bold">📡 Aktif Sensörler</h5>
-                    <Row>
-                        {devices.map(device => (
-                            <Col key={device.id} md={6} lg={4} className="mb-4">
-                                <Card className="h-100 shadow-sm border-0" onClick={() => window.location.href = `/device/${device.serialNumber}`} style={{ cursor: 'pointer' }}>
-                                    <Card.Header className="bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
-                                        <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                                            <div className="bg-light p-1 rounded"><MapPin size={14} /></div>
-                                            {device.name}
-                                        </div>
-                                        <Badge bg={device.status === 'online' ? 'success' : 'secondary'} className="rounded-pill">
-                                            <span className={`me-1 d-inline-block rounded-circle ${device.status === 'online' ? 'bg-white' : 'bg-secondary'}`} style={{ width: 6, height: 6 }}></span>
-                                            {device.status}
-                                        </Badge>
-                                    </Card.Header>
-                                    <Card.Body>
-                                        <Row className="g-0 align-items-center py-2 border-bottom">
-                                            <Col xs={5} className="text-muted small">Sıcaklık</Col>
-                                            <Col xs={4} className="fs-5 fw-bold text-dark">
-                                                {getLatestValue(device, 't_air') !== null ? `${getLatestValue(device, 't_air')}°C` : '--'}
-                                            </Col>
-                                            <Col xs={3}>
-                                                {renderSparkline(getSensorData(device, 't_air'), '#0d6efd')}
-                                            </Col>
-                                        </Row>
-                                        <Row className="g-0 align-items-center py-2 border-bottom">
-                                            <Col xs={5} className="text-muted small">Nem</Col>
-                                            <Col xs={4} className="fs-5 fw-bold text-dark">
-                                                {getLatestValue(device, 'h_air') !== null ? `%${getLatestValue(device, 'h_air')}` : '--'}
-                                            </Col>
-                                            <Col xs={3}>
-                                                {renderSparkline(getSensorData(device, 'h_air'), '#0dcaf0')}
-                                            </Col>
-                                        </Row>
-                                        <Row className="g-0 align-items-center py-2">
-                                            <Col xs={5} className="text-muted small">Toprak Nemi</Col>
-                                            <Col xs={4} className={`fs-5 fw-bold ${getLatestValue(device, 'm_soil') < 20 ? 'text-danger' : 'text-success'}`}>
-                                                {getLatestValue(device, 'm_soil') !== null ? `%${getLatestValue(device, 'm_soil')}` : '--'}
-                                            </Col>
-                                            <Col xs={3}>
-                                                {renderSparkline(getSensorData(device, 'm_soil'), '#198754')}
-                                            </Col>
-                                        </Row>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
-                </>
-            )}
+            {/* 4. DEVICES GRID REMOVED (As per request) */}
         </div>
     );
 };

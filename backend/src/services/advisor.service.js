@@ -29,6 +29,7 @@ const AdvisorService = {
             // Determine Crop from Farm settings
             const cropName = farm.crop_type || "Buğday";
             const region = farm.city ? (await guessRegion(farm.city)) : "Karadeniz";
+            console.log(`DEBUG: FarmId=${farm.id}, City=${farm.city}, GuessedRegion=${region}`); // DEBUG LOG
 
             const profile = await prisma.cropProfile.findFirst({
                 where: {
@@ -38,11 +39,15 @@ const AdvisorService = {
                 include: { stages: true }
             });
 
+            console.log(`DEBUG: ProfileFound=${!!profile}, Crop=${cropName}, Region=${region}`); // DEBUG LOG
+
             if (!profile) return {
                 crop: cropName,
+                raw_crop: farm.crop_type,
+                city: farm.city,
                 summary: `"${cropName}" (${region}) için detaylı veri bulunamadı.`,
-                alerts: [{ level: 'warning', msg: `Veritabanında ${region} bölgesi için ${cropName} verisi eksik.` }],
-                actions: []
+                alerts: [],
+                actions: ["Veri tabanında bu ürün/bölge için model tanımlanmamış."]
             };
 
             // 2. Determine Current Stage (Simplified by Month)
