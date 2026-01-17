@@ -50,7 +50,7 @@ services:
     networks:
       - agrometa-network
     command: >
-      sh -c " echo 'Waiting for Database...' && until npx prisma db push; do
+      sh -c " echo 'Waiting for Database...' && until npx prisma db push --accept-data-loss; do
         echo 'Database not ready, retrying in 5s...'
         sleep 5
       done && echo 'Database connected!' && npm run dev "
