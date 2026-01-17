@@ -31,6 +31,63 @@ model Farm {
   created_at  DateTime @default(now())
 }
 
+// LoRaWAN Network Server Management (ChirpStack v4, TTN, etc.)
+model LoRaServer {
+  id          Int      @id @default(autoincrement())
+  name        String   // "Ana Sunucu", "Test Sunucu"
+  serverType  String   @default("chirpstack_v4") // chirpstack_v4, ttn_v3, custom
+  host        String   // "chirpstack.example.com"
+  port        Int      @default(8080)
+  
+  // Authentication
+  apiKey      String?  // ChirpStack API Token
+  tenantId    String?  // ChirpStack Tenant ID (v4)
+  
+  // MQTT Connection
+  mqttEnabled Boolean  @default(true)
+  mqttHost    String?  // "tcp://chirpstack.example.com:1883"
+  mqttUsername String?
+  mqttPassword String?
+  mqttTopic   String?  @default("application/+/device/+/event/up")
+  
+  // HTTP Webhook (Alternative to MQTT)
+  httpEnabled Boolean  @default(false)
+  httpSecret  String?  // Webhook signature verification
+  
+  isActive    Boolean  @default(true)
+  lastSync    DateTime?
+  
+  devices     Device[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Device Model Templates (Milesight, Dragino, etc.)
+model DeviceModel {
+  id          Int      @id @default(autoincrement())
+  brand       String   // "Milesight", "Dragino", "Custom"
+  model       String   // "EM300-TH", "EM500-SMTC"
+  category    String   // "temperature_humidity", "soil", "weather", "gateway"
+  
+  // Payload Decoder
+  decoderType String   @default("milesight") // milesight, cayenne_lpp, custom
+  decoderCode String?  @db.Text // Custom JS decoder function (if decoderType=custom)
+  
+  // Sensor Template - auto-creates sensors when device is added
+  sensorTemplate Json   // [{code: "t_air", name: "Sıcaklık", unit: "°C", type: "temperature"}, ...]
+  
+  // Visual & Docs
+  iconUrl     String?
+  description String?
+  datasheet   String?  // URL to datasheet PDF
+  
+  devices     Device[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([brand, model])
+}
+
 // The physical hardware box (Node/Gateway)
 model Device {
   id            Int      @id @default(autoincrement())
@@ -38,6 +95,19 @@ model Device {
   farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
   name          String   // e.g. "North Field Station"
   serialNumber  String   @unique // MAC or Unique Hardware ID
+  
+  // NEW: LoRaWAN Specific
+  devEui        String?  @unique // LoRaWAN Device EUI (16 hex chars)
+  appKey        String?  // Application Key for OTAA
+  
+  // NEW: Relations
+  loraServerId  Int?
+  loraServer    LoRaServer?  @relation(fields: [loraServerId], references: [id], onDelete: SetNull)
+  
+  deviceModelId Int?
+  deviceModel   DeviceModel? @relation(fields: [deviceModelId], references: [id], onDelete: SetNull)
+  
+  // Legacy field (kept for backward compatibility, prefer deviceModel relation)
   model         String?  // e.g. "AgroNode-V1"
   firmwareVer   String?
   

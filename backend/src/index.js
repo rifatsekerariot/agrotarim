@@ -27,6 +27,8 @@ const mgmRoutes = require('./routes/mgm.routes');
 const telemetryRoutes = require('./routes/telemetry.routes');
 const expertRoutes = require('./routes/expert.routes');
 const deviceRoutes = require('./routes/device.routes');
+const loraRoutes = require('./routes/lora.routes');
+const deviceModelRoutes = require('./routes/device-models.routes');
 
 // Prefix API routes
 app.use('/api/auth', authRoutes);
@@ -34,6 +36,8 @@ app.use('/api/mgm', mgmRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/expert', expertRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/lora', loraRoutes);
+app.use('/api/device-models', deviceModelRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'AgroMeta API is running', version: '1.0.0' });
