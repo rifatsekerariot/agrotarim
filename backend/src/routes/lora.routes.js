@@ -98,6 +98,15 @@ router.put('/servers/:id', async (req, res) => {
                 isActive
             }
         });
+
+        // Live Reload MQTT Service
+        const chirpStackService = require('../services/chirpstack.service');
+        if (server.mqttEnabled && server.isActive) {
+            console.log(`[LoRa API] Triggering MQTT reconnect for server ${server.id}`);
+            // Wait slightly to ensure DB commit
+            setTimeout(() => chirpStackService.reconnectServer(server.id), 500);
+        }
+
         res.json(server);
     } catch (error) {
         console.error('Error updating LoRa server:', error);
