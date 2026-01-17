@@ -61,4 +61,49 @@ router.get('/analysis', authenticateToken, async (req, res) => {
     }
 });
 
+// Detailed Forecast Endpoints
+router.get('/forecast/daily', authenticateToken, async (req, res) => {
+    try {
+        const { stationId } = req.query;
+        if (!stationId) return res.status(400).json({ error: 'stationId required' });
+        const data = await MgmService.getDailyForecast(stationId);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/forecast/hourly', authenticateToken, async (req, res) => {
+    try {
+        const { stationId } = req.query;
+        if (!stationId) return res.status(400).json({ error: 'stationId required' });
+        const data = await MgmService.getHourlyForecast(stationId);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/forecast/agricultural', authenticateToken, async (req, res) => {
+    try {
+        const { stationId } = req.query;
+        if (!stationId) return res.status(400).json({ error: 'stationId required' });
+        const data = await MgmService.getAgriculturalForecast(stationId);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/warnings', authenticateToken, async (req, res) => {
+    try {
+        const { centerId } = req.query;
+        if (!centerId) return res.status(400).json({ error: 'centerId required' });
+        const data = await MgmService.getMeteoWarnings(centerId);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

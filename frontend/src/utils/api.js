@@ -39,4 +39,24 @@ export const getAnalysis = async (stationId) => {
     return res.data;
 };
 
+export const getDailyForecast = async (stationId) => {
+    const res = await api.get('/mgm/forecast/daily', { params: { stationId } });
+    return res.data;
+};
+
+export const getHourlyForecast = async (stationId) => {
+    const res = await api.get('/mgm/forecast/hourly', { params: { stationId } });
+    return res.data;
+};
+
+export const getAgriculturalForecast = async (stationId) => {
+    const res = await api.get('/mgm/forecast/agricultural', { params: { stationId } });
+    return res.data;
+};
+
+export const getMeteoWarnings = async (centerId) => {
+    const res = await api.get('/mgm/warnings', { params: { centerId } });
+    return res.data;
+};
+
 export default api;

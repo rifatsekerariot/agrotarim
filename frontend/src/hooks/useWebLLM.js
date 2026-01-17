@@ -11,9 +11,8 @@ export const useWebLLM = () => {
     const initEngine = async () => {
         setIsLoading(true);
         try {
-            // Using TinyLlama or Gemma-2b as requested. 
-            // Note: This downloads ~1-2GB of weights to cache.
-            const selectedModel = "TinyLlama-1.1B-Chat-v1.0-q4f32_1-MLC";
+            // Switching to Gemma-2b-it which is better at following instructions and support Turkish better than TinyLlama
+            const selectedModel = "gemma-2b-it-q4f32_1-MLC";
             const eng = await webllm.CreateMLCEngine(selectedModel, {
                 initProgressCallback: (report) => {
                     setProgress(report.text);
@@ -28,16 +27,20 @@ export const useWebLLM = () => {
         }
     };
 
-    const generate = async (prompt) => {
+    const generate = async (input) => {
         if (!engine) return;
 
         // Reset output
         setOutput("");
 
         try {
+            // Allow passing either a string (legacy) or messages array
+            const messages = Array.isArray(input) ? input : [{ role: "user", content: input }];
+
             const chunks = await engine.chat.completions.create({
-                messages: [{ role: "user", content: prompt }],
+                messages: messages,
                 stream: true,
+                temperature: 0.7, // Add some creativity but keep it grounded
             });
 
             let fullReply = "";

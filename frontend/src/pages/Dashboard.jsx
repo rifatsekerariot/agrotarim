@@ -1,139 +1,185 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Card, Button, Spinner, Navbar, Nav } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Container, Row, Col, Form, Button, Card, Spinner, Tabs, Tab } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { getProvinces, getCenters, getAnalysis } from '../utils/api';
+import { getProvinces, getCenters, getAnalysis, getDailyForecast, getHourlyForecast, getAgriculturalForecast, getMeteoWarnings } from '../utils/api';
 import VerifiableAI from '../components/VerifiableAI';
+import DailyForecast from '../components/DailyForecast';
+import HourlyForecast from '../components/HourlyForecast';
+import AgriculturalForecast from '../components/AgriculturalForecast';
+import MeteoWarning from '../components/MeteoWarning';
 
 const Dashboard = () => {
     const [provinces, setProvinces] = useState([]);
     const [centers, setCenters] = useState([]);
     const [selectedProvince, setSelectedProvince] = useState('');
     const [selectedCenter, setSelectedCenter] = useState('');
-    const [analysisData, setAnalysisData] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    // Data States
+    const [analysisData, setAnalysisData] = useState(null);
+    const [dailyData, setDailyData] = useState(null);
+    const [hourlyData, setHourlyData] = useState(null);
+    const [agriData, setAgriData] = useState(null);
+    const [warnings, setWarnings] = useState(null);
+
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
-        loadProvinces();
+        const fetchProvinces = async () => {
+            try {
+                const data = await getProvinces();
+                setProvinces(data);
+            } catch (error) {
+                console.error('Error fetching provinces:', error);
+            }
+        };
+        fetchProvinces();
     }, []);
 
-    const loadProvinces = async () => {
-        try {
-            const data = await getProvinces();
-            setProvinces(data.sort((a, b) => a.il.localeCompare(b.il)));
-        } catch (err) {
-            console.error("Error loading provinces:", err);
-        }
-    };
-
     const handleProvinceChange = async (e) => {
-        const il = e.target.value;
-        setSelectedProvince(il);
+        const province = e.target.value;
+        setSelectedProvince(province);
         setCenters([]);
         setSelectedCenter('');
-        setAnalysisData(null);
-        if (il) {
-            const data = await getCenters(il);
-            setCenters(data);
+        if (province) {
+            try {
+                const data = await getCenters(province);
+                setCenters(data);
+            } catch (error) {
+                console.error('Error fetching centers:', error);
+            }
         }
     };
 
-    const handleCenterChange = (e) => {
-        setSelectedCenter(e.target.value);
-        setAnalysisData(null);
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
     };
 
     const handleAnalyze = async () => {
         if (!selectedCenter) return;
         setLoading(true);
-        try {
-            // Find the full center object to get the station ID (merkezId)
-            // Note: The structure from MGM might vary, using 'merkezId' as per previous analysis
-            const centerObj = centers.find(c => c.ilce === selectedCenter || c.merkezId.toString() === selectedCenter);
-            const stationId = centerObj ? centerObj.merkezId : selectedCenter;
 
-            const data = await getAnalysis(stationId);
-            setAnalysisData(data);
-        } catch (err) {
-            console.error("Analysis Error:", err);
-            alert("Veri çekilemedi: " + (err.response?.data?.error || err.message));
+        // Reset previous data
+        setAnalysisData(null);
+        setDailyData(null);
+        setHourlyData(null);
+        setAgriData(null);
+        setWarnings(null);
+
+        try {
+            const centerObj = centers.find(c => c.merkezId.toString() === selectedCenter);
+            if (!centerObj) {
+                alert("Merkez bilgisi bulunamadı!");
+                setLoading(false);
+                return;
+            }
+
+            // Fetch all data in parallel
+            // Note: Use specific station IDs available in centerObj
+            // gunlukTahminIstNo, saatlikTahminIstNo, sondurumIstNo (using sondurum for analysis usually)
+
+            const stationId = centerObj.sondurumIstNo;
+            const dailyStationId = centerObj.gunlukTahminIstNo;
+            const hourlyStationId = centerObj.saatlikTahminIstNo;
+
+            const [analysis, daily, hourly, agri, warn] = await Promise.all([
+                getAnalysis(stationId),
+                getDailyForecast(dailyStationId),
+                getHourlyForecast(hourlyStationId),
+                getAgriculturalForecast(stationId), // Angular used istNo, often same as sondurum
+                getMeteoWarnings(centerObj.merkezId)
+            ]);
+
+            setAnalysisData(analysis);
+            setDailyData(daily);
+            setHourlyData(hourly);
+            setAgriData(agri);
+            setWarnings(warn);
+
+        } catch (error) {
+            console.error('Error fetching analysis:', error);
+            alert('Veri çekilemedi. Lütfen tekrar deneyin.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/login');
-    };
-
     return (
-        <>
-            <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
-                <Container>
-                    <Navbar.Brand href="#home">AgroMeta</Navbar.Brand>
-                    <Nav className="ms-auto">
-                        <Nav.Link disabled>Merhaba, {user.username}</Nav.Link>
-                        <Button variant="outline-light" size="sm" onClick={handleLogout}>Çıkış</Button>
-                    </Nav>
-                </Container>
-            </Navbar>
+        <Container className="py-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="mb-0 text-success fw-bold">
+                    <i className="bi bi-flower1"></i> AgroMeta
+                </h1>
+                <Button variant="outline-danger" onClick={handleLogout}>Çıkış Yap</Button>
+            </div>
 
-            <Container>
-                <Row className="mb-4">
-                    <Col md={12}>
-                        <Card>
-                            <Card.Body>
-                                <Card.Title>Konum Seçimi</Card.Title>
-                                <Row>
-                                    <Col md={4}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>İl</Form.Label>
-                                            <Form.Select value={selectedProvince} onChange={handleProvinceChange}>
-                                                <option value="">Seçiniz...</option>
-                                                {provinces.map(p => (
-                                                    <option key={p.il} value={p.il}>{p.il}</option>
-                                                ))}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>İlçe / İstasyon</Form.Label>
-                                            <Form.Select value={selectedCenter} onChange={handleCenterChange} disabled={!selectedProvince}>
-                                                <option value="">Seçiniz...</option>
-                                                {centers.map(c => (
-                                                    <option key={c.merkezId} value={c.merkezId}>{c.ilce || c.il}</option>
-                                                ))}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4} className="d-flex align-items-end">
-                                        <Button
-                                            variant="primary"
-                                            onClick={handleAnalyze}
-                                            disabled={!selectedCenter || loading}
-                                            className="w-100 mb-3"
-                                        >
-                                            {loading ? <Spinner as="span" animation="border" size="sm" /> : 'Analiz Et'}
-                                        </Button>
-                                    </Col>
-                                </Row>
-                            </Card.Body>
-                        </Card>
+            <Row className="mb-4">
+                <Col md={12}>
+                    <Card className="shadow-sm border-0">
+                        <Card.Body className="bg-light">
+                            <h5 className="mb-3">Konum Seçimi</h5>
+                            <Row>
+                                <Col md={5}>
+                                    <Form.Select value={selectedProvince} onChange={handleProvinceChange} className="mb-2">
+                                        <option value="">İl Seçiniz</option>
+                                        {provinces.map(p => (
+                                            <option key={p.il} value={p.il}>{p.il}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Col>
+                                <Col md={5}>
+                                    <Form.Select value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} disabled={!selectedProvince} className="mb-2">
+                                        <option value="">İlçe/Merkez Seçiniz</option>
+                                        {centers.map(c => (
+                                            <option key={c.merkezId} value={c.merkezId}>{c.ilce || c.il}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Button
+                                        variant="success"
+                                        className="w-100"
+                                        onClick={handleAnalyze}
+                                        disabled={!selectedCenter || loading}
+                                    >
+                                        {loading ? <Spinner size="sm" animation="border" /> : 'Analiz Et'}
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* Main Content Area */}
+            {(analysisData || dailyData || hourlyData) && (
+                <Row>
+                    {/* Left Column: Warnings & AI & Agricultural Data */}
+                    <Col lg={4} className="mb-4">
+                        <MeteoWarning data={warnings} />
+                        <AgriculturalForecast data={agriData} />
+
+                        {analysisData && (
+                            <VerifiableAI riskData={analysisData} />
+                        )}
+                    </Col>
+
+                    {/* Right Column: Detailed Graphic Forecasts */}
+                    <Col lg={8}>
+                        <Tabs defaultActiveKey="daily" id="forecast-tabs" className="mb-3 custom-tabs">
+                            <Tab eventKey="daily" title="5 Günlük Tahmin">
+                                <DailyForecast data={dailyData} />
+                            </Tab>
+                            <Tab eventKey="hourly" title="Saatlik Tahmin & İlaçlama">
+                                <HourlyForecast data={hourlyData} />
+                            </Tab>
+                        </Tabs>
                     </Col>
                 </Row>
-
-                {analysisData && (
-                    <Row>
-                        <Col md={12}>
-                            <VerifiableAI riskData={analysisData} />
-                        </Col>
-                    </Row>
-                )}
-            </Container>
-        </>
+            )}
+        </Container>
     );
 };
 

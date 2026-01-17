@@ -81,6 +81,16 @@ const MgmService = {
 
     getDailyForecast: async (stationId) => {
         return makeRequest('/tahminler/gunluk', { istno: stationId });
+    },
+
+    getAgriculturalForecast: async (stationId) => {
+        // Angular code uses 'istNo' (camelCase) for this specific endpoint
+        return makeRequest('/tahminler/tarimsal', { istNo: stationId });
+    },
+
+    getMeteoWarnings: async (centerId) => {
+        // centerId is used for meteo warnings (province/district id), not stationId
+        return makeRequest('/meteoalarm/towns', { id: centerId });
     }
 };
 

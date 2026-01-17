@@ -15,13 +15,25 @@ const VerifiableAI = ({ riskData }) => {
     }, [riskData, isReady]);
 
     const runAnalysis = () => {
-        const prompt = `
-SYSTEM: Sen uzman bir ziraat mühendisisin. Aşağıdaki JSON verilerini ve risk analiz raporunu yorumla. 
-Sayısal verileri ASLA değiştirme. Sadece çiftçiye tavsiyede bulun.
-Veriler:
-${JSON.stringify(riskData, null, 2)}
-        `;
-        generate(prompt);
+        const messages = [
+            {
+                role: "system",
+                content: "Sen 'AgroMeta' adında uzman bir ziraat mühendisisin. Çiftçilere hava durumu verilerine göre net, anlaşılır ve Türkçe tavsiyeler verirsin. Sana verilen JSON verilerini analiz et. Risk raporunda 'true' olan durumları ASLA göz ardı etme. Cevabını SADECE Türkçe ver."
+            },
+            {
+                role: "user",
+                content: `Aşağıdaki tarımsal hava durumu verilerini yorumla ve çiftçiye tavsiye ver.
+                
+                Veriler:
+                ${JSON.stringify(riskData, null, 2)}
+                
+                Lütfen şu formatta cevap ver:
+                1. Genel Durum Özeti
+                2. Risk Uyarıları (Varsa)
+                3. Çiftçi İçin Eylem Tavsiyeleri`
+            }
+        ];
+        generate(messages);
     };
 
     return (
