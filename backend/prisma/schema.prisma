@@ -292,7 +292,7 @@ model RuleAction {
 model AlertLog {
   id          Int         @id @default(autoincrement())
   ruleId      Int
-  rule        TriggerRule @relation(fields: [ruleId], references: [id])
+  rule        TriggerRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
   
   value       Float
   message     String

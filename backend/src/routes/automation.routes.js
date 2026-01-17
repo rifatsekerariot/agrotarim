@@ -125,10 +125,14 @@ router.put('/rules/:id', authenticateToken, async (req, res) => {
 router.delete('/rules/:id', authenticateToken, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+
+        // Delete rule (cascade will delete related RuleActions and AlertLogs)
         await prisma.triggerRule.delete({ where: { id } });
+
         res.json({ message: 'Rule deleted' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("[Rule Delete Error]", error);
+        res.status(500).json({ error: error.message, code: error.code });
     }
 });
 
