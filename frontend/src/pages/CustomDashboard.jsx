@@ -56,7 +56,7 @@ L.Icon.Default.mergeOptions({
 
 // --- Premium Widget Components ---
 
-const DashboardWidgetWrapper = ({ type, title, children, onRemove, onEdit }) => {
+const DashboardWidgetWrapper = ({ type, title, children, onRemove, onEdit, isEditing }) => {
     let borderClass = 'border-left-blue';
     let icon = 'bi-bar-chart-fill';
     let typeName = 'Widget';
@@ -71,28 +71,30 @@ const DashboardWidgetWrapper = ({ type, title, children, onRemove, onEdit }) => 
     }
 
     return (
-        <div className={`widget-wrapper ${borderClass}`}>
+        <div className={`widget-wrapper ${borderClass} ${isEditing ? 'border border-2 border-primary border-dashed' : ''} h-100`}>
             {/* Header */}
-            <div className="widget-header">
+            <div className={`widget-header ${isEditing ? 'cursor-move bg-light' : ''}`}>
                 <div className="d-flex align-items-center gap-2 overflow-hidden">
                     <i className={`bi ${icon} text-muted`}></i>
                     <span className="fw-bold text-dark text-truncate" style={{ fontSize: '0.9rem' }}>{title || typeName}</span>
                 </div>
 
-                {/* 3-Dot Menu */}
-                {/* 3-Dot Menu */}
+                {/* Controls */}
                 <div onClick={(e) => {
-                    // Prevent drag start when clicking menu
                     e.stopPropagation();
                     e.preventDefault();
                 }} onMouseDown={e => e.stopPropagation()}>
+                    {/* In Edit Mode, show Delete button directly for easier access? Or keep menu? */}
+                    {/* Keeping menu for consistency, but maybe always visible in Edit Mode? */}
                     <Dropdown align="end">
-                        <Dropdown.Toggle variant="light" size="sm" className="widget-menu-btn border-0 py-0 px-2 text-muted" id={`dropdown-${Math.random()}`} after={false ? 1 : 0} style={{ boxShadow: 'none' }}>
-                            <i className="bi bi-three-dots-vertical"></i>
+                        <Dropdown.Toggle variant={isEditing ? "danger" : "light"} size="sm"
+                            className={`widget-menu-btn border-0 py-0 px-2 ${isEditing ? 'text-white' : 'text-muted'}`}
+                            style={{ boxShadow: 'none' }}>
+                            <i className={`bi ${isEditing ? 'bi-trash' : 'bi-three-dots-vertical'}`}></i>
                         </Dropdown.Toggle>
 
                         <Dropdown.Menu className="shadow-sm border-0">
-                            <Dropdown.Item onClick={onEdit} className="small"><i className="bi bi-pencil me-2"></i>Düzenle</Dropdown.Item>
+                            <Dropdown.Item onClick={onEdit} className="small"><i className="bi bi-pencil me-2"></i>Ayarlar</Dropdown.Item>
                             <Dropdown.Divider />
                             <Dropdown.Item onClick={onRemove} className="small text-danger"><i className="bi bi-trash me-2"></i>Kaldır</Dropdown.Item>
                         </Dropdown.Menu>
@@ -101,7 +103,8 @@ const DashboardWidgetWrapper = ({ type, title, children, onRemove, onEdit }) => 
             </div>
 
             {/* Content */}
-            <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden', pointerEvents: isEditing ? 'none' : 'auto' }}>
+                {/* Disable interaction with content while editing to prevent chart tooltips/map drags/etc interfering with layout drag */}
                 {children}
             </div>
         </div>
@@ -339,6 +342,7 @@ const CustomDashboard = () => {
 
     // Edit Mode State
     const [editingWidgetId, setEditingWidgetId] = useState(null);
+    const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
 
     const handleEditWidgetClick = (widget) => {
         setNewWidget({
@@ -598,34 +602,7 @@ const CustomDashboard = () => {
 
     return (
         <Container fluid className="p-4">
-            {/* Header */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                <div className="d-flex align-items-center gap-3">
-                    <div className="bg-primary bg-opacity-10 p-3 rounded">
-                        <i className="bi bi-grid-1x2-fill text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <h2 className="mb-0">IoT Dashboard</h2>
-                        <small className="text-muted">Gelişmiş İzleme ve Kontrol</small>
-                    </div>
-                </div>
 
-                <div className="d-flex align-items-center gap-2">
-                    <div className="btn-group" role="group">
-                        <Button variant={viewMode === 'device' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('device')}>
-                            <i className="bi bi-cpu me-1"></i> Cihazlar
-                        </Button>
-                        <Button variant={viewMode === 'custom' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('custom')}>
-                            <i className="bi bi-grid-3x3 me-1"></i> Özel Panel
-                        </Button>
-                    </div>
-                    {viewMode === 'custom' && (
-                        <Button variant="success" onClick={() => setShowModal(true)}>
-                            <i className="bi bi-plus-lg me-1"></i> Widget Ekle
-                        </Button>
-                    )}
-                </div>
-            </div>
 
             {/* Content Switch */}
             {viewMode === 'device' ? (
@@ -688,8 +665,8 @@ const CustomDashboard = () => {
                         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
                         rowHeight={60}
                         onLayoutChange={(layout) => onLayoutChange(layout)}
-                        isDraggable={true}
-                        isResizable={true}
+                        isDraggable={isEditing}
+                        isResizable={isEditing}
                         draggableHandle=".widget-header"
                     >
                         {widgets.map(w => {
@@ -713,6 +690,7 @@ const CustomDashboard = () => {
                                         title={w.title || w.deviceName}
                                         onRemove={() => removeWidget(w.id)}
                                         onEdit={() => handleEditWidgetClick(w)}
+                                        isEditing={isEditing}
                                     >
                                         {WidgetComp ? (
                                             <WidgetComp
