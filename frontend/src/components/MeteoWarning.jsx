@@ -7,20 +7,27 @@ const MeteoWarning = ({ data, dailyData }) => {
 
     // 2. Check for Local Frost Risk (Data-Driven)
     if (dailyData && dailyData.length > 0) {
-        // Check next 3 days
-        const nextFewDays = dailyData.slice(0, 3);
-        const frostDays = nextFewDays.filter(day => day.enDusukSicaklik <= 0);
+        const forecast = dailyData[0]; // MGM returns an array containing one object with all days
+        const frostRisks = [];
 
-        if (frostDays.length > 0) {
-            const minTemp = Math.min(...frostDays.map(d => d.enDusukSicaklik));
-            const severe = minTemp <= -4;
+        // Check next 3 days (Gun1, Gun2, Gun3)
+        for (let i = 1; i <= 3; i++) {
+            const minTemp = forecast[`enDusukGun${i}`];
+            if (minTemp !== undefined && minTemp <= 0) {
+                frostRisks.push(minTemp);
+            }
+        }
+
+        if (frostRisks.length > 0) {
+            const minVal = Math.min(...frostRisks);
+            const severe = minVal <= -4;
 
             allWarnings.push({
                 isLocal: true,
                 renkKod: severe ? 'kirm' : 'tur',
                 uyariNo: 'YEREL-DON',
                 hadiseAdi: severe ? 'Kuvvetli Zirai Don' : 'Zirai Don Riski',
-                derece: `Sıcaklık ${minTemp}°C seviyesine düşecek.`,
+                derece: `Tahmin edilen en düşük sıcaklık ${minVal}°C.`,
                 baslangicZamani: new Date().toISOString(),
                 bitisZamani: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString()
             });
