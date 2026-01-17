@@ -315,6 +315,22 @@ const CustomDashboard = () => {
         saveConfig(newWidgets);
     };
 
+    const resizeWidget = (id, direction) => {
+        const sizes = [3, 4, 6, 8, 12];
+        const currentWidgets = [...widgets];
+        const widget = currentWidgets.find(w => w.id === id);
+        if (widget) {
+            const currentSize = widget.width || 4;
+            const currentIndex = sizes.indexOf(currentSize) !== -1 ? sizes.indexOf(currentSize) : 1;
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = 0;
+            if (newIndex >= sizes.length) newIndex = sizes.length - 1;
+
+            widget.width = sizes[newIndex];
+            saveConfig(currentWidgets);
+        }
+    };
+
     const handleAddWidget = () => {
         const widget = { ...newWidget, id: Date.now() };
 
@@ -381,9 +397,20 @@ const CustomDashboard = () => {
                     return (
                         <Col key={w.id} md={colWidth} className="mb-4">
                             <div style={{ position: 'relative', height: '100%' }}>
-                                <Button size="sm" variant="danger"
-                                    style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.5 }}
-                                    onClick={() => removeWidget(w.id)}>x</Button>
+                                <div style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.8 }} className="d-flex gap-1">
+                                    <Button size="sm" variant="light" className="border shadow-sm p-0 px-2" title="Küçült"
+                                        onClick={() => resizeWidget(w.id, -1)} disabled={colWidth <= 3}>
+                                        <i className="bi bi-dash-lg"></i>
+                                    </Button>
+                                    <Button size="sm" variant="light" className="border shadow-sm p-0 px-2" title="Büyüt"
+                                        onClick={() => resizeWidget(w.id, 1)} disabled={colWidth >= 12}>
+                                        <i className="bi bi-plus-lg"></i>
+                                    </Button>
+                                    <Button size="sm" variant="danger" className="shadow-sm p-0 px-2"
+                                        onClick={() => removeWidget(w.id)}>
+                                        <i className="bi bi-x-lg"></i>
+                                    </Button>
+                                </div>
 
                                 {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
                                 {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title || w.sensorCode} />}
@@ -444,17 +471,6 @@ const CustomDashboard = () => {
                                 </Form.Group>
                             </>
                         )}
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Genişlik</Form.Label>
-                            <Form.Select value={newWidget.width} onChange={e => setNewWidget({ ...newWidget, width: parseInt(e.target.value) })}>
-                                <option value="3">Küçük (1/4)</option>
-                                <option value="4">Normal (1/3)</option>
-                                <option value="6">Orta (1/2)</option>
-                                <option value="8">Geniş (2/3)</option>
-                                <option value="12">Tam Ekran (1/1)</option>
-                            </Form.Select>
-                        </Form.Group>
 
                         <Form.Group className="mb-3">
                             <Form.Label>Başlık (Opsiyonel)</Form.Label>
