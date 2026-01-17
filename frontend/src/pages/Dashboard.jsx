@@ -14,7 +14,7 @@ const Dashboard = () => {
     const [centers, setCenters] = useState([]);
     const [selectedProvince, setSelectedProvince] = useState('');
     const [selectedCenter, setSelectedCenter] = useState('');
-    const [selectedCrop, setSelectedCrop] = useState('Genel'); // New Crop State
+
     const [loading, setLoading] = useState(false);
 
     // Data States
@@ -140,7 +140,7 @@ const Dashboard = () => {
                                 <Card.Body className="bg-light">
                                     <h5 className="mb-3">Konum Seçimi</h5>
                                     <Row>
-                                        <Col md={4} sm={12}>
+                                        <Col md={6} sm={12}>
                                             <Form.Select value={selectedProvince} onChange={handleProvinceChange} className="mb-2">
                                                 <option value="">İl Seçiniz</option>
                                                 {provinces.map(p => (
@@ -148,21 +148,12 @@ const Dashboard = () => {
                                                 ))}
                                             </Form.Select>
                                         </Col>
-                                        <Col md={4} sm={12}>
+                                        <Col md={6} sm={12}>
                                             <Form.Select value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} disabled={!selectedProvince} className="mb-2">
                                                 <option value="">İlçe/Merkez Seçiniz</option>
                                                 {centers.map(c => (
                                                     <option key={c.merkezId} value={c.merkezId}>{c.ilce || c.il}</option>
                                                 ))}
-                                            </Form.Select>
-                                        </Col>
-                                        <Col md={4} sm={12}>
-                                            <Form.Select value={selectedCrop} onChange={(e) => setSelectedCrop(e.target.value)} className="mb-2 border-success text-success fw-bold">
-                                                <option value="Genel">🌱 Genel Tarım</option>
-                                                <option value="Narenciye">🍊 Narenciye (Portakal/Limon)</option>
-                                                <option value="Misir">🌽 Mısır</option>
-                                                <option value="Pamuk">☁️ Pamuk</option>
-                                                <option value="Bugday">🌾 Buğday</option>
                                             </Form.Select>
                                         </Col>
                                         <Col md={12} className="mt-2">
@@ -190,7 +181,7 @@ const Dashboard = () => {
                                 <AgriculturalForecast data={agriData} />
 
                                 {analysisData && (
-                                    <VerifiableAI riskData={analysisData} dailyData={dailyData} cropType={selectedCrop} />
+                                    <VerifiableAI riskData={analysisData} dailyData={dailyData} cropType="Genel" />
                                 )}
                             </Col>
 

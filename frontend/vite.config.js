@@ -8,12 +8,15 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+            includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
             manifest: {
-                name: 'AgroMeta',
+                name: 'AgroMeta - Akıllı Tarım',
                 short_name: 'AgroMeta',
-                description: 'Tarımsal Hava Tahmini ve Yapay Zeka',
-                theme_color: '#ffffff',
+                description: 'Tarımsal Hava Tahmini, IoT ve Yapay Zeka Platformu',
+                theme_color: '#10b981',
+                background_color: '#ffffff',
+                display: 'standalone',
+                start_url: '/',
                 icons: [
                     {
                         src: 'pwa-192x192.png',
@@ -23,7 +26,51 @@ export default defineConfig({
                     {
                         src: 'pwa-512x512.png',
                         sizes: '512x512',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any maskable'
+                    }
+                ]
+            },
+            workbox: {
+                // Cache API responses for offline use
+                runtimeCaching: [
+                    {
+                        urlPattern: /^https:\/\/servis\.mgm\.gov\.tr\/.*/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'mgm-api-cache',
+                            expiration: {
+                                maxEntries: 50,
+                                maxAgeSeconds: 60 * 60 // 1 hour
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200]
+                            }
+                        }
+                    },
+                    {
+                        urlPattern: /\/api\/telemetry\/.*/i,
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'telemetry-cache',
+                            expiration: {
+                                maxEntries: 20,
+                                maxAgeSeconds: 60 * 5 // 5 minutes
+                            },
+                            networkTimeoutSeconds: 10
+                        }
+                    },
+                    {
+                        urlPattern: /\/api\/expert\/.*/i,
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'expert-cache',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 60 * 10 // 10 minutes
+                            },
+                            networkTimeoutSeconds: 10
+                        }
                     }
                 ]
             }
