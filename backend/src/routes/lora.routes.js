@@ -132,17 +132,25 @@ router.post('/servers/:id/test', async (req, res) => {
             const axios = require('axios');
 
             // Sanitize host and build URL
-            const cleanHost = server.host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+            // Strip any leading http/https and trailing slashes or /api paths
+            const cleanHost = server.host.trim()
+                .replace(/^https?:\/\//, '')
+                .replace(/\/api\/?$/, '')
+                .replace(/\/$/, '');
+
             const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
             const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
 
             console.log(`[LoRa Test] Testing connection to: ${baseUrl}/api/tenants`);
 
             try {
+                const headers = {
+                    'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`,
+                    'Authorization': `Bearer ${server.apiKey}` // Support both formats
+                };
+
                 const response = await axios.get(`${baseUrl}/api/tenants`, {
-                    headers: {
-                        'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`
-                    },
+                    headers,
                     timeout: 5000
                 });
 
@@ -154,18 +162,28 @@ router.post('/servers/:id/test', async (req, res) => {
 
                 res.json({
                     success: true,
-                    message: 'Bağlantı başarılı!',
+                    message: 'Bağlantı başarılı (Global Admin yetkisi doğrulandı).',
                     tenants: response.data?.result?.length || 0
                 });
             } catch (apiError) {
+                const status = apiError.response?.status;
                 const errMsg = apiError.response?.data?.message || apiError.message;
-                const status = apiError.response?.status || 'N/A';
-                console.error(`[LoRa Test] Failed: ${status} - ${errMsg}`, apiError.config?.url);
 
-                res.status(400).json({
-                    success: false,
-                    message: `Bağlantı hatası (${status}): ${errMsg}`
-                });
+                console.warn(`[LoRa Test] Info: ${status} - ${errMsg}`);
+
+                // If it's a 401/403 or 404 on /tenants, it might just be a Tenant-level key
+                if (status === 401 || status === 403 || status === 404) {
+                    res.json({
+                        success: true,
+                        message: 'Sunucuya ulaşıldı, ancak API Key bu işlem için (Tüm Tenantları Listeleme) yetkili değil. Bu normaldir. Lütfen Tenant ID\'yi manuel girerek sync yapmayı deneyin.',
+                        restricted: true
+                    });
+                } else {
+                    res.status(400).json({
+                        success: false,
+                        message: `Bağlantı hatası (${status || 'N/A'}): ${errMsg}`
+                    });
+                }
             }
         } else {
             res.json({ success: true, message: 'Test modu desteklenmiyor (sadece chirpstack_v4)' });
@@ -187,29 +205,46 @@ router.post('/servers/:id/sync', async (req, res) => {
         if (!server.apiKey) return res.status(400).json({ error: 'API Key gerekli' });
 
         const axios = require('axios');
-        const headers = { 'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}` };
+
+        // Sanitize host and build URL
+        const cleanHost = server.host.trim()
+            .replace(/^https?:\/\//, '')
+            .replace(/\/api\/?$/, '')
+            .replace(/\/$/, '');
+
+        const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
+        const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
+
+        const headers = {
+            'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`,
+            'Authorization': `Bearer ${server.apiKey}` // Support both formats
+        };
+
+        console.log(`[LoRa Sync] Starting sync from: ${baseUrl}`);
 
         try {
             let tenantId = server.tenantId;
-            // Sanitize host and build URL
-            const cleanHost = server.host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-            const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
-            const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
-
-            console.log(`[LoRa Sync] Starting sync from: ${baseUrl}`);
-
-            const headers = { 'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}` };
 
             // 1. Fetch Tenant ID if not configured
             if (!tenantId) {
-                console.log(`[LoRa Sync] Fetching tenant ID from ${baseUrl}/api/tenants`);
-                const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 10000 });
-                if (tenantsRes.data?.result?.length > 0) {
-                    tenantId = tenantsRes.data.result[0].id;
-                    console.log(`[LoRa Sync] Found tenant ID: ${tenantId}`);
-                } else {
-                    return res.status(400).json({ success: false, message: 'Tenant bulunamadı. Lütfen Tenant ID girin.' });
+                try {
+                    console.log(`[LoRa Sync] Auto-detecting tenant ID from ${baseUrl}/api/tenants`);
+                    const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 5000 });
+                    if (tenantsRes.data?.result?.length > 0) {
+                        tenantId = tenantsRes.data.result[0].id;
+                        console.log(`[LoRa Sync] Found tenant ID: ${tenantId}`);
+                    }
+                } catch (tError) {
+                    console.warn(`[LoRa Sync] Could not auto-detect tenant ID (likely restricted key): ${tError.message}`);
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Tenant-seviyesinde API Key kullanıyorsunuz. Lütfen Tenant ID\'yi ayarlardan manuel olarak girin.'
+                    });
                 }
+            }
+
+            if (!tenantId) {
+                return res.status(400).json({ success: false, message: 'Tenant ID gerekli.' });
             }
 
             // 2. Fetch Applications
@@ -219,7 +254,7 @@ router.post('/servers/:id/sync', async (req, res) => {
 
             if (applications.length === 0) {
                 console.log(`[LoRa Sync] No applications found for tenant ${tenantId}`);
-                return res.json({ success: true, message: 'Hiç Application bulunamadı.', applications: 0 });
+                return res.json({ success: true, message: 'Hiç Application bulunamadı. Lütfen ChirpStack üzerinde en az bir uygulama olduğundan emin olun.', applications: 0 });
             }
 
             console.log(`[LoRa Sync] Found ${applications.length} applications`);
@@ -268,7 +303,7 @@ router.post('/servers/:id/sync', async (req, res) => {
             console.log(`[LoRa Sync] Complete. Synced: ${synced}, Updated: ${skipped}`);
             res.json({
                 success: true,
-                message: `${synced} cihaz eklendi, ${skipped} cihaz güncellendi.`,
+                message: `${synced} yeni cihaz eklendi, ${skipped} cihaz güncellendi.`,
                 applications: applications.length
             });
         } catch (apiError) {
@@ -279,7 +314,7 @@ router.post('/servers/:id/sync', async (req, res) => {
 
             res.status(400).json({
                 success: false,
-                message: `ChirpStack API hatası (${status}): ${errMsg}`
+                message: `ChirpStack API hatası (${status}): ${errMsg}. Lütfen API URL ve Key bilgilerini kontrol edin.`
             });
         }
     } catch (error) {
