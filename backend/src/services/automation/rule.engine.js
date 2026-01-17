@@ -48,10 +48,20 @@ class RuleEngine {
 
     async checkRule(rule, data) {
         const sensorCode = rule.sensorCode;
-        if (data[sensorCode] === undefined) return; // Data not present for this rule
+
+        // Debug Log
+        // console.log(`[RuleEngine] Checking Rule "${rule.name}" (Sensor: ${sensorCode}) against keys: ${Object.keys(data).join(', ')}`);
+
+        if (data[sensorCode] === undefined) {
+            console.log(`[RuleEngine] Skip: Rule "${rule.name}" expects "${sensorCode}" but data has [${Object.keys(data)}]`);
+            return;
+        }
 
         const value = Number(data[sensorCode]);
-        if (isNaN(value)) return;
+        if (isNaN(value)) {
+            console.log(`[RuleEngine] Skip: Value for "${sensorCode}" is NaN (${data[sensorCode]})`);
+            return;
+        }
 
         let triggered = false;
 
