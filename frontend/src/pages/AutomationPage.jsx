@@ -5,10 +5,11 @@ import axios from 'axios';
 import { Wifi, Thermometer, Droplets, Activity, Bell, Trash2, Plus } from 'lucide-react';
 
 const AutomationPage = () => {
-    const { token, devices } = useOutletContext();
+    const token = localStorage.getItem('token') || '';
+    const [devices, setDevices] = useState([]);
     const [rules, setRules] = useState([]);
     const [logs, setLogs] = useState([]);
-    const [farmId, setFarmId] = useState(1); // Default farm ID 1, need to get from user context if available
+    const [farmId, setFarmId] = useState(1); // Default farm ID 1
     const [showModal, setShowModal] = useState(false);
 
     // Form State
@@ -23,13 +24,21 @@ const AutomationPage = () => {
     });
 
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 10000); // Poll logs
-        return () => clearInterval(interval);
+        if (token) {
+            fetchData();
+            const interval = setInterval(fetchData, 10000); // Poll logs
+            return () => clearInterval(interval);
+        }
     }, [token, farmId]);
 
     const fetchData = async () => {
         try {
+            // Fetch Devices
+            const devicesRes = await axios.get('http://localhost:3000/api/devices', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setDevices(devicesRes.data);
+
             const rulesRes = await axios.get(`http://localhost:3000/api/automation/rules/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
