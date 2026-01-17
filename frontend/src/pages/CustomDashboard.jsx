@@ -2,14 +2,46 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Button as BSButton, Modal, Form, Badge } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import GridLayout from 'react-grid-layout';
+import { Responsive } from 'react-grid-layout';
 import 'leaflet/dist/leaflet.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import L from 'leaflet';
 
-const { Responsive, WidthProvider } = GridLayout;
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// Custom Hook for Width
+const useWidth = () => {
+    const [width, setWidth] = useState(1200);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                if (entry.contentRect) {
+                    setWidth(Math.floor(entry.contentRect.width));
+                }
+            }
+        });
+
+        resizeObserver.observe(element);
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    return { width, ref };
+};
+
+const ResponsiveGridLayout = ({ children, ...props }) => {
+    const { width, ref } = useWidth();
+    return (
+        <div ref={ref} style={{ width: '100%' }}>
+            <Responsive width={width} {...props}>
+                {children}
+            </Responsive>
+        </div>
+    );
+};
 
 // Fix Leaflet Marker Icon
 delete L.Icon.Default.prototype._getIconUrl;
