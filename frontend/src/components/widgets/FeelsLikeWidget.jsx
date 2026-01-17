@@ -7,7 +7,7 @@ const FeelsLikeWidget = ({ data, settings = {} }) => {
     const humidity = data?.humidity != null ? Number(data.humidity) : null;
 
     // No data state
-    if (temp === null) {
+    if (temp === null || isNaN(temp)) {
         return (
             <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
                 <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🌡️</div>
