@@ -16,19 +16,35 @@ router.get('/:farmId', async (req, res) => {
 
 // POST /api/expert/:farmId/config
 router.post('/:farmId/config', async (req, res) => {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
     try {
         const { farmId } = req.params;
         const { crop, city } = req.body;
 
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        console.log(`[Expert Config] Updating farm ${farmId}:`, { crop, city });
+
+        // Check if farm exists
+        const farm = await prisma.farm.findUnique({
+            where: { id: parseInt(farmId) }
+        });
+
+        if (!farm) {
+            return res.status(404).json({ error: 'Farm not found' });
+        }
 
         const updateData = {};
         if (crop) updateData.crop_type = crop;
         if (city) {
             updateData.city = city;
             // Also update station_id for MGM forecasts
-            updateData.station_id = getStationIdForCity(city);
+            const stationId = getStationIdForCity(city);
+            if (stationId) updateData.station_id = stationId;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.json({ success: true, message: 'No changes' });
         }
 
         await prisma.farm.update({
@@ -36,10 +52,12 @@ router.post('/:farmId/config', async (req, res) => {
             data: updateData
         });
 
+        await prisma.$disconnect();
+
         res.json({ success: true, message: `Ayarlar güncellendi: ${crop || ''} ${city || ''}` });
     } catch (error) {
-        console.error("Config Update Error:", error);
-        res.status(500).json({ error: "Ayarlar güncellenemedi" });
+        console.error("[Expert Config] Error:", error);
+        res.status(500).json({ error: "Ayarlar güncellenemedi", details: error.message });
     }
 });
 
