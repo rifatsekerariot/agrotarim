@@ -185,14 +185,8 @@ const Dashboard = () => {
 
                                     <div className="mt-4">
                                         <Tabs defaultActiveKey="hourly" className="custom-tabs mb-3">
-                                            <Tab eventKey="hourly" title="Saatlik Tahmin">
+                                            <Tab eventKey="hourly" title="Saatlik Tahmin & İlaçlama">
                                                 <HourlyForecast data={hourlyData} />
-                                            </Tab>
-                                            <Tab eventKey="spray" title="İlaçlama Saatleri">
-                                                <div className="p-4 text-center text-muted bg-white rounded shadow-sm">
-                                                    <i className="bi bi-cloud-drizzle fs-1 mb-2 d-block"></i>
-                                                    İlaçlama önerileri için saatlik rüzgar ve yağış verisi analiz ediliyor...
-                                                </div>
                                             </Tab>
                                         </Tabs>
                                     </div>
