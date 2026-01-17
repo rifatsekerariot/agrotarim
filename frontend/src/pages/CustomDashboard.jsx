@@ -240,14 +240,14 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
             </div>
 
             {/* Chart */}
-            <div style={{ flex: 1, minHeight: 0, padding: '10px', position: 'relative' }}>
+            <div style={{ flex: 1, minHeight: '150px', padding: '10px', position: 'relative', width: '100%' }}>
                 {loading && data.length === 0 ? (
                     <div className="d-flex h-100 align-items-center justify-content-center">
                         <p className="text-muted">Yükleniyor...</p>
                     </div>
                 ) : (
-                    <div className="h-100" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
-                        <ResponsiveContainer>
+                    <div style={{ width: '100%', height: '100%', minHeight: '150px', opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={data}>
                                 <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} axisLine={false} tickLine={false} />
                                 <YAxis domain={['auto', 'auto']} width={35} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
