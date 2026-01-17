@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Button as BSButton, Modal, Form, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Button as BSButton, Modal, Form, Badge, Dropdown } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import { Responsive } from 'react-grid-layout';
@@ -80,15 +80,23 @@ const DashboardWidgetWrapper = ({ type, title, children, onRemove, onEdit }) => 
                 </div>
 
                 {/* 3-Dot Menu */}
-                <div className="dropdown">
-                    <div className="widget-menu-btn" data-bs-toggle="dropdown">
-                        <i className="bi bi-three-dots-vertical"></i>
-                    </div>
-                    <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                        <li><button className="dropdown-item small" onClick={onEdit}><i className="bi bi-pencil me-2"></i>Düzenle</button></li>
-                        <li><hr className="dropdown-divider" /></li>
-                        <li><button className="dropdown-item small text-danger" onClick={onRemove}><i className="bi bi-trash me-2"></i>Kaldır</button></li>
-                    </ul>
+                {/* 3-Dot Menu */}
+                <div onClick={(e) => {
+                    // Prevent drag start when clicking menu
+                    e.stopPropagation();
+                    e.preventDefault();
+                }} onMouseDown={e => e.stopPropagation()}>
+                    <Dropdown align="end">
+                        <Dropdown.Toggle variant="light" size="sm" className="widget-menu-btn border-0 py-0 px-2 text-muted" id={`dropdown-${Math.random()}`} after={false ? 1 : 0} style={{ boxShadow: 'none' }}>
+                            <i className="bi bi-three-dots-vertical"></i>
+                        </Dropdown.Toggle>
+
+                        <Dropdown.Menu className="shadow-sm border-0">
+                            <Dropdown.Item onClick={onEdit} className="small"><i className="bi bi-pencil me-2"></i>Düzenle</Dropdown.Item>
+                            <Dropdown.Divider />
+                            <Dropdown.Item onClick={onRemove} className="small text-danger"><i className="bi bi-trash me-2"></i>Kaldır</Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown>
                 </div>
             </div>
 
