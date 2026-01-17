@@ -4,7 +4,7 @@
  * Replaces slow LLMs with instant, deterministic, and accurate agricultural wisdom.
  */
 
-export const generateExpertAdvice = (weather, risks, cropType = 'Genel') => {
+export const generateExpertAdvice = (weather, risks, cropType = 'Genel', dailyData = null) => {
     const advice = {
         summary: "",
         alerts: [],
@@ -33,7 +33,20 @@ export const generateExpertAdvice = (weather, risks, cropType = 'Genel') => {
 
     // --- 2. Risk Uyarıları (Ürün Bazlı Özel Kurallar) ---
 
-    // -- DON RİSKİ --
+    // -- Gelecek Tahmin Kontrolü (Zirai Don) --
+    if (dailyData && dailyData.length > 0) {
+        const forecast = dailyData[0];
+        const nextDiff = [];
+        for (let i = 1; i <= 3; i++) {
+            const val = forecast[`enDusukGun${i}`];
+            if (val !== undefined && val <= 0) nextDiff.push(val);
+        }
+        if (nextDiff.length > 0) {
+            advice.alerts.push({ level: 'danger', text: `❄️ GELİYOR: Önümüzdeki 3 gün içinde sıcaklık ${Math.min(...nextDiff)}°C seviyesine düşecek. Zirai DON riski var!` });
+        }
+    }
+
+    // -- ANLIK DON RİSKİ --
     // Narenciye -1, -2 derecelerde çok daha hassastır.
     if (cropType === 'Narenciye' && temp <= 2) {
         advice.alerts.push({ level: 'danger', text: "❄️ KRİTİK DON RİSKİ (NARENCİYE): Sıcaklık +2°C altına düştü/düşebilir. Limon ve portakal için acil don önlemi (pervane/sulama) alın." });

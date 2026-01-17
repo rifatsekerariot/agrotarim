@@ -190,7 +190,7 @@ const Dashboard = () => {
                                 <AgriculturalForecast data={agriData} />
 
                                 {analysisData && (
-                                    <VerifiableAI riskData={analysisData} cropType={selectedCrop} />
+                                    <VerifiableAI riskData={analysisData} dailyData={dailyData} cropType={selectedCrop} />
                                 )}
                             </Col>
 
