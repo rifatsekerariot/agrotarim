@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import L from 'leaflet';
+import { getWidgetComponent, WIDGET_TYPES } from '../utils/widgetRegistry';
 
 // Custom Hook for Width
 const useWidth = () => {
@@ -342,12 +343,26 @@ const CustomDashboard = () => {
     const handleAddWidget = () => {
         const id = Date.now().toString();
         let finalType = newWidget.type;
-        let finalW = 4;
-        let finalH = 4;
 
-        if (newWidget.type === 'card' && newWidget.sensorCodes.length > 1) finalType = 'multi';
-        if (newWidget.type === 'map') { finalType = 'map'; finalW = 12; finalH = 8; }
-        if (newWidget.type === 'chart') { finalW = 6; finalH = 6; }
+        // Default size logic
+        let finalW = 2;
+        let finalH = 2;
+
+        if (newWidget.type === 'card' && newWidget.sensorCodes.length > 1) { finalType = 'multi'; finalW = 4; finalH = 4; }
+        else if (newWidget.type === 'card') { finalW = 2; finalH = 2; } // Standard Card
+        else if (newWidget.type === 'chart') { finalW = 6; finalH = 6; }
+        else if (newWidget.type === 'map') { finalType = 'map'; finalW = 12; finalH = 8; }
+        else if (newWidget.type === 'multi') { finalW = 3; finalH = 6; }
+
+        // Advanced Widget Sizing
+        if ([WIDGET_TYPES.SOIL_MOISTURE, WIDGET_TYPES.AIR_QUALITY, WIDGET_TYPES.POWER_METER, WIDGET_TYPES.PWM_CONTROL].includes(finalType)) {
+            finalW = 3; finalH = 3;
+        }
+        else if (finalType === WIDGET_TYPES.GREENHOUSE_STATUS) { finalW = 4; finalH = 4; }
+        else if (finalType === WIDGET_TYPES.MULTI_LOCATION) { finalW = 3; finalH = 6; }
+        else if ([WIDGET_TYPES.ULTRASONIC_LEVEL, WIDGET_TYPES.SERVO_CONTROL, WIDGET_TYPES.RELAY_CONTROL].includes(finalType)) {
+            finalW = 2; finalH = 3;
+        }
 
         const widget = {
             ...newWidget,
@@ -355,7 +370,7 @@ const CustomDashboard = () => {
             i: id,
             type: finalType,
             x: 0,
-            y: Infinity, // Puts it at the bottom
+            y: Infinity,
             w: finalW,
             h: finalH,
             sensorCode: newWidget.sensorCodes[0]
@@ -568,19 +583,31 @@ const CustomDashboard = () => {
                             const sensorObj = device?.sensors?.find(s => s.code === primaryCode);
                             const sensorName = sensorObj?.name || primaryCode;
 
+                            const WidgetComp = getWidgetComponent(w.type);
+
                             return (
                                 <div key={w.i}>
                                     <DashboardWidgetWrapper
                                         type={w.type}
                                         title={w.title || w.deviceName}
                                         onRemove={() => removeWidget(w.id)}
-                                        onEdit={() => console.log('Edit', w.id)} // Placeholder
+                                        onEdit={() => console.log('Edit', w.id)}
                                     >
-                                        {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title} lastUpdate={ts} sensorName={sensorName} />}
-                                        {/* {w.type === 'gauge' && <WidgetGauge data={val} unit={unit} title={w.title} sensorName={sensorName} />} */}
-                                        {w.type === 'multi' && <WidgetMultiList deviceId={w.deviceId} sensorCodes={codes} devices={devices} telemetry={telemetry} />}
-                                        {w.type === 'chart' && <WidgetChart deviceSerial={w.serialNumber} sensorCode={primaryCode} title={w.title} unit={unit} sensorName={sensorName} />}
-                                        {w.type === 'map' && <WidgetMap widget={w} devices={devices} telemetry={telemetry} onUpdate={handleWidgetUpdate} />}
+                                        {WidgetComp ? (
+                                            <WidgetComp data={{
+                                                value: val,
+                                                unit: unit,
+                                                ts: ts,
+                                                ...devData // Pass full device telemetry for multi-sensor widgets
+                                            }} />
+                                        ) : (
+                                            <>
+                                                {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title} lastUpdate={ts} sensorName={sensorName} />}
+                                                {w.type === 'multi' && <WidgetMultiList deviceId={w.deviceId} sensorCodes={codes} devices={devices} telemetry={telemetry} />}
+                                                {w.type === 'chart' && <WidgetChart deviceSerial={w.serialNumber} sensorCode={primaryCode} title={w.title} unit={unit} sensorName={sensorName} />}
+                                                {w.type === 'map' && <WidgetMap widget={w} devices={devices} telemetry={telemetry} onUpdate={handleWidgetUpdate} />}
+                                            </>
+                                        )}
                                     </DashboardWidgetWrapper>
                                 </div>
                             );
@@ -598,26 +625,191 @@ const CustomDashboard = () => {
                     <p className="text-muted small mb-4">Panelinize eklemek istediğiniz görünüm tipini seçin.</p>
 
                     {/* Widget Type Selection Grid */}
-                    <div className="row g-3 mb-4">
-                        {[
-                            { type: 'card', icon: 'bi-123', label: 'Sayı Göstergesi', desc: 'Tek bir sensör değeri', color: 'primary' },
-                            { type: 'chart', icon: 'bi-graph-up', label: 'Zaman Grafiği', desc: 'Son 24 saatlik değişim', color: 'danger' },
-                            { type: 'map', icon: 'bi-map', label: 'Harita', desc: 'Sensör konumları', color: 'success' },
-                            { type: 'multi', icon: 'bi-list-ul', label: 'Liste', desc: 'Birden fazla sensör', color: 'warning' }
-                        ].map(t => (
-                            <div key={t.type} className="col-md-3 col-6">
-                                <div
-                                    className={`card h-100 widget-selection-card text-center p-3 ${newWidget.type === t.type ? 'border-primary bg-light' : ''}`}
-                                    onClick={() => setNewWidget({ ...newWidget, type: t.type })}
-                                >
-                                    <div className={`rounded-circle bg-${t.color} bg-opacity-10 p-3 mx-auto mb-3 text-${t.color}`}>
-                                        <i className={`bi ${t.icon} fs-4`}></i>
+                    {/* Categorized Widget Selection */}
+                    <div className="widget-selector-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+
+                        {/* 📊 Temel Bileşenler */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">📊 Temel Bileşenler</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: 'card', icon: 'bi-123', label: 'Sayı Göstergesi', desc: 'Tek değer', color: 'secondary' },
+                                { type: 'chart', icon: 'bi-graph-up', label: 'Zaman Grafiği', desc: '24s Değişim', color: 'secondary' },
+                                { type: 'map', icon: 'bi-map', label: 'Harita', desc: 'Konum', color: 'secondary' },
+                                { type: 'multi', icon: 'bi-list-ul', label: 'Liste', desc: 'Çoklu Sensör', color: 'secondary' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
                                     </div>
-                                    <h6 className="fw-bold mb-1">{t.label}</h6>
-                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>{t.desc}</small>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        {/* 💧 Su Yönetimi */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">💧 Su Yönetimi</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.WATER_TANK, icon: 'bi-water', label: 'Su Tankı', color: 'primary' },
+                                { type: WIDGET_TYPES.WATER_FLOW, icon: 'bi-tsunami', label: 'Su Akışı', color: 'primary' },
+                                { type: WIDGET_TYPES.WATER_PRESSURE, icon: 'bi-speedometer', label: 'Basınç', color: 'primary' },
+                                { type: WIDGET_TYPES.WATER_QUALITY, icon: 'bi-droplet-half', label: 'Kalite (pH/EC)', color: 'info' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 🌱 Toprak Analizi */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">🌱 Toprak Analizi</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.SOIL_MOISTURE, icon: 'bi-moisture', label: 'Toprak Nemi', color: 'success' },
+                                { type: WIDGET_TYPES.SOIL_TEMP, icon: 'bi-thermometer-half', label: 'Sıcaklık', color: 'success' },
+                                { type: WIDGET_TYPES.SOIL_PH, icon: 'bi-eyedropper', label: 'pH Değeri', color: 'warning' },
+                                { type: WIDGET_TYPES.SOIL_EC, icon: 'bi-lightning-charge', label: 'EC Değeri', color: 'warning' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* ☀️ Işık & Hava Kalitesi */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">☀️ Işık & Hava Kalitesi</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.LIGHT_INTENSITY, icon: 'bi-brightness-high', label: 'Işık Şiddeti', color: 'warning' },
+                                { type: WIDGET_TYPES.UV_INDEX, icon: 'bi-sun', label: 'UV İndeksi', color: 'warning' },
+                                { type: WIDGET_TYPES.CO2_LEVEL, icon: 'bi-wind', label: 'CO2 Seviyesi', color: 'secondary' },
+                                { type: WIDGET_TYPES.AIR_QUALITY, icon: 'bi-clouds', label: 'Hava Kalitesi', color: 'secondary' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* ⚡ Enerji Yönetimi */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">⚡ Enerji Yönetimi</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.SMART_PLUG, icon: 'bi-outlet', label: 'Akıllı Priz', color: 'dark' },
+                                { type: WIDGET_TYPES.POWER_METER, icon: 'bi-lightning-charge', label: 'Güç Tüketimi', color: 'warning' },
+                                { type: WIDGET_TYPES.BATTERY_STATUS, icon: 'bi-battery-half', label: 'Batarya', color: 'success' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 🌡️ İklim & Diğer */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">🌡️ İklim & Diğer</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.TEMP_TREND, icon: 'bi-thermometer-high', label: 'Sıcaklık Trendi', color: 'danger' },
+                                { type: WIDGET_TYPES.HUMIDITY_TREND, icon: 'bi-moisture', label: 'Nem Trendi', color: 'info' },
+                                { type: WIDGET_TYPES.FEELS_LIKE, icon: 'bi-person', label: 'Hissedilen', color: 'primary' },
+                                { type: WIDGET_TYPES.WATER_TEMP, icon: 'bi-droplet', label: 'Su Sıcaklığı', color: 'primary' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 📏 Mesafe & Seviye */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">📏 Mesafe & Seviye</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.ULTRASONIC_LEVEL, icon: 'bi-hdd-stack', label: 'Ultrasonik Seviye', color: 'info' },
+                                { type: WIDGET_TYPES.DISTANCE_SENSOR, icon: 'bi-aspect-ratio', label: 'Mesafe / Kapı', color: 'dark' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 🎚️ Kontrol & Otomasyon */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">🎚️ Kontrol & Otomasyon</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.RELAY_CONTROL, icon: 'bi-toggle-on', label: 'Röle Anahtarı', color: 'success' },
+                                { type: WIDGET_TYPES.PWM_CONTROL, icon: 'bi-fan', label: 'Fan Hızı (PWM)', color: 'secondary' },
+                                { type: WIDGET_TYPES.SERVO_CONTROL, icon: 'bi-window', label: 'Servo Motor', color: 'primary' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 🔔 Güvenlik & Alarm */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">🔔 Güvenlik & Alarm</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.MOTION_SENSOR, icon: 'bi-eye', label: 'Hareket (PIR)', color: 'danger' },
+                                { type: WIDGET_TYPES.WATER_LEAK, icon: 'bi-droplet-fill', label: 'Su Kaçağı', color: 'danger' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 📊 Özet & Raporlar */}
+                        <h6 className="fw-bold text-muted mb-3 border-bottom pb-2">📊 Özet & Raporlar</h6>
+                        <div className="row g-3 mb-4">
+                            {[
+                                { type: WIDGET_TYPES.GREENHOUSE_STATUS, icon: 'bi-grid-1x2', label: 'Sera Özeti', color: 'success' },
+                                { type: WIDGET_TYPES.MULTI_LOCATION, icon: 'bi-geo-alt', label: 'Lokasyonlar', color: 'warning' }
+                            ].map(t => (
+                                <div key={t.type} className="col-md-3 col-6">
+                                    <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
+                                        onClick={() => setNewWidget({ ...newWidget, type: t.type })} style={{ cursor: 'pointer' }}>
+                                        <div className={`text-${t.color} mb-2`}><i className={`bi ${t.icon} fs-4`}></i></div>
+                                        <div className="fw-bold small">{t.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                     </div>
 
                     {/* Configuration Form */}
