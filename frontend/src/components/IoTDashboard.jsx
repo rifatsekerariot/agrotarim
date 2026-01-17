@@ -138,7 +138,7 @@ const IoTDashboard = ({ farmId }) => {
             <div style={{ width: '80px', height: '30px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
-                        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
                         <YAxis domain={['dataMin', 'dataMax']} hide />
                     </LineChart>
                 </ResponsiveContainer>
