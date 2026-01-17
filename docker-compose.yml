@@ -35,7 +35,11 @@ services:
       - /app/node_modules
     networks:
       - agrometa-network
-    # command: sh -c "npx prisma db push && npm run dev"
+    command: >
+      sh -c " echo 'Waiting for Database...' && until npx prisma db push; do
+        echo 'Database not ready, retrying in 5s...'
+        sleep 5
+      done && echo 'Database connected!' && npm run dev "
 
   frontend:
     build:
