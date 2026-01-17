@@ -17,10 +17,15 @@ const IoTDashboard = ({ farmId }) => {
     // Dashboard Summary Config
     const [summaryConfig, setSummaryConfig] = useState({
         showTemp: true,
+        tempSensors: [],
         showHum: true,
+        humSensors: [],
         showSoil: false,
+        soilSensors: [],
         showCo2: false,
-        showLight: false
+        co2Sensors: [],
+        showLight: false,
+        lightSensors: []
     });
     const [showConfigModal, setShowConfigModal] = useState(false);
 
@@ -135,7 +140,7 @@ const IoTDashboard = ({ farmId }) => {
         const sensor = device.sensors.find(s => codeList.includes(s.code));
         if (!sensor || !sensor.telemetry || sensor.telemetry.length === 0) return null;
 
-        return sensor.telemetry[0].value;
+        return { value: sensor.telemetry[0].value, sensorId: sensor.id };
     };
 
     const getTrend = (device, code) => {
@@ -163,15 +168,29 @@ const IoTDashboard = ({ farmId }) => {
         let activeAlerts = 0;
 
         // Calculate averages for enabled metrics
+        // Calculate averages for enabled metrics
         metrics.forEach(m => {
             if (summaryConfig[m.key]) {
                 let total = 0;
                 let count = 0;
+
+                // Determine source: Specific selection or Smart Auto-detect
+                const selectedIds = summaryConfig[m.key.replace('show', '').toLowerCase() + 'Sensors'] || [];
+
                 devices.forEach(d => {
-                    const v = getLatestValue(d, m.codes);
-                    if (v !== null && !isNaN(v)) {
-                        total += v;
-                        count++;
+                    const data = getLatestValue(d, m.codes);
+                    if (data && data.value !== null && !isNaN(data.value)) {
+                        // If user selected specific sensors, filter by ID
+                        if (selectedIds.length > 0) {
+                            if (selectedIds.includes(data.sensorId.toString())) {
+                                total += data.value;
+                                count++;
+                            }
+                        } else {
+                            // Default: Include all matching
+                            total += data.value;
+                            count++;
+                        }
                     }
                 });
                 results[m.key] = count ? (total / count).toFixed(1) : '--';
@@ -380,31 +399,85 @@ const IoTDashboard = ({ farmId }) => {
                 <Modal.Body>
                     <p className="text-muted small">Bu alanda hangi verilerin ortalamasını görmek istediğinizi seçebilirsiniz.</p>
                     <div className="d-flex flex-column gap-3">
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" checked={summaryConfig.showTemp}
-                                onChange={e => setSummaryConfig({ ...summaryConfig, showTemp: e.target.checked })} />
-                            <label className="form-check-label">Ortalama Sıcaklık</label>
-                        </div>
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" checked={summaryConfig.showHum}
-                                onChange={e => setSummaryConfig({ ...summaryConfig, showHum: e.target.checked })} />
-                            <label className="form-check-label">Ortalama Nem</label>
-                        </div>
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" checked={summaryConfig.showSoil}
-                                onChange={e => setSummaryConfig({ ...summaryConfig, showSoil: e.target.checked })} />
-                            <label className="form-check-label">Toprak Nemi</label>
-                        </div>
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" checked={summaryConfig.showCo2}
-                                onChange={e => setSummaryConfig({ ...summaryConfig, showCo2: e.target.checked })} />
-                            <label className="form-check-label">CO2 Seviyesi</label>
-                        </div>
-                        <div className="form-check form-switch">
-                            <input className="form-check-input" type="checkbox" checked={summaryConfig.showLight}
-                                onChange={e => setSummaryConfig({ ...summaryConfig, showLight: e.target.checked })} />
-                            <label className="form-check-label">Işık Şiddeti</label>
-                        </div>
+                        {kpiData.metrics.map(m => {
+                            const configKey = m.key; // e.g., showTemp
+                            const listKey = m.key.replace('show', '').toLowerCase() + 'Sensors'; // e.g., tempSensors
+                            const selectedList = summaryConfig[listKey] || [];
+
+                            // Find valid sensors for this metric type
+                            const availableSensors = [];
+                            devices.forEach(d => {
+                                d.sensors.forEach(s => {
+                                    if (m.codes.includes(s.code)) {
+                                        availableSensors.push({
+                                            id: s.id,
+                                            name: s.name || s.code,
+                                            devName: d.name
+                                        });
+                                    }
+                                });
+                            });
+
+                            return (
+                                <div key={m.key} className="border p-2 rounded bg-light">
+                                    <div className="form-check form-switch mb-2">
+                                        <input className="form-check-input" type="checkbox" checked={summaryConfig[configKey]}
+                                            onChange={e => setSummaryConfig({ ...summaryConfig, [configKey]: e.target.checked })} />
+                                        <label className="form-check-label fw-bold">{m.label}</label>
+                                    </div>
+
+                                    {/* Sensor Selection List (Only if enabled) */}
+                                    {summaryConfig[configKey] && availableSensors.length > 0 && (
+                                        <div className="ms-4 small">
+                                            <div className="text-muted mb-1 fst-italic">Veri Kaynakları:</div>
+                                            {availableSensors.map(s => (
+                                                <div key={s.id} className="form-check">
+                                                    <input className="form-check-input" type="checkbox"
+                                                        checked={selectedList.length === 0 || selectedList.includes(s.id.toString())}
+                                                        onChange={e => {
+                                                            const idStr = s.id.toString();
+                                                            let newList = [...selectedList];
+
+                                                            // If list was empty (implies ALL), populate it with all others first then toggle this one
+                                                            // Actually simpler logic: Empty = All. When checking one, we must decide behavior.
+                                                            // Better UX: If Empty, it means Auto. If user clicks one, they start building manual list.
+
+                                                            if (newList.length === 0) {
+                                                                // Was Auto/All. Now unchecking this specific one? Or checking it?
+                                                                // Let's assume user wants to SELECT specific ones.
+                                                                // If All are seemingly checked, and I click one, what happens?
+                                                                // Implementation: Checkbox is CHECKED if list is empty OR id is in list.
+
+                                                                // To make it intuitive:
+                                                                // If list is empty (All), clicking a checkbox should probably switch to "Only this one" or "All except this".
+                                                                // Let's go with: Click adds to AllowList.
+                                                                // BUT current UI shows them checked.
+                                                                // Let's init list with ALL IDs if it was empty, then toggle.
+                                                                const allIds = availableSensors.map(as => as.id.toString());
+                                                                newList = allIds.filter(id => id !== idStr); // Uncheck this one
+                                                            } else {
+                                                                if (newList.includes(idStr)) {
+                                                                    newList = newList.filter(id => id !== idStr);
+                                                                } else {
+                                                                    newList.push(idStr);
+                                                                }
+                                                            }
+                                                            setSummaryConfig({ ...summaryConfig, [listKey]: newList });
+                                                        }}
+                                                    />
+                                                    <label className="form-check-label text-truncate" style={{ maxWidth: '200px' }}>
+                                                        {s.devName} - {s.name}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                            <div className="form-text" style={{ fontSize: '0.7em' }}>
+                                                *(Hiçbiri seçilmezse veya hepsi seçilirse otomatik belirlenir)*
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </Modal.Body>
                 <Modal.Footer>
