@@ -2,8 +2,7 @@
 # ============================================
 # AgroMeta IoT Platform - Deploy Script
 # ============================================
-# Kullanım: ./deploy.sh "commit mesajı"
-# Örnek: ./deploy.sh "feat: ChirpStack integration"
+# Kullanım: ./deploy.sh
 # ============================================
 
 set -e  # Hata durumunda dur
@@ -15,33 +14,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Commit mesajı kontrolü
-COMMIT_MSG=${1:-"update: genel güncelleme"}
-
 echo -e "${BLUE}============================================${NC}"
 echo -e "${BLUE}  AgroMeta IoT Platform - Deploy Script    ${NC}"
 echo -e "${BLUE}============================================${NC}"
 echo ""
 
-# 1. Git İşlemleri
-echo -e "${YELLOW}[1/5] Git değişiklikleri ekleniyor...${NC}"
-git add .
-
-echo -e "${YELLOW}[2/5] Git commit oluşturuluyor...${NC}"
-git commit -m "$COMMIT_MSG" || echo -e "${YELLOW}Commit yapılacak değişiklik yok, devam ediliyor...${NC}"
-
-echo -e "${YELLOW}[3/5] Git push yapılıyor...${NC}"
-git push || echo -e "${RED}Push başarısız, sunucuya manuel devam edin${NC}"
-
-# 2. Docker İşlemleri
-echo -e "${YELLOW}[4/5] Docker container'lar durduruluyor...${NC}"
+# 1. Docker Durdur
+echo -e "${YELLOW}[1/3] Docker container'lar durduruluyor...${NC}"
 sudo docker compose down
 
-echo -e "${YELLOW}[5/5] Docker build ve deploy...${NC}"
+# 2. Docker Build ve Deploy
+echo -e "${YELLOW}[2/3] Docker build ve deploy...${NC}"
 sudo docker compose up -d --build
 
-# 3. Prisma Migration (Container içinde çalışır)
-echo -e "${YELLOW}[+] Prisma migration çalıştırılıyor...${NC}"
+# 3. Prisma Migration
+echo -e "${YELLOW}[3/3] Prisma migration çalıştırılıyor...${NC}"
 sleep 5  # Container'ın başlamasını bekle
 sudo docker compose exec -T backend npx prisma migrate deploy 2>/dev/null || echo -e "${YELLOW}Migration gerekli değil veya zaten uygulandı${NC}"
 
