@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken } = require('../middleware/auth.middleware');
+const authenticateToken = require('../auth/auth.middleware');
 
 // GET /api/automation/rules/:farmId
 router.get('/rules/:farmId', authenticateToken, async (req, res) => {
