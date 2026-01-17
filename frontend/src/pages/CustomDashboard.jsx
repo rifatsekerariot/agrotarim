@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import L from 'leaflet';
-import { getWidgetComponent, WIDGET_TYPES } from '../utils/widgetRegistry';
+import { getWidgetComponent, WIDGET_TYPES, WIDGET_SETTINGS } from '../utils/widgetRegistry';
 
 // Custom Hook for Width
 const useWidth = () => {
