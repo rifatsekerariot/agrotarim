@@ -3,13 +3,7 @@ chcp 65001 >nul
 echo AgroMeta Github Yukleme Araci
 echo ==========================================
 
-set /p repoUrl="Lutfen Github Repo Adresini Giriniz (Ornek: https://github.com/kullanici/repo.git): "
-
-if "%repoUrl%"=="" (
-    echo Repo adresi bos olamaz!
-    pause
-    exit /b
-)
+set repoUrl=https://github.com/rifatsekerariot/agrotarim.git
 
 if not exist .git (
     echo Git repository baslatiliyor...
@@ -38,7 +32,7 @@ git push -u origin main
 
 echo.
 if %errorlevel% neq 0 (
-    echo HATA: Push islemi basarisiz oldu. Lutfen repo adresini ve internet baglantinizi kontrol edin.
+    echo HATA: Push islemi basarisiz oldu. Lutfen internet baglantinizi kontrol edin.
 ) else (
     echo Islem basariyla tamamlandi!
 )

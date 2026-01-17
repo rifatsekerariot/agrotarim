@@ -118,4 +118,5 @@ const MgmService = {
     }
 };
 
-module.exports = { MgmService, turkceDonusturucu };
+module.exports = MgmService;
+module.exports.turkceDonusturucu = turkceDonusturucu;
