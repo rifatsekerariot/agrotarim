@@ -1,6 +1,6 @@
 // Imports updated (removed Map-related)
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Card, Row, Col, Alert, Spinner, Badge, Modal } from 'react-bootstrap';
 import { RefreshCcw, Wifi, WifiOff, MapPin, Thermometer, Droplets, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
