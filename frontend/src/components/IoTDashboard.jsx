@@ -46,10 +46,35 @@ const IoTDashboard = ({ farmId }) => {
         return val !== undefined ? val : "--";
     };
 
+    const handleCropChange = async (e) => {
+        const newCrop = e.target.value;
+        try {
+            await fetch(`/api/expert/${farmId}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crop: newCrop })
+            });
+            fetchData(); // Refresh analysis immediately
+        } catch (err) {
+            console.error("Crop update failed", err);
+        }
+    };
+
     return (
         <div className="iot-dashboard p-3">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla Takip</h2>
+                <div className="d-flex align-items-center gap-3">
+                    <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla</h2>
+                    <select className="form-select form-select-sm" style={{ width: '120px' }} onChange={handleCropChange} defaultValue="">
+                        <option value="" disabled>Ürün Seç</option>
+                        <option value="Mısır">🌽 Mısır</option>
+                        <option value="Buğday">🌾 Buğday</option>
+                        <option value="Pamuk">☁️ Pamuk</option>
+                        <option value="Ayçiçeği">🌻 Ayçiçeği</option>
+                        <option value="Zeytin">🫒 Zeytin</option>
+                        <option value="Fındık">🌰 Fındık</option>
+                    </select>
+                </div>
                 <div>
                     <div className="btn-group me-2" role="group">
                         <button type="button" className={`btn btn-sm ${viewMode === 'grid' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setViewMode('grid')}>
@@ -71,14 +96,17 @@ const IoTDashboard = ({ farmId }) => {
             {advice && (
                 <Card className="mb-4 border-0 shadow-sm" style={{ borderLeft: `5px solid ${advice.alerts?.some(a => a.level === 'critical') ? '#dc3545' : advice.alerts?.length > 0 ? '#ffc107' : '#198754'}` }}>
                     <Card.Body>
-                        <h5 className="text-dark fw-bold">🤖 AgroZeka Asistanı: {advice.crop}</h5>
+                        <div className="d-flex justify-content-between">
+                            <h5 className="text-dark fw-bold">🤖 AgroZeka: {advice.crop}</h5>
+                            {advice.summary?.includes("analiz ediliyor") && <Badge bg="info">Hybrid Analiz (IoT+MGM)</Badge>}
+                        </div>
                         <p className="text-muted small mb-2">{advice.summary}</p>
                         <hr />
 
                         {/* Alerts */}
                         {advice.alerts && advice.alerts.map((alert, idx) => (
-                            <Alert key={idx} variant={alert.level === 'critical' ? 'danger' : 'warning'} className="mb-2 py-2">
-                                <strong>DİKKAT:</strong> {alert.msg}
+                            <Alert key={idx} variant={alert.level === 'critical' ? 'danger' : (alert.level === 'danger' ? 'danger' : 'warning')} className="mb-2 py-2">
+                                <strong>{alert.level === 'danger' ? 'RİSK' : 'DİKKAT'}:</strong> {alert.msg}
                             </Alert>
                         ))}
 
@@ -92,8 +120,7 @@ const IoTDashboard = ({ farmId }) => {
                             <div className="text-success d-flex align-items-center">
                                 <i className="bi bi-shield-check fs-4 me-2"></i>
                                 <div>
-                                    <strong>Durum Stabil:</strong> Şu an için bitki gelişimi ideal koşullarda devam ediyor.
-                                    <div className="small text-muted">Mevcut evre için risk tespit edilmedi.</div>
+                                    <strong>Durum Stabil:</strong> Bitki gelişimi ideal. MGM verilerine göre risk yok.
                                 </div>
                             </div>
                         )}

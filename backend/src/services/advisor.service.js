@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const MgmService = require('../mgm/mgm.service');
 
 const AdvisorService = {
     /**
@@ -26,9 +27,10 @@ const AdvisorService = {
 
             if (!farm) throw new Error("Çiftlik bulunamadı.");
 
-            // Determine Crop from Farm settings (or fallback to User Profile text matching)
+            // Determine Crop from Farm settings
             const cropName = farm.crop_type || "Buğday";
-            const region = farm.city ? (await this.guessRegion(farm.city)) : "Karadeniz"; // Simple mapper needed
+            // Fix: Use AdvisorService.guessRegion instead of this.guessRegion to avoid context issues
+            const region = farm.city ? (await AdvisorService.guessRegion(farm.city)) : "Karadeniz";
 
             const profile = await prisma.cropProfile.findFirst({
                 where: {
@@ -40,7 +42,7 @@ const AdvisorService = {
 
             if (!profile) return {
                 crop: cropName,
-                summary: "Bu ürün/bölge için henüz detaylı veri bulunmamaktadır.",
+                summary: `"${cropName}" (${region}) için detaylı veri bulunamadı.`,
                 alerts: [],
                 actions: []
             };
@@ -72,22 +74,21 @@ const AdvisorService = {
             }
             if (!currentStage && profile.stages.length > 0) currentStage = profile.stages[0]; // Fallback
 
-            if (!currentStage) {
-                return {
-                    crop: profile.name,
-                    summary: `${profile.region} bölgesi için genel bilgiler mevcut.`,
-                    alerts: [],
-                    actions: []
-                };
-            }
+            if (!currentStage) return {
+                crop: profile.name,
+                summary: "Şu anki tarih için uygun evre bulunamadı.",
+                alerts: [],
+                actions: []
+            };
 
-            // 3. Analyze Data against Stage Requirements
+            // 3. HYBRID ANALYSIS: IoT + MGM
             const alerts = [];
             const actions = [];
             let avgTemp = 0;
-
-            // Calculate Avg Temp from all sensors
             let tempCount = 0;
+
+            // 3a. IoT Sensor Check
+            // Calculate Avg Temp from all sensors
             farm.devices.forEach(d => {
                 const tSensor = d.sensors.find(s => s.code === 't_air');
                 if (tSensor && tSensor.telemetry.length > 0) {
@@ -99,34 +100,49 @@ const AdvisorService = {
 
             // RULE 1: Temperature Stress
             // Only check if we have an Average Temperature reading
-            if (tempCount > 0) {
+            if (tempCount > 0 && currentStage) {
                 if (currentStage.idealMax && avgTemp > currentStage.idealMax) {
-                    alerts.push({ level: 'warning', msg: `${currentStage.name} dönemi için sıcaklık yüksek (${avgTemp.toFixed(1)}°C). İdeal max: ${currentStage.idealMax}°C` });
-                    actions.push("Sulama sıklığını artırın.");
+                    alerts.push({ level: 'warning', msg: `${currentStage.name} evresi için sıcaklık yüksek (${avgTemp.toFixed(1)}°C).` });
+                    actions.push("Sulama sıklığını artırmayı düşünün.");
                 }
                 if (currentStage.idealMin && avgTemp < currentStage.idealMin) {
                     alerts.push({ level: 'warning', msg: `${currentStage.name} dönemi için gelişim yavaşlayabilir (${avgTemp.toFixed(1)}°C).` });
                 }
                 if (currentStage.minTemp && avgTemp < currentStage.minTemp) {
-                    alerts.push({ level: 'critical', msg: `DON RİSKİ! Sıcaklık ${currentStage.name} için limitin altında (${avgTemp.toFixed(1)}°C).` });
+                    alerts.push({ level: 'critical', msg: `❄️ DON RİSKİ: Sıcaklık (${avgTemp.toFixed(1)}°C) ${currentStage.name} limiti altında!` });
                     actions.push("Don önleyici sistemleri çalıştırın.");
                 }
             }
 
-            // RULE 2: Specific Conditions Text Parsing
-            if (currentStage.conditions) {
-                const cond = currentStage.conditions.toLowerCase();
-                if (cond.includes("sulama") || cond.includes("bol su")) {
-                    actions.push("Bu dönemde düzenli sulama kritiktir.");
-                }
-                if (cond.includes("kuru") && cond.includes("hasat")) {
-                    actions.push("Hasat için kuru hava koşullarını takip edin.");
+            // 3b. MGM Forecast Check
+            if (farm.station_id) {
+                try {
+                    const forecast = await MgmService.getDailyForecast(farm.station_id);
+                    // Check next 3 days
+                    const rainyDays = forecast.filter(f => f.hadise.code.includes('Y') || f.hadise.code.includes('S')); // Y=Yagmur, S=Saganak
+
+                    if (currentStage.conditions) {
+                        const cond = currentStage.conditions.toLowerCase();
+
+                        // Condition: "Dry" but Rain Forecasted
+                        if ((cond.includes("kuru") || cond.includes("hasat")) && rainyDays.length > 0) {
+                            alerts.push({ level: 'danger', msg: `🌧️ HASAT RİSKİ: ${rainyDays.length} gün içinde yağış bekleniyor!` });
+                            actions.push("Hasadı hızlandırın veya ürünü korumaya alın.");
+                        }
+
+                        // Condition: "Water needed" and Rain Forecasted
+                        if ((cond.includes("sulama") || cond.includes("su")) && rainyDays.length > 0) {
+                            actions.push(`🌧️ Yağış beklendiği (${rainyDays.length} gün) için sulamayı erteleyebilirsiniz.`);
+                        }
+                    }
+                } catch (e) {
+                    console.log("MGM Forecast fetch failed inside Advisor:", e.message);
                 }
             }
 
             return {
                 crop: `${profile.name} (${currentStage.name})`,
-                summary: `${profile.region} bölgesinde ${profile.name} için mevcut koşullar analiz edildi.`,
+                summary: `${profile.region}, ${profile.name} ürünü ${currentStage.name} evresinde analiz ediliyor.`,
                 alerts,
                 actions
             };
@@ -135,21 +151,21 @@ const AdvisorService = {
             console.error("Advisor Error:", error);
             // Return safe object on error
             return {
-                alerts: [],
+                alerts: [{ level: 'warning', msg: "Analiz sırasında hata oluştu. Lütfen sensör/ürün ayarlarını kontrol edin." }],
                 actions: [],
-                summary: "Analiz servisi şu an kullanılamıyor."
+                summary: "Sistem şu an geçici olarak hizmet veremiyor."
             };
         }
     },
 
     async guessRegion(city) {
         const regions = {
-            "Adana": "Akdeniz", "Antalya": "Akdeniz", "Mersin": "Akdeniz",
-            "Trabzon": "Karadeniz", "Samsun": "Karadeniz", "Rize": "Karadeniz",
-            "Konya": "İç Anadolu", "Ankara": "İç Anadolu",
-            "Diyarbakır": "Güneydoğu Anadolu", "Şanlıurfa": "Güneydoğu Anadolu",
-            "İstanbul": "Marmara", "Edirne": "Marmara", "Bursa": "Marmara",
-            "İzmir": "Ege", "Manisa": "Ege"
+            "Adana": "Akdeniz", "Antalya": "Akdeniz", "Mersin": "Akdeniz", "Hatay": "Akdeniz",
+            "Trabzon": "Karadeniz", "Samsun": "Karadeniz", "Rize": "Karadeniz", "Ordu": "Karadeniz",
+            "Konya": "İç Anadolu", "Ankara": "İç Anadolu", "Eskişehir": "İç Anadolu",
+            "Diyarbakır": "Güneydoğu Anadolu", "Şanlıurfa": "Güneydoğu Anadolu", "Gaziantep": "Güneydoğu Anadolu",
+            "İstanbul": "Marmara", "Edirne": "Marmara", "Bursa": "Marmara", "Tekirdağ": "Marmara",
+            "İzmir": "Ege", "Manisa": "Ege", "Aydın": "Ege"
         };
         // Loose matching
         const key = Object.keys(regions).find(k => city.includes(k));
