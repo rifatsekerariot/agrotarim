@@ -1,14 +1,3 @@
-import { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Card, Spinner, Tabs, Tab } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { getProvinces, getCenters, getAnalysis, getDailyForecast, getHourlyForecast, getAgriculturalForecast, getMeteoWarnings } from '../utils/api';
-import VerifiableAI from '../components/VerifiableAI';
-import DailyForecast from '../components/DailyForecast';
-import HourlyForecast from '../components/HourlyForecast';
-import AgriculturalForecast from '../components/AgriculturalForecast';
-import MeteoWarning from '../components/MeteoWarning';
-import IoTDashboard from '../components/IoTDashboard'; // New IoT Component
-import { Activity } from 'lucide-react';
 
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Tabs, Tab, Dropdown, Modal } from 'react-bootstrap';
