@@ -216,3 +216,35 @@ model WeatherLog {
   risk_flags  Json     // Calculated risk flags
   recorded_at DateTime @default(now())
 }
+
+// SMS Provider Integration
+model SmsProvider {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  displayName   String
+  isActive      Boolean   @default(true)
+  priority      Int       @default(0)
+  config        Json
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  smsLogs       SmsLog[]
+}
+
+model SmsLog {
+  id                  BigInt    @id @default(autoincrement())
+  providerId          Int
+  provider            SmsProvider @relation(fields: [providerId], references: [id])
+  providerMessageId   String?
+  to                  String
+  message             String?
+  status              String    @default("pending")
+  errorMessage        String?
+  sentAt              DateTime?
+  deliveredAt         DateTime?
+  createdAt           DateTime  @default(now())
+  
+  @@index([providerId])
+  @@index([status])
+  @@index([to])
+  @@index([createdAt])
+}
