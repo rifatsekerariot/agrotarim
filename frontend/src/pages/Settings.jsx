@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Row, Col, Badge, Modal, Spinner, Dropdown, InputGroup } from 'react-bootstrap';
 import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy, MessageSquare } from 'lucide-react';
 import SmsProvidersTab from '../components/SmsProvidersTab';
+import SmsProviderModal from '../components/SmsProviderModal';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('devices');
@@ -211,7 +212,33 @@ const Settings = () => {
     };
 
     const handleEditSmsProvider = (provider) => {
-        alert('SMS Provider düzenleme özelliği yakında eklenecek. Provider: ' + provider.displayName);
+        setEditingSmsId(provider.id);
+        setSmsForm(provider);
+        setShowSmsModal(true);
+    };
+
+    const handleSaveSmsProvider = async (providerData) => {
+        const token = localStorage.getItem('token');
+        const url = editingSmsId ? `/api/sms/providers/${editingSmsId}` : '/api/sms/providers';
+        const method = editingSmsId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(providerData)
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || 'Kaydetme başarısız');
+        }
+
+        fetchAll();
+        setEditingSmsId(null);
+        setSmsForm({ name: '', displayName: '', priority: 0, isActive: false, config: {} });
     };
 
 
@@ -424,7 +451,11 @@ const Settings = () => {
                         onDelete={handleDeleteSmsProvider}
                         onTest={handleTestSmsProvider}
                         loading={loading}
-                        onAdd={() => alert('SMS Provider ekleme özelliği yakında eklenecek')}
+                        onAdd={() => {
+                            setEditingSmsId(null);
+                            setSmsForm({ name: 'netgsm', displayName: '', priority: 50, isActive: false, config: {} });
+                            setShowSmsModal(true);
+                        }}
                     />
                 </Tab>
 
@@ -564,6 +595,17 @@ const Settings = () => {
                     </Modal.Footer>
                 </Form>
             </Modal>
+
+            {/* SMS Provider Modal */}
+            <SmsProviderModal
+                show={showSmsModal}
+                onHide={() => {
+                    setShowSmsModal(false);
+                    setEditingSmsId(null);
+                }}
+                provider={editingSmsId ? smsForm : null}
+                onSave={handleSaveSmsProvider}
+            />
         </Container>
     );
 };
