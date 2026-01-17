@@ -20,8 +20,7 @@ const AdvisorService = {
                                 }
                             }
                         }
-                    },
-                    cropProfile: true // If relation exists (needs schema update: Farm -> CropProfile)
+                    }
                 }
             });
 
