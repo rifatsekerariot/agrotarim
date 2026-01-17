@@ -36,11 +36,36 @@ const Settings = () => {
                 fetch('/api/device-models'),
                 fetch('/api/lora/servers')
             ]);
-            setDevices(await devRes.json());
-            setDeviceModels(await modelRes.json());
-            setLoraServers(await serverRes.json());
+
+            // Check if responses are OK before parsing
+            if (devRes.ok) {
+                const devData = await devRes.json();
+                setDevices(Array.isArray(devData) ? devData : []);
+            } else {
+                console.error('Devices API error:', devRes.status);
+                setDevices([]);
+            }
+
+            if (modelRes.ok) {
+                const modelData = await modelRes.json();
+                setDeviceModels(Array.isArray(modelData) ? modelData : []);
+            } else {
+                console.error('Device models API error:', modelRes.status);
+                setDeviceModels([]);
+            }
+
+            if (serverRes.ok) {
+                const serverData = await serverRes.json();
+                setLoraServers(Array.isArray(serverData) ? serverData : []);
+            } else {
+                console.error('LoRa servers API error:', serverRes.status);
+                setLoraServers([]);
+            }
         } catch (e) {
             console.error('Fetch error:', e);
+            setDevices([]);
+            setDeviceModels([]);
+            setLoraServers([]);
         }
         setLoading(false);
     };
@@ -92,15 +117,27 @@ const Settings = () => {
         const url = editingId ? `/api/lora/servers/${editingId}` : '/api/lora/servers';
         const method = editingId ? 'PUT' : 'POST';
 
-        await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(serverForm)
-        });
-        setShowServerModal(false);
-        setEditingId(null);
-        setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
-        fetchAll();
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(serverForm)
+            });
+
+            if (res.ok) {
+                alert(editingId ? '✅ Sunucu güncellendi!' : '✅ Sunucu eklendi!');
+                setShowServerModal(false);
+                setEditingId(null);
+                setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
+                fetchAll();
+            } else {
+                const error = await res.json();
+                alert('❌ Hata: ' + (error.error || 'Sunucu kaydedilemedi'));
+            }
+        } catch (e) {
+            console.error('Save server error:', e);
+            alert('❌ Bağlantı hatası: Sunucu kaydedilemedi');
+        }
     };
 
     const handleTestServer = async (id) => {
@@ -109,8 +146,16 @@ const Settings = () => {
             const res = await fetch(`/api/lora/servers/${id}/test`, { method: 'POST' });
             const data = await res.json();
             setTestResult({ id, ...data });
+
+            // Show alert with result
+            if (data.success) {
+                alert('✅ ' + data.message);
+            } else {
+                alert('❌ ' + (data.message || data.error || 'Test başarısız'));
+            }
         } catch (e) {
             setTestResult({ id, success: false, message: 'Bağlantı hatası' });
+            alert('❌ Bağlantı hatası: Sunucuya ulaşılamadı');
         }
     };
 
@@ -118,6 +163,25 @@ const Settings = () => {
         if (!window.confirm('Bu sunucuyu silmek istediğinize emin misiniz?')) return;
         await fetch(`/api/lora/servers/${id}`, { method: 'DELETE' });
         fetchAll();
+    };
+
+    const handleSyncServer = async (id) => {
+        const server = loraServers.find(s => s.id === id);
+        if (!window.confirm(`${server?.name || 'Sunucu'} üzerinden cihazlar senkronize edilecek. Devam?`)) return;
+
+        try {
+            const res = await fetch(`/api/lora/servers/${id}/sync`, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                alert('✅ ' + data.message);
+                fetchAll();
+            } else {
+                alert('❌ ' + (data.message || data.error || 'Senkronizasyon başarısız'));
+            }
+        } catch (e) {
+            alert('❌ Bağlantı hatası: Senkronizasyon başarısız');
+        }
     };
 
     // ========== DEVICE MODELS TAB ==========
@@ -250,7 +314,8 @@ const Settings = () => {
                                                 )}
                                             </td>
                                             <td>
-                                                <Button size="sm" variant="outline-info" className="me-1" onClick={() => handleTestServer(s.id)} title="Bağlantı Test"><RefreshCw size={14} /></Button>
+                                                <Button size="sm" variant="outline-success" className="me-1" onClick={() => handleSyncServer(s.id)} title="ChirpStack'ten Senkronize Et"><RefreshCw size={14} /></Button>
+                                                <Button size="sm" variant="outline-info" className="me-1" onClick={() => handleTestServer(s.id)} title="Bağlantı Test"><Check size={14} /></Button>
                                                 <Button size="sm" variant="outline-primary" className="me-1" onClick={() => { setServerForm(s); setEditingId(s.id); setShowServerModal(true); }}><Pencil size={14} /></Button>
                                                 <Button size="sm" variant="outline-danger" onClick={() => handleDeleteServer(s.id)}><Trash2 size={14} /></Button>
                                             </td>
@@ -280,7 +345,6 @@ const Settings = () => {
                                         <th>Marka</th>
                                         <th>Model</th>
                                         <th>Kategori</th>
-                                        <th>Decoder</th>
                                         <th>Sensörler</th>
                                         <th>Kullanılan</th>
                                         <th>İşlemler</th>
@@ -288,7 +352,7 @@ const Settings = () => {
                                 </thead>
                                 <tbody>
                                     {deviceModels.length === 0 ? (
-                                        <tr><td colSpan="7" className="text-center text-muted py-4">
+                                        <tr><td colSpan="6" className="text-center text-muted py-4">
                                             Henüz model eklenmemiş.
                                             <Button variant="link" onClick={handleSeedModels}>Varsayılanları yükle</Button>
                                         </td></tr>
@@ -297,7 +361,6 @@ const Settings = () => {
                                             <td><Badge bg="dark">{m.brand}</Badge></td>
                                             <td className="fw-medium">{m.model}</td>
                                             <td>{m.category}</td>
-                                            <td><Badge bg="secondary">{m.decoderType}</Badge></td>
                                             <td>
                                                 {m.sensorTemplate?.map((s, i) => (
                                                     <Badge key={i} bg="light" text="dark" className="me-1 border">{s.code}</Badge>

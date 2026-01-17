@@ -150,4 +150,80 @@ router.post('/servers/:id/test', async (req, res) => {
     }
 });
 
+// POST /api/lora/servers/:id/sync - Sync devices from ChirpStack
+router.post('/servers/:id/sync', async (req, res) => {
+    try {
+        const server = await prisma.loRaServer.findUnique({
+            where: { id: parseInt(req.params.id) }
+        });
+
+        if (!server) return res.status(404).json({ error: 'Sunucu bulunamadı' });
+        if (!server.apiKey) return res.status(400).json({ error: 'API Key gerekli' });
+
+        const axios = require('axios');
+        const headers = { 'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}` };
+
+        try {
+            // Get all applications first
+            const appsRes = await axios.get(`http://${server.host}:${server.port}/api/applications?limit=100`, { headers, timeout: 10000 });
+            const applications = appsRes.data?.result || [];
+
+            let synced = 0;
+            let skipped = 0;
+
+            // For each application, get devices
+            for (const app of applications) {
+                const devicesRes = await axios.get(`http://${server.host}:${server.port}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
+                const devices = devicesRes.data?.result || [];
+
+                for (const csDevice of devices) {
+                    // Check if device already exists
+                    const existing = await prisma.device.findFirst({
+                        where: { devEui: csDevice.devEui }
+                    });
+
+                    if (existing) {
+                        await prisma.device.update({
+                            where: { id: existing.id },
+                            data: { name: csDevice.name, loraServerId: server.id }
+                        });
+                        skipped++;
+                    } else {
+                        await prisma.device.create({
+                            data: {
+                                farmId: 1,
+                                name: csDevice.name,
+                                serialNumber: csDevice.devEui,
+                                devEui: csDevice.devEui,
+                                loraServerId: server.id,
+                                status: 'offline'
+                            }
+                        });
+                        synced++;
+                    }
+                }
+            }
+
+            await prisma.loRaServer.update({
+                where: { id: server.id },
+                data: { lastSync: new Date() }
+            });
+
+            res.json({
+                success: true,
+                message: `${synced} cihaz eklendi, ${skipped} cihaz güncellendi.`,
+                applications: applications.length
+            });
+        } catch (apiError) {
+            res.status(400).json({
+                success: false,
+                message: `ChirpStack API hatası: ${apiError.message}`
+            });
+        }
+    } catch (error) {
+        console.error('Error syncing from ChirpStack:', error);
+        res.status(500).json({ error: 'Senkronizasyon başarısız' });
+    }
+});
+
 module.exports = router;

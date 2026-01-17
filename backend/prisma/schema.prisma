@@ -63,23 +63,18 @@ model LoRaServer {
 }
 
 // Device Model Templates (Milesight, Dragino, etc.)
+// Note: Decoder not needed - ChirpStack sends pre-decoded JSON
 model DeviceModel {
   id          Int      @id @default(autoincrement())
   brand       String   // "Milesight", "Dragino", "Custom"
   model       String   // "EM300-TH", "EM500-SMTC"
   category    String   // "temperature_humidity", "soil", "weather", "gateway"
   
-  // Payload Decoder
-  decoderType String   @default("milesight") // milesight, cayenne_lpp, custom
-  decoderCode String?  @db.Text // Custom JS decoder function (if decoderType=custom)
+  // Sensor Template - defines expected sensors for this model
+  sensorTemplate Json   // [{code: "temperature", name: "Sıcaklık", unit: "°C"}, ...]
   
-  // Sensor Template - auto-creates sensors when device is added
-  sensorTemplate Json   // [{code: "t_air", name: "Sıcaklık", unit: "°C", type: "temperature"}, ...]
-  
-  // Visual & Docs
-  iconUrl     String?
+  // Visual & Info
   description String?
-  datasheet   String?  // URL to datasheet PDF
   
   devices     Device[]
   createdAt   DateTime @default(now())
