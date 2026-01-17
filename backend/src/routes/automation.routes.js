@@ -39,9 +39,18 @@ router.post('/rules', authenticateToken, async (req, res) => {
         const parsedDeviceId = parseInt(deviceId);
         const parsedThreshold = parseFloat(threshold);
 
+        console.log(`[Rule Create] Attempting to create rule: Farm=${parsedFarmId}, Device=${parsedDeviceId}, Name=${name}`);
+
         if (isNaN(parsedFarmId) || isNaN(parsedDeviceId) || isNaN(parsedThreshold)) {
             return res.status(400).json({ error: 'Invalid ID or threshold format' });
         }
+
+        // Check availability
+        const farmExists = await prisma.farm.findUnique({ where: { id: parsedFarmId } });
+        if (!farmExists) return res.status(404).json({ error: `Farm with ID ${parsedFarmId} not found` });
+
+        const deviceExists = await prisma.device.findUnique({ where: { id: parsedDeviceId } });
+        if (!deviceExists) return res.status(404).json({ error: `Device with ID ${parsedDeviceId} not found` });
 
         const rule = await prisma.triggerRule.create({
             data: {
@@ -61,9 +70,14 @@ router.post('/rules', authenticateToken, async (req, res) => {
             include: { actions: true }
         });
 
+        console.log(`[Rule Create] Success: Rule ID ${rule.id}`);
         res.json(rule);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("[Rule Create Error]", error);
+        if (error.code === 'P2003') {
+            return res.status(400).json({ error: 'Foreign Key Violation: Farm or Device ID invalid.' });
+        }
+        res.status(500).json({ error: error.message, details: error });
     }
 });
 
