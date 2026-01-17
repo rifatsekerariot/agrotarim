@@ -29,6 +29,8 @@ const Dashboard = () => {
         const fetchProvinces = async () => {
             try {
                 const data = await getProvinces();
+                // Sort provinces alphabetically with Turkish locale support
+                data.sort((a, b) => a.il.localeCompare(b.il, 'tr'));
                 setProvinces(data);
             } catch (error) {
                 console.error('Error fetching provinces:', error);
