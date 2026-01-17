@@ -31,14 +31,26 @@ router.post('/rules', authenticateToken, async (req, res) => {
     try {
         const { farmId, name, deviceId, sensorCode, condition, threshold, actions } = req.body;
 
+        if (!farmId || !deviceId || !name || !sensorCode || !condition || threshold === undefined) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const parsedFarmId = parseInt(farmId);
+        const parsedDeviceId = parseInt(deviceId);
+        const parsedThreshold = parseFloat(threshold);
+
+        if (isNaN(parsedFarmId) || isNaN(parsedDeviceId) || isNaN(parsedThreshold)) {
+            return res.status(400).json({ error: 'Invalid ID or threshold format' });
+        }
+
         const rule = await prisma.triggerRule.create({
             data: {
-                farmId: parseInt(farmId),
+                farmId: parsedFarmId,
                 name,
-                deviceId: parseInt(deviceId),
+                deviceId: parsedDeviceId,
                 sensorCode,
                 condition,
-                threshold: parseFloat(threshold),
+                threshold: parsedThreshold,
                 actions: {
                     create: actions.map(a => ({
                         type: a.type,

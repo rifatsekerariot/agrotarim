@@ -66,6 +66,11 @@ const AutomationPage = () => {
     };
 
     const handleCreate = async () => {
+        if (!formData.name || !formData.deviceId || !formData.threshold) {
+            alert("Lütfen tüm zorunlu alanları (Ad, Cihaz, Eşik Değer) doldurun.");
+            return;
+        }
+
         try {
             const payload = {
                 farmId,
