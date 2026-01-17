@@ -5,7 +5,21 @@ const prisma = new PrismaClient();
 exports.getDevices = async (req, res) => {
     try {
         const farm = await prisma.farm.findFirst({
-            include: { devices: { include: { sensors: true } } }
+            include: {
+                devices: {
+                    include: {
+                        sensors: {
+                            include: {
+                                telemetry: {
+                                    take: 1,
+                                    orderBy: { timestamp: 'desc' }
+                                }
+                            }
+                        },
+                        deviceModel: true
+                    }
+                }
+            }
         });
 
         if (!farm) {
