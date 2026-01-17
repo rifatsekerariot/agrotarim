@@ -107,17 +107,34 @@ model CropProfile {
   name        String   // e.g., "Buğday"
   category    String?  // "Tahıl", "Meyve"
   
-  // Climate Limits
-  minTemp     Float?   // C
-  maxTemp     Float?   // C
-  idealMin    Float?   // C (Growth)
-  idealMax    Float?   // C (Growth)
+  // General Requirements
+  soilType    String?  // "Killi-tınlı", "Alüvyonal"
+  waterReq    String?  // "Yaz sulaması", "Bol su"
+  minRain     Int?     // mm (Annual)
   
-  minRain     Int?     // mm
-  soilType    String?  // "Killi-tınlı"
+  stages      CropStage[] // Relation to detailed stages
   
-  description String?  // Specific advice from user text
+  description String?  // General notes
   created_at  DateTime @default(now())
+}
+
+model CropStage {
+  id            Int         @id @default(autoincrement())
+  cropProfileId Int
+  cropProfile   CropProfile @relation(fields: [cropProfileId], references: [id], onDelete: Cascade)
+  
+  name          String      // "Filizlenme", "Olgunlaşma", "Hasat", "Genel"
+  
+  // Stage Specific Requirements
+  minTemp       Float?      // C
+  maxTemp       Float?      // C
+  idealMin      Float?      // C
+  idealMax      Float?      // C
+  
+  minHum        Float?      // %
+  maxHum        Float?      // %
+  
+  conditions    String?     // Specific text rules: "Kuru hava", "Yağış gerekli"
 }
 
 model WeatherLog {
