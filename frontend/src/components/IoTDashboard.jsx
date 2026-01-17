@@ -93,7 +93,7 @@ const KPICard = ({ label, value, unit, icon: Icon, trend, idealRange, gradientCl
     </Card>
 );
 
-const RiskCard = ({ count, delay }) => (
+const RiskCard = ({ count, delay, onViewClick }) => (
     <Card className={`border-0 h-100 bg-gradient-risk text-white overflow-hidden slide-in ${delay} ${count > 0 ? 'animate-pulse-red' : ''}`} style={{ borderRadius: '16px' }}>
         <div className="card-body p-4 d-flex flex-column justify-content-center align-items-center text-center position-relative">
             {count > 0 && (
@@ -106,7 +106,16 @@ const RiskCard = ({ count, delay }) => (
             <p className="text-white opacity-90 mb-0 fw-medium">
                 {count > 0 ? 'Hemen Kontrol Edin!' : 'Sistem Stabil'}
             </p>
-            {count > 0 && <Button variant="light" size="sm" className="mt-3 text-danger fw-bold rounded-pill px-4 shadow-sm">Görüntüle</Button>}
+            {count > 0 && (
+                <Button
+                    variant="light"
+                    size="sm"
+                    className="mt-3 text-danger fw-bold rounded-pill px-4 shadow-sm"
+                    onClick={onViewClick}
+                >
+                    Görüntüle
+                </Button>
+            )}
         </div>
     </Card>
 );
@@ -132,17 +141,50 @@ const IoTDashboard = ({ farmId }) => {
     const [selectedCity, setSelectedCity] = useState('');
     const [selectedCrop, setSelectedCrop] = useState('');
     const [showConfigModal, setShowConfigModal] = useState(false);
+    const [cities, setCities] = useState([]);
+    const [crops, setCrops] = useState([]);
     const [summaryConfig, setSummaryConfig] = useState({
-        showTemp: true, tempSensors: [], showHum: true, humSensors: [], showSoil: false, showCo2: false, showLight: false
+        showTemp: true, tempSensors: [], showHum: true, humSensors: [], showSoil: false, showCo2: false, showLight: false, selectedDevices: []
     });
 
     const fetchData = async () => {
         if (devices.length === 0) setLoading(true);
         try {
-            const [telRes, expRes, confRes] = await Promise.all([
+            const [telRes, expRes, confRes, cityRes] = await Promise.all([
                 fetch(`/api/telemetry/farm/${farmId}`),
                 fetch(`/api/expert/${farmId}`),
-                fetch(`/api/expert/${farmId}/dashboard`)
+                fetch(`/api/expert/${farmId}/dashboard`),
+                fetch('/api/mgm/provinces')
+            ]);
+
+            // Load cities
+            if (cityRes.ok) {
+                const cityData = await cityRes.json();
+                setCities(cityData.sort((a, b) => a.il.localeCompare(b.il, 'tr')));
+            }
+
+            // Load crops (hardcoded for now, can be moved to backend)
+            setCrops([
+                { value: 'bugday', label: 'Buğday' },
+                { value: 'misir', label: 'Mısır' },
+                { value: 'pamuk', label: 'Pamuk' },
+                { value: 'arpa', label: 'Arpa' },
+                { value: 'cavdar', label: 'Çavdar' },
+                { value: 'yulaf', label: 'Yulaf' },
+                { value: 'soya', label: 'Soya' },
+                { value: 'ayçiçegi', label: 'Ayçiçeği' },
+                { value: 'şekerpancarı', label: 'Şeker Pancarı' },
+                { value: 'patates', label: 'Patates' },
+                { value: 'domates', label: 'Domates' },
+                { value: 'biber', label: 'Biber' },
+                { value: 'patlican', label: 'Patlıcan' },
+                { value: 'salatalik', label: 'Salatalık' },
+                { value: 'kabak', label: 'Kabak' },
+                { value: 'havuc', label: 'Havuç' },
+                { value: 'sogan', label: 'Soğan' },
+                { value: 'fasulye', label: 'Fasulye' },
+                { value: 'nohut', label: 'Nohut' },
+                { value: 'mercimek', label: 'Mercimek' }
             ]);
 
             if (telRes.ok) setDevices(await telRes.json());
@@ -253,16 +295,18 @@ const IoTDashboard = ({ farmId }) => {
                             <div className="d-flex gap-2 mt-1">
                                 <select className="form-select form-select-sm border-0 bg-transparent fw-bold text-secondary p-0 w-auto shadow-none cursor-pointer"
                                     value={selectedCity} onChange={(e) => handleConfigSave('city', e.target.value)}>
-                                    <option value="Adana">Adana</option>
-                                    <option value="Antalya">Antalya</option>
-                                    <option value="Konya">Konya</option>
+                                    <option value="">Şehir Seç</option>
+                                    {cities.map(city => (
+                                        <option key={city.il} value={city.il}>{city.il}</option>
+                                    ))}
                                 </select>
                                 <span className="text-muted">•</span>
                                 <select className="form-select form-select-sm border-0 bg-transparent fw-bold text-secondary p-0 w-auto shadow-none cursor-pointer"
                                     value={selectedCrop} onChange={(e) => handleConfigSave('crop', e.target.value)}>
-                                    <option value="Narenciye">Narenciye</option>
-                                    <option value="Domates">Domates</option>
-                                    <option value="Mısır">Mısır</option>
+                                    <option value="">Ürün Seç</option>
+                                    {crops.map(crop => (
+                                        <option key={crop.value} value={crop.value}>{crop.label}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -306,7 +350,16 @@ const IoTDashboard = ({ farmId }) => {
                         ) : <KPICard label="Nem" value="--" unit="%" icon={Droplets} gradientClass="bg-secondary" />}
                     </Col>
                     <Col lg={4} md={12}>
-                        <RiskCard count={riskCount} delay="delay-3" />
+                        <RiskCard
+                            count={riskCount}
+                            delay="delay-3"
+                            onViewClick={() => {
+                                const risksElement = document.getElementById('risks-section');
+                                if (risksElement) {
+                                    risksElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }}
+                        />
                     </Col>
                 </Row>
 
@@ -362,7 +415,7 @@ const IoTDashboard = ({ farmId }) => {
                     </Col>
 
                     {/* Right: Urgent Alerts */}
-                    <Col lg={4}>
+                    <Col lg={4} id="risks-section">
                         <div className="h-100 d-flex flex-column gap-3">
                             <h6 className="text-muted fw-bold small text-uppercase mb-0 ps-1">⚠ Acil Uyarılar</h6>
 
