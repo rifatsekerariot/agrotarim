@@ -6,7 +6,7 @@ const AdvisorService = require('../services/advisor.service');
 router.get('/:farmId', async (req, res) => {
     try {
         const { farmId } = req.params;
-        const advice = await AdvisorService.getAdviceForFarm(parseInt(farmId));
+        const advice = await AdvisorService.generateAdvice(parseInt(farmId));
         res.json(advice);
     } catch (error) {
         console.error("Expert Error:", error);
