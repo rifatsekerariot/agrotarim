@@ -186,7 +186,7 @@ const Dashboard = () => {
                         <Row>
                             {/* Left Column: Warnings & AI & Agricultural Data */}
                             <Col lg={4} className="mb-4">
-                                <MeteoWarning data={warnings} />
+                                <MeteoWarning data={warnings} dailyData={dailyData} />
                                 <AgriculturalForecast data={agriData} />
 
                                 {analysisData && (
