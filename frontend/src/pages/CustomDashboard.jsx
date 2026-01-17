@@ -156,42 +156,58 @@ const WidgetMultiList = ({ deviceId, sensorCodes, devices, telemetry, title }) =
     );
 };
 
-const WidgetChart = ({ deviceSerial, sensorCode, title, unit, sensorName }) => {
-    // ... Existing state and fetch logic ...
+const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, sensorName }) => {
+    // Support both single sensorCode and multiple sensorCodes
+    const allCodes = sensorCodes.length > 0 ? sensorCodes : (sensorCode ? [sensorCode] : []);
+
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [range, setRange] = useState('24H'); // Mock state for tabs
+    const [range, setRange] = useState('24H');
+
+    const COLORS = ['#dc3545', '#0dcaf0', '#198754', '#ffc107', '#6f42c1', '#fd7e14', '#0d6efd', '#20c997'];
 
     useEffect(() => {
-        if (!deviceSerial) return;
+        if (!deviceSerial || allCodes.length === 0) return;
         fetchHistory();
         const interval = setInterval(fetchHistory, 30000);
         return () => clearInterval(interval);
-    }, [deviceSerial, sensorCode]);
+    }, [deviceSerial, JSON.stringify(allCodes)]);
 
     const fetchHistory = async () => {
         try {
             const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=24`);
             const json = await res.json();
-            if (json[sensorCode]) {
-                const formatted = json[sensorCode].map(apiPoint => ({
-                    time: new Date(apiPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    value: apiPoint.value,
-                    timestamp: new Date(apiPoint.timestamp).getTime()
-                })).reverse();
-                formatted.sort((a, b) => a.timestamp - b.timestamp);
-                setData(formatted);
-            }
-        } catch (error) { console.error("Chart error", error); } finally { setLoading(false); }
-    };
 
-    let strokeColor = '#dc3545'; // Default Chart Red
-    if (sensorCode.includes('hum')) strokeColor = '#0dcaf0';
-    if (sensorCode.includes('soil')) strokeColor = '#198754';
+            // Build combined data structure with all sensor values by timestamp
+            const dataMap = new Map();
+
+            allCodes.forEach(code => {
+                if (json[code]) {
+                    json[code].forEach(point => {
+                        const ts = new Date(point.timestamp).getTime();
+                        const timeStr = new Date(point.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        if (!dataMap.has(ts)) {
+                            dataMap.set(ts, { timestamp: ts, time: timeStr });
+                        }
+                        dataMap.get(ts)[code] = point.value;
+                    });
+                }
+            });
+
+            // Convert map to sorted array
+            const formatted = Array.from(dataMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+            setData(formatted);
+        } catch (error) {
+            console.error("Chart error", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="h-100 d-flex flex-column">
-            {/* Time Tabs (Visual) */}
+            {/* Time Tabs */}
             <div className="d-flex border-bottom bg-light">
                 {['1S', '24S', '7G'].map(r => (
                     <div key={r} onClick={() => setRange(r)}
@@ -202,23 +218,51 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit, sensorName }) => {
                 ))}
             </div>
 
+            {/* Chart */}
             <div style={{ flex: 1, minHeight: 0, padding: '10px' }}>
                 {loading ? <p className="text-center mt-4">Yükleniyor...</p> : (
                     <ResponsiveContainer>
                         <LineChart data={data}>
                             <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} axisLine={false} tickLine={false} />
                             <YAxis domain={['auto', 'auto']} width={35} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                            <Line type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                            <Tooltip
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                formatter={(value, name) => [value?.toFixed(2), name]}
+                            />
+                            {allCodes.map((code, idx) => (
+                                <Line
+                                    key={code}
+                                    type="monotone"
+                                    dataKey={code}
+                                    stroke={COLORS[idx % COLORS.length]}
+                                    strokeWidth={2}
+                                    dot={false}
+                                    activeDot={{ r: 5, strokeWidth: 0 }}
+                                    name={code}
+                                />
+                            ))}
                         </LineChart>
                     </ResponsiveContainer>
                 )}
             </div>
-            {/* Mini Stat Footer */}
-            {data.length > 0 && (
+
+            {/* Legend for multiple sensors */}
+            {allCodes.length > 1 && (
+                <div className="d-flex flex-wrap gap-2 px-3 py-2 bg-light small justify-content-center">
+                    {allCodes.map((code, idx) => (
+                        <div key={code} className="d-flex align-items-center gap-1">
+                            <div style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: COLORS[idx % COLORS.length] }}></div>
+                            <span>{code}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Stats Footer (only for single sensor) */}
+            {data.length > 0 && allCodes.length === 1 && (
                 <div className="d-flex justify-content-between px-3 py-2 bg-light small text-muted">
-                    <span>Min: <strong>{Math.min(...data.map(d => d.value))}</strong></span>
-                    <span>Max: <strong>{Math.max(...data.map(d => d.value))}</strong></span>
+                    <span>Min: <strong>{Math.min(...data.map(d => d[allCodes[0]]).filter(v => v !== undefined))?.toFixed(1)}</strong></span>
+                    <span>Max: <strong>{Math.max(...data.map(d => d[allCodes[0]]).filter(v => v !== undefined))?.toFixed(1)}</strong></span>
                 </div>
             )}
         </div>
@@ -660,7 +704,7 @@ const CustomDashboard = () => {
                                             <>
                                                 {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title} lastUpdate={ts} sensorName={sensorName} />}
                                                 {w.type === 'multi' && <WidgetMultiList deviceId={w.deviceId} sensorCodes={codes} devices={devices} telemetry={telemetry} />}
-                                                {w.type === 'chart' && <WidgetChart deviceSerial={w.serialNumber} sensorCode={primaryCode} title={w.title} unit={unit} sensorName={sensorName} />}
+                                                {w.type === 'chart' && <WidgetChart deviceSerial={w.serialNumber} sensorCode={primaryCode} sensorCodes={codes} title={w.title} unit={unit} sensorName={sensorName} />}
                                                 {w.type === 'map' && <WidgetMap widget={w} devices={devices} telemetry={telemetry} onUpdate={handleWidgetUpdate} />}
                                             </>
                                         )}
