@@ -1,88 +1,107 @@
 import React from 'react';
-import { Alert, Card } from 'react-bootstrap';
+import { Card, Button } from 'react-bootstrap';
+import { AlertTriangle, Thermometer, Calendar, Zap, Info } from 'lucide-react';
 
 const MeteoWarning = ({ data, dailyData }) => {
-    // 1. Check for Official Warnings
-    let allWarnings = data ? [...data] : [];
+    // 1. Check for Local Frost Risk (Data-Driven from Daily Forecast)
+    let frostRisk = null;
 
-    // 2. Check for Local Frost Risk (Data-Driven)
     if (dailyData && dailyData.length > 0) {
-        const forecast = dailyData[0]; // MGM returns an array containing one object with all days
-        const frostRisks = [];
+        const forecast = dailyData[0];
+        const risks = [];
 
-        // Check next 3 days (Gun1, Gun2, Gun3)
+        // Check next 3 days
         for (let i = 1; i <= 3; i++) {
             const minTemp = forecast[`enDusukGun${i}`];
             if (minTemp !== undefined && minTemp <= 0) {
-                frostRisks.push(minTemp);
+                risks.push({ day: i, temp: minTemp });
             }
         }
 
-        if (frostRisks.length > 0) {
-            const minVal = Math.min(...frostRisks);
+        if (risks.length > 0) {
+            const minVal = Math.min(...risks.map(r => r.temp));
             const severe = minVal <= -4;
 
-            allWarnings.push({
-                isLocal: true,
-                renkKod: severe ? 'kirm' : 'tur',
-                uyariNo: 'YEREL-DON',
-                hadiseAdi: severe ? 'Kuvvetli Zirai Don' : 'Zirai Don Riski',
-                derece: `Tahmin edilen en düşük sıcaklık ${minVal}°C.`,
-                baslangicZamani: new Date().toISOString(),
-                bitisZamani: new Date(new Date().setDate(new Date().getDate() + 3)).toISOString()
-            });
+            // Calculte Date Range
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() + risks[0].day);
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + risks[risks.length - 1].day);
+
+            frostRisk = {
+                type: severe ? 'Kuvvetli Zirai Don' : 'Zirai Don Riski',
+                minTemp: minVal,
+                severity: severe ? 'Yüksek' : 'Orta',
+                dates: `${startDate.getDate()} - ${endDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
+            };
         }
     }
 
-    if (allWarnings.length === 0) {
+    // Prioritize Frost Risk for this MVP view
+    if (!frostRisk) {
         return (
-            <Card className="mb-3 shadow-sm border-0">
-                <Card.Body className="bg-light text-center rounded">
-                    <span className="text-success fw-bold">
-                        <i className="bi bi-check-circle-fill me-2"></i>
-                        Şu an için bölgede meteorolojik uyarı bulunmuyor.
-                    </span>
+            <Card className="mgm-card mb-4 border-success border-start border-4">
+                <Card.Body className="p-4 d-flex align-items-center">
+                    <div className="bg-success bg-opacity-10 p-3 rounded-circle me-3 text-success">
+                        <Zap size={24} />
+                    </div>
+                    <div>
+                        <h6 className="fw-bold mb-1 text-success">Risk Bulunmuyor</h6>
+                        <small className="text-muted">Önümüzdeki günlerde zirai don riski beklenmiyor.</small>
+                    </div>
                 </Card.Body>
             </Card>
         );
     }
 
-    // Map warning levels to colors often used by MGM
-    const getColor = (level) => {
-        if (level === 'sar') return 'warning'; // Sari
-        if (level === 'tur') return 'warning'; // Turuncu (Orange not stardand bs class, using warning)
-        if (level === 'kirm') return 'danger'; // Kirmizi
-        return 'info';
-    };
-
     return (
-        <Card className="mb-3 shadow-sm border-danger">
-            <Card.Header className="bg-danger text-white">
-                <i className="bi bi-exclamation-triangle-fill me-2"></i> Meteorolojik Uyarılar
-            </Card.Header>
-            <Card.Body>
-                {allWarnings.map((warning, idx) => (
-                    <Alert key={idx} variant={getColor(warning.renkKod)} className="mb-2">
-                        {warning.isLocal && <span className="badge bg-danger mb-1">DATA ANALİZİ</span>}
-                        {!warning.isLocal && <Alert.Heading className="fs-6">Uyarı No: {warning.uyariNo}</Alert.Heading>}
+        <Card className="mgm-card warning-card-compact mb-4">
+            <Card.Body className="p-4">
+                <div className="d-flex align-items-center mb-3">
+                    <AlertTriangle size={24} className="text-danger me-2" />
+                    <h5 className="fw-bold text-danger mb-0">{frostRisk.type}!</h5>
+                </div>
 
-                        <p className="mb-0 small">
-                            <strong>{warning.hadiseAdi}</strong> - {warning.derece}
-                        </p>
-                        <hr />
-                        {!warning.isLocal && (
-                            <p className="mb-0 small">
-                                Başlangıç: {new Date(warning.baslangicZamani).toLocaleString()}<br />
-                                Bitiş: {new Date(warning.bitisZamani).toLocaleString()}
-                            </p>
-                        )}
-                        {warning.isLocal && (
-                            <p className="mb-0 small text-muted">
-                                * MGM resmi uyarısı değildir. Tahmin verilerine göre hesaplanmıştır.
-                            </p>
-                        )}
-                    </Alert>
-                ))}
+                <div className="d-flex flex-column gap-3 mb-4">
+                    <div className="d-flex align-items-center">
+                        <Thermometer className="text-muted me-3" size={20} />
+                        <div>
+                            <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>En Düşük</small>
+                            <span className="fs-5 fw-bold text-dark">{frostRisk.minTemp}°C</span>
+                        </div>
+                    </div>
+
+                    <div className="d-flex align-items-center">
+                        <Calendar className="text-muted me-3" size={20} />
+                        <div>
+                            <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Tarih</small>
+                            <span className="fs-6 fw-medium text-dark">{frostRisk.dates}</span>
+                        </div>
+                    </div>
+
+                    <div className="d-flex align-items-center">
+                        <Zap className="text-muted me-3" size={20} />
+                        <div>
+                            <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Etki Seviyesi</small>
+                            <span className={`fs-6 fw-bold ${frostRisk.severity === 'Yüksek' ? 'text-danger' : 'text-warning'}`}>
+                                {frostRisk.severity} ({frostRisk.minTemp}°C)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="d-grid gap-2">
+                    <Button variant="danger" className="border-0 shadow-sm" style={{ background: '#ef4444' }}>
+                        Koruyucu Önlemler →
+                    </Button>
+                </div>
+
+                <div className="mt-3 pt-3 border-top d-flex align-items-start gap-2">
+                    <Info size={14} className="text-muted mt-1 flex-shrink-0" />
+                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                        MGM tahmin verilerine dayalı otomatik analizdir. Resmi uyarı niteliği taşımaz.
+                    </small>
+                </div>
             </Card.Body>
         </Card>
     );
