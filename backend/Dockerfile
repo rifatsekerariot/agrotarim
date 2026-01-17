@@ -1,10 +1,10 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN apk add --no-cache openssl
+RUN apt-get update -y && apt-get install -y openssl
 RUN npm install
 
 COPY . .
