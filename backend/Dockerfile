@@ -8,6 +8,13 @@ RUN npm install
 
 COPY . .
 
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+COPY start.sh .
+RUN chmod +x start.sh
+
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["./start.sh"]
