@@ -6,6 +6,7 @@ import DeviceDetail from './pages/DeviceDetail';
 import Settings from './pages/Settings';
 import CustomDashboard from './pages/CustomDashboard';
 import UserManagement from './pages/UserManagement';
+import AutomationPage from './pages/AutomationPage';
 
 import MainLayout from './components/MainLayout';
 
@@ -56,6 +57,14 @@ function App() {
                     element={
                         <PrivateRoute>
                             <UserManagement />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/automation"
+                    element={
+                        <PrivateRoute>
+                            <AutomationPage />
                         </PrivateRoute>
                     }
                 />

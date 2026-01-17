@@ -28,6 +28,7 @@ model Farm {
   devices     Device[]
   alertRules  AlertRule[]
   dashboardConfig Json?    // Stores custom dashboard layout: { widgets: [] }
+  triggerRules TriggerRule[]
   created_at  DateTime @default(now())
 }
 
@@ -119,6 +120,7 @@ model Device {
   telemetryMappings Json? // Store custom parsing rules: {"temp": "t_air", "hum": "h_air"}
 
   sensors       Sensor[]
+  triggerRules  TriggerRule[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -247,4 +249,54 @@ model SmsLog {
   @@index([status])
   @@index([to])
   @@index([createdAt])
+}
+
+// Automation & Alerts
+model TriggerRule {
+  id          Int      @id @default(autoincrement())
+  farmId      Int
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  
+  name        String   // e.g. "Sera 1 Frost Warning"
+  deviceId    Int
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sensorCode  String   // e.g. "temperature"
+  
+  // Logic
+  condition   String   // "GREATER_THAN", "LESS_THAN", "BETWEEN", "EQUALS"
+  threshold   Float
+  threshold2  Float?   // Optional for BETWEEN
+  
+  // Control
+  isActive    Boolean  @default(true)
+  checkInterval Int    @default(0) // 0 = Real-time
+  coolDownMinutes Int  @default(60)
+  
+  actions     RuleAction[]
+  logs        AlertLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RuleAction {
+  id            Int         @id @default(autoincrement())
+  ruleId        Int
+  rule          TriggerRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  type          String      // "NOTIFICATION", "SMS", "EMAIL", "CONTROL_DEVICE"
+  target        String?     // Phone, Email, or Target Device ID
+  payload       Json?       // e.g. { command: "VALVE_OPEN" }
+}
+
+model AlertLog {
+  id          Int         @id @default(autoincrement())
+  ruleId      Int
+  rule        TriggerRule @relation(fields: [ruleId], references: [id])
+  
+  value       Float
+  message     String
+  createdAt   DateTime    @default(now())
+  isResolved  Boolean     @default(false)
+  resolvedAt  DateTime?
 }

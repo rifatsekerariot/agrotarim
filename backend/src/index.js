@@ -31,11 +31,13 @@ const loraRoutes = require('./routes/lora.routes');
 const deviceModelRoutes = require('./routes/device-models.routes');
 const userRoutes = require('./routes/user.routes');
 const smsRoutes = require('./routes/sms.routes');
+const automationRoutes = require('./routes/automation.routes');
 
 // Prefix API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/automation', automationRoutes);
 app.use('/api/mgm', mgmRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/expert', expertRoutes);

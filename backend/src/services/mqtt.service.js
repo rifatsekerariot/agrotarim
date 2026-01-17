@@ -2,6 +2,7 @@ const mqtt = require('mqtt');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const TelemetryService = require('./telemetry.service');
+const RuleEngine = require('./automation/rule.engine');
 
 // Import Decoders
 const em300Decoder = require('../decoders/em300.decoder');
@@ -150,6 +151,9 @@ class MqttService {
             if (Object.keys(finalSensors).length > 0) {
                 const result = await TelemetryService.ingestData(targetDevice.serialNumber, finalSensors);
                 console.log(`💾 Saved ${result.processed} metrics for ${targetDevice.name} (${serialNumber})`);
+
+                // Trigger Automation Rules
+                await RuleEngine.evaluate(targetDevice.id, finalSensors);
             } else {
                 // console.warn(`⚠️ No usable sensor data extracted for ${serialNumber}`);
             }
