@@ -247,7 +247,7 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
                     </div>
                 ) : (
                     <div style={{ width: '100%', height: '100%', minHeight: '150px', opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" debounce={200} minWidth={0}>
                             <LineChart data={data}>
                                 <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={30} axisLine={false} tickLine={false} />
                                 <YAxis domain={['auto', 'auto']} width={35} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
