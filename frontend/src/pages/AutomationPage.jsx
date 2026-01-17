@@ -93,7 +93,9 @@ const AutomationPage = () => {
             // Reset form
             setFormData({ ...formData, name: '', threshold: '' });
         } catch (error) {
-            alert("Oluşturulamadı: " + error.message);
+            console.error("Rule Create Error Details:", error);
+            const serverError = error.response?.data?.error || error.response?.data?.details || error.message;
+            alert("Oluşturulamadı: " + JSON.stringify(serverError));
         }
     };
 
