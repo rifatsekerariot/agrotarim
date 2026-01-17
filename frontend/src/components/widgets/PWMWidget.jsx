@@ -2,11 +2,27 @@ import React, { useState } from 'react';
 import { Form } from 'react-bootstrap';
 
 const PWMWidget = ({ data }) => {
-    const [speed, setSpeed] = useState(data?.value || 65);
+    const [speed, setSpeed] = useState(0);
+    const hasData = data && data.value != null;
 
-    // Mock calculations
+    React.useEffect(() => {
+        if (hasData) {
+            setSpeed(Number(data.value));
+        }
+    }, [data]);
+
+    // Mock calculations based on speed
     const rpm = Math.round(speed * 28); // max 2800
     const power = Math.round(speed * 0.7); // max 70W
+
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2">

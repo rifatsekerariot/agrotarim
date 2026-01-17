@@ -1,7 +1,17 @@
 import React from 'react';
 
 const WaterLeakWidget = ({ data }) => {
-    const isLeak = data?.value === 1 || false;
+    const hasData = data && data.value != null;
+    const isLeak = hasData && data.value === 1;
+
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     return (
         <div className={`d-flex flex-column h-100 p-2 justify-content-center text-center ${isLeak ? 'bg-danger text-white' : 'bg-white'}`}>
@@ -18,7 +28,7 @@ const WaterLeakWidget = ({ data }) => {
             </p>
 
             <div className={`small border-top pt-2 mt-2 ${isLeak ? 'border-white border-opacity-25' : 'text-muted'}`}>
-                Son kontrol: 5 dk önce
+                Son kontrol: {data.ts ? new Date(data.ts).toLocaleTimeString() : 'Bilinmiyor'}
             </div>
         </div>
     );

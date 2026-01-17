@@ -1,16 +1,18 @@
 import React from 'react';
 
 const DistanceWidget = ({ data }) => {
-    const distance = data?.value || 85; // cm
-    const threshold = 50; // cm
+    const hasData = data && data.value != null;
+    const distance = hasData ? data.value : 0;
 
-    // Logic: If distance > threshold, Door is OPEN (sensor measures distance to door frame or opposite wall when open? 
-    // Usually dist sensors on door frame: Dist small = Closed, Dist large = Open. 
-    // Let's assume: Sensor on frame facing moving part. 
-    // Closed = ~5cm. Open = >50cm (no reflection or far wall).
-    // Let's assume standard door sensor usage:
-    // Distance small (<10cm) -> Closed
-    // Distance large (>10cm) -> Open
+    // If no data, render waiting state
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     const isOpen = distance > 20;
 
@@ -33,7 +35,7 @@ const DistanceWidget = ({ data }) => {
 
             <div className="alert alert-light border shadow-sm py-1 px-2 m-0 d-flex align-items-center justify-content-center gap-2">
                 <i className="bi bi-clock-history text-muted"></i>
-                <small className="text-muted">Son hareket: <strong>2 dk önce</strong></small>
+                <small className="text-muted">Son veri: <strong>{data.ts ? new Date(data.ts).toLocaleTimeString() : 'Az önce'}</strong></small>
             </div>
         </div>
     );

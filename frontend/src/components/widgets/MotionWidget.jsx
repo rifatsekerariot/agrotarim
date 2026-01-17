@@ -3,8 +3,17 @@ import { Button } from 'react-bootstrap';
 
 const MotionWidget = ({ data }) => {
     // 0 = No Motion, 1 = Motion Detected
-    const isMotion = data?.value === 1 || true; // Mock true for demo
-    const lastTime = "14:32:15";
+    const hasData = data && data.value != null;
+    const isMotion = hasData && data.value === 1;
+
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     return (
         <div className={`d-flex flex-column h-100 p-2 ${isMotion ? 'bg-danger bg-opacity-10' : ''}`}>
@@ -30,11 +39,11 @@ const MotionWidget = ({ data }) => {
             <div className="mt-3 bg-white bg-opacity-50 rounded p-2 border border-light">
                 <div className="d-flex justify-content-between split-text small text-muted mb-1">
                     <span>Konum:</span>
-                    <span className="fw-bold text-dark">Sera Girişi</span>
+                    <span className="fw-bold text-dark">-</span>
                 </div>
                 <div className="d-flex justify-content-between split-text small text-muted">
                     <span>Zaman:</span>
-                    <span className="fw-bold text-dark">{lastTime}</span>
+                    <span className="fw-bold text-dark">{data.ts ? new Date(data.ts).toLocaleTimeString() : '-'}</span>
                 </div>
             </div>
 

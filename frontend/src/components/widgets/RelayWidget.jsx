@@ -2,11 +2,31 @@ import React, { useState } from 'react';
 import { Button, Form } from 'react-bootstrap';
 
 const RelayWidget = ({ data }) => {
-    const [isOn, setIsOn] = useState(data?.value === 1);
+    const [isOn, setIsOn] = useState(false);
     const [isAuto, setIsAuto] = useState(true);
 
-    const toggle = () => setIsOn(!isOn);
+    const hasData = data && data.value != null;
+
+    React.useEffect(() => {
+        if (hasData) {
+            setIsOn(data.value === 1);
+        }
+    }, [data]);
+
+    const toggle = () => {
+        // Placeholder for API call to toggle relay
+        setIsOn(!isOn);
+    };
     const toggleAuto = () => setIsAuto(!isAuto);
+
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2">
@@ -42,8 +62,7 @@ const RelayWidget = ({ data }) => {
             </div>
 
             <div className="mt-auto pt-3 border-top d-flex justify-content-between text-muted small">
-                <span>Sonraki: <strong>18:30</strong></span>
-                <Button variant="link" size="sm" className="p-0 text-decoration-none">Programla</Button>
+                <span>Son güncelleme: <strong>{data.ts ? new Date(data.ts).toLocaleTimeString() : '-'}</strong></span>
             </div>
         </div>
     );

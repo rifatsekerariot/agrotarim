@@ -84,7 +84,8 @@ const TelemetryService = {
                         prisma.telemetry.create({
                             data: {
                                 sensorId,
-                                value: parseFloat(value)
+                                value: parseFloat(value),
+                                timestamp: new Date()
                             }
                         })
                     );

@@ -2,7 +2,23 @@ import React, { useState } from 'react';
 import { Button, ButtonGroup } from 'react-bootstrap';
 
 const ServoWidget = ({ data }) => {
-    const [position, setPosition] = useState(data?.value || 45); // 0-100% open
+    const [position, setPosition] = useState(0);
+    const hasData = data && data.value != null;
+
+    React.useEffect(() => {
+        if (hasData) {
+            setPosition(Number(data.value));
+        }
+    }, [data]);
+
+    if (!hasData) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
+                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <small>Veri Bekleniyor...</small>
+            </div>
+        );
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2">
