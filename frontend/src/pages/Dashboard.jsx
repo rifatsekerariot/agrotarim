@@ -8,6 +8,7 @@ import HourlyForecast from '../components/HourlyForecast';
 import AgriculturalForecast from '../components/AgriculturalForecast';
 import MeteoWarning from '../components/MeteoWarning';
 import IoTDashboard from '../components/IoTDashboard'; // New IoT Component
+import { Activity } from 'lucide-react';
 
 const Dashboard = () => {
     const [provinces, setProvinces] = useState([]);
