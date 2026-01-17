@@ -23,6 +23,6 @@ sudo docker compose exec -T backend npx prisma db push --accept-data-loss
 
 # 5. Seed
 echo "🌱 Seeding..."
-sıdo docker compose exec -T backend node scripts/seed_crops.js
+sudo docker compose exec -T backend node scripts/seed_crops.js
 
 echo "✅ DONE! Check dashboard now."
