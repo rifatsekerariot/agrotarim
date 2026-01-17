@@ -4,6 +4,17 @@ import { Card, Table } from 'react-bootstrap';
 const AgriculturalForecast = ({ data }) => {
     if (!data) return null;
 
+    // Helper function ported from 'kaliteKontrol' filter
+    const formatValue = (val, decimals = null) => {
+        if (val === undefined || val === null || val === -9999 || val === "-9999") {
+            return "-";
+        }
+        if (decimals !== null && typeof val === 'number') {
+            return val.toFixed(decimals);
+        }
+        return val;
+    };
+
     return (
         <Card className="mb-3 shadow-sm">
             <Card.Header className="bg-success text-white">
@@ -14,29 +25,29 @@ const AgriculturalForecast = ({ data }) => {
                     <tbody>
                         <tr>
                             <td>Dün Etkili Sıcaklık</td>
-                            <td className="fw-bold">{data.dunEtkiliSicak || '-'} °C</td>
+                            <td className="fw-bold">{formatValue(data.dunEtkiliSicak, 1)} °C</td>
                         </tr>
                         <tr>
                             <td>Dün Toprak Üstü Min. Sıcaklık</td>
-                            <td className="fw-bold">{data.dunToprakUstuMin || '-'} °C</td>
+                            <td className="fw-bold">{formatValue(data.dunToprakUstuMin, 1)} °C</td>
                         </tr>
                         <tr>
                             <td>Dün Toprak Altı (10cm) Min-Max</td>
                             <td className="fw-bold">
-                                {data.dunMintoprakalti10 || '-'} / {data.dunMaxtoprakalti10 || '-'} °C
+                                {formatValue(data.dunMintoprakalti10, 1)} / {formatValue(data.dunMaxtoprakalti10, 1)} °C
                             </td>
                         </tr>
                         <tr>
                             <td>Toplam Sıcaklık (GDD)</td>
-                            <td className="fw-bold">{data.ToplamSicaklik || '-'}</td>
+                            <td className="fw-bold">{formatValue(data.ToplamSicaklik, 1)}</td>
                         </tr>
                         <tr>
                             <td>Toplam Soğuklama</td>
-                            <td className="fw-bold">{data.ToplamSoguklama || '-'} saat</td>
+                            <td className="fw-bold">{formatValue(data.ToplamSoguklama)} saat</td>
                         </tr>
                         <tr>
                             <td>Toplam Yağış</td>
-                            <td className="fw-bold">{data.ToplamYagis || '0'} mm</td>
+                            <td className="fw-bold">{formatValue(data.ToplamYagis, 1)} mm</td>
                         </tr>
                     </tbody>
                 </Table>
