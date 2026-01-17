@@ -86,6 +86,40 @@ const AdvisorService = {
                 }
             }
 
+            // === NEW: FETCH CROP PROFILE FROM DB ===
+            let dbConfig = {};
+            try {
+                // Find profile best matching Region + Name, or just Name
+                // We prioritize the farm's region if available
+                const profile = await prisma.cropProfile.findFirst({
+                    where: {
+                        name: cropName,
+                        OR: [
+                            { region: region },  // Match region specific
+                            { region: "Karadeniz" } // Fallback to a default if specific region not found? Or just any.
+                        ]
+                    },
+                    include: { stages: true },
+                    orderBy: { region: region === farm.city ? 'asc' : 'desc' } // Loose logic for sorting
+                });
+
+                if (profile && profile.stages.length > 0) {
+                    // Extract extremes from stages to determine bounds
+                    const minTemps = profile.stages.map(s => s.minTemp).filter(v => v !== null);
+                    const maxTemps = profile.stages.map(s => s.idealMax).filter(v => v !== null);
+                    const idealMins = profile.stages.map(s => s.idealMin).filter(v => v !== null);
+
+                    dbConfig = {
+                        lethalMin: minTemps.length > 0 ? Math.min(...minTemps) : -4,
+                        stressTemp: maxTemps.length > 0 ? Math.max(...maxTemps) + 5 : 35, // Tolerance above ideal max
+                        baseTemp: idealMins.length > 0 ? Math.min(...idealMins) - 5 : 5
+                    };
+                    console.log(`[Advisor] Loaded DB Profile for ${cropName}:`, dbConfig);
+                }
+            } catch (dbErr) {
+                console.warn("[Advisor] Crop Profile lookup failed, using defaults:", dbErr.message);
+            }
+
             // === INFERENCE LAYER: Call Expert Engine ===
             const context = {
                 crop: cropName,
@@ -105,7 +139,8 @@ const AdvisorService = {
                 }
             };
 
-            const result = ExpertEngine.analyze(context);
+            // Combine DB Config with Engine defaults (Engine handles fallback)
+            const result = ExpertEngine.analyze(context, dbConfig);
 
             // === EXPLANATION LAYER: Format for Frontend ===
             return {
@@ -133,6 +168,7 @@ const AdvisorService = {
 
 // Helper function outside object to avoid context issues
 async function guessRegion(city) {
+    if (!city) return "Karadeniz";
     const regions = {
         "Adana": "Akdeniz", "Antalya": "Akdeniz", "Mersin": "Akdeniz", "Hatay": "Akdeniz",
         "Trabzon": "Karadeniz", "Samsun": "Karadeniz", "Rize": "Karadeniz", "Ordu": "Karadeniz",

@@ -10,9 +10,13 @@ const ExpertEngine = {
      * @param {Object} data.forecast - { minTemp, next3DaysMin }
      * @param {Object} data.soil - { temp, moisture }
      */
-    analyze(data) {
+    analyze(data, dbConfig = {}) {
         const crop = data.crop || 'Genel';
-        const config = PhenologyRules.getCropConfig(crop);
+        // Get default constants from Phenology Rules
+        const defaultConfig = PhenologyRules.getCropConfig(crop);
+
+        // Merge DB config (if available) with defaults
+        const config = { ...defaultConfig, ...dbConfig };
 
         // 1. Phenology & Growth
         // Using forecast min/max if available for GDD, else current temp approximation
