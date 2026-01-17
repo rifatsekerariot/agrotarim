@@ -96,6 +96,62 @@ export const WIDGET_TYPES = {
     MULTI_LOCATION: 'multi_location'
 };
 
+// Widget Settings Metadata
+export const WIDGET_SETTINGS = {
+    [WIDGET_TYPES.WATER_TANK]: {
+        defaultSettings: {
+            capacity: 4000,
+            consumptionRate: 150
+        },
+        settingsFields: [
+            { key: 'capacity', label: 'Tank Kapasitesi (L)', type: 'number', min: 100, step: 100 },
+            { key: 'consumptionRate', label: 'Günlük Tüketim (L/gün)', type: 'number', min: 1, step: 10 }
+        ]
+    },
+    [WIDGET_TYPES.WATER_PRESSURE]: {
+        defaultSettings: {
+            normalMin: 2.0,
+            normalMax: 4.0
+        },
+        settingsFields: [
+            { key: 'normalMin', label: 'Normal Basınç (Min - bar)', type: 'number', min: 0, max: 10, step: 0.1 },
+            { key: 'normalMax', label: 'Normal Basınç (Max - bar)', type: 'number', min: 0, max: 10, step: 0.1 }
+        ]
+    },
+    [WIDGET_TYPES.SOIL_TEMP]: {
+        defaultSettings: {
+            idealMin: 15,
+            idealMax: 25
+        },
+        settingsFields: [
+            { key: 'idealMin', label: 'İdeal Sıcaklık (Min - °C)', type: 'number', min: -10, max: 50 },
+            { key: 'idealMax', label: 'İdeal Sıcaklık (Max - °C)', type: 'number', min: -10, max: 50 }
+        ]
+    },
+    [WIDGET_TYPES.UV_INDEX]: {
+        defaultSettings: {
+            lowThreshold: 3,
+            moderateThreshold: 6,
+            highThreshold: 8
+        },
+        settingsFields: [
+            { key: 'lowThreshold', label: 'Düşük Risk Eşiği', type: 'number', min: 0, max: 15 },
+            { key: 'moderateThreshold', label: 'Orta Risk Eşiği', type: 'number', min: 0, max: 15 },
+            { key: 'highThreshold', label: 'Yüksek Risk Eşiği', type: 'number', min: 0, max: 15 }
+        ]
+    },
+    [WIDGET_TYPES.BATTERY_STATUS]: {
+        defaultSettings: {
+            capacity: 5000,
+            consumption: 150
+        },
+        settingsFields: [
+            { key: 'capacity', label: 'Pil Kapasitesi (mAh)', type: 'number', min: 100, step: 100 },
+            { key: 'consumption', label: 'Günlük Tüketim (mAh)', type: 'number', min: 1, step: 10 }
+        ]
+    }
+};
+
 export const getWidgetComponent = (type) => {
     switch (type) {
         // Water

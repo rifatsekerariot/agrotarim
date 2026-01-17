@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card } from 'react-bootstrap';
 
-const WaterTankWidget = ({ data }) => {
-    // Mock data if not provided (for preview)
+const WaterTankWidget = ({ data, settings = {} }) => {
+    // Use settings or fallback to data or defaults
+    const capacity = settings.capacity || data?.capacity || 4000;
+    const consumptionRate = settings.consumptionRate || 150;
     const level = data?.value || 65; // percentage
-    const currentLiters = data?.current || 2600;
-    const capacity = data?.capacity || 4000;
-    const daysLeft = data?.daysLeft || 2.5;
+    const currentLiters = (capacity * level) / 100;
+    const daysLeft = (currentLiters / consumptionRate).toFixed(1);
 
     return (
         <div className="d-flex flex-column h-100 p-2">

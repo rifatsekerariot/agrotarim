@@ -265,7 +265,7 @@ const CustomDashboard = () => {
     const farmId = 1;
 
     // Modified newWidget state to support array of sensorCodes
-    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCodes: [], type: 'card', title: '', width: 4 });
+    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCodes: [], type: 'card', title: '', width: 4, settings: {} });
     const [selectedDeviceSensors, setSelectedDeviceSensors] = useState([]);
     const [telemetry, setTelemetry] = useState({});
 
@@ -280,7 +280,8 @@ const CustomDashboard = () => {
             sensorCodes: widget.sensorCodes || [],
             title: widget.title || '',
             deviceName: widget.deviceName || '',
-            serialNumber: widget.serialNumber || ''
+            serialNumber: widget.serialNumber || '',
+            settings: widget.settings || {}
         });
 
         // Also update selected sensors UI logic
@@ -646,12 +647,15 @@ const CustomDashboard = () => {
                                         onEdit={() => handleEditWidgetClick(w)}
                                     >
                                         {WidgetComp ? (
-                                            <WidgetComp data={{
-                                                value: val,
-                                                unit: unit,
-                                                ts: ts,
-                                                ...devData // Pass full device telemetry for multi-sensor widgets
-                                            }} />
+                                            <WidgetComp
+                                                data={{
+                                                    value: val,
+                                                    unit: unit,
+                                                    ts: ts,
+                                                    ...devData // Pass full device telemetry for multi-sensor widgets
+                                                }}
+                                                settings={w.settings || {}}
+                                            />
                                         ) : (
                                             <>
                                                 {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title} lastUpdate={ts} sensorName={sensorName} />}
@@ -900,9 +904,38 @@ const CustomDashboard = () => {
 
                     <div className="mt-3">
                         <Form.Label className="small fw-bold text-muted">Başlık (Opsiyonel)</Form.Label>
-                        <Form.Control size="sm" type="text" placeholder="Örn: Sera Sıcaklığı"
+                        <Form.Control size="sm" type="text" placeholder="Örn: Sera Sıcaklığı" value={newWidget.title || ''}
                             onChange={e => setNewWidget({ ...newWidget, title: e.target.value })} />
                     </div>
+
+                    {/* Widget Settings (if available) */}
+                    {newWidget.type && WIDGET_SETTINGS[newWidget.type] && (
+                        <div className="mt-3 bg-light p-3 rounded">
+                            <h6 className="fw-bold mb-3">Widget Ayarları</h6>
+                            <Row className="g-3">
+                                {WIDGET_SETTINGS[newWidget.type].settingsFields.map(field => (
+                                    <Col md={6} key={field.key}>
+                                        <Form.Label className="small fw-bold text-muted">{field.label}</Form.Label>
+                                        <Form.Control
+                                            type={field.type || 'number'}
+                                            size="sm"
+                                            value={newWidget.settings?.[field.key] ?? WIDGET_SETTINGS[newWidget.type].defaultSettings[field.key] ?? ''}
+                                            onChange={(e) => setNewWidget({
+                                                ...newWidget,
+                                                settings: {
+                                                    ...newWidget.settings,
+                                                    [field.key]: parseFloat(e.target.value) || 0
+                                                }
+                                            })}
+                                            min={field.min}
+                                            max={field.max}
+                                            step={field.step || 1}
+                                        />
+                                    </Col>
+                                ))}
+                            </Row>
+                        </div>
+                    )}
 
                 </Modal.Body>
                 <Modal.Footer className="border-0 pt-0">
