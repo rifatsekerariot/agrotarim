@@ -5,24 +5,38 @@ import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
 // --- SUB-COMPONENTS ---
 
-const WeatherStrip = () => (
-    <div className="d-flex justify-content-center align-items-center gap-4 bg-dark text-white py-2 px-4 rounded-bottom shadow-sm mx-auto mb-4" style={{ maxWidth: '600px', fontSize: '0.9rem' }}>
-        <div className="d-flex align-items-center gap-2">
-            <Sun size={18} className="text-warning" />
-            <span className="fw-bold">Bugün</span> 28°
+const WeatherStrip = ({ data }) => {
+    // Helper for formatting date names
+    const getDayName = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('tr-TR', { weekday: 'long' });
+    };
+
+    // Use MGM daily data if available, otherwise fallback (or show loading)
+    const today = data && data[0] ? data[0] : null;
+    const tomorrow = data && data[1] ? data[1] : null;
+    const nextDay = data && data[2] ? data[2] : null;
+
+    return (
+        <div className="d-flex justify-content-center align-items-center gap-4 bg-dark text-white py-2 px-4 rounded-bottom shadow-sm mx-auto mb-4" style={{ maxWidth: '600px', fontSize: '0.9rem' }}>
+            <div className="d-flex align-items-center gap-2">
+                <Sun size={18} className="text-warning" />
+                <span className="fw-bold">Bugün</span> {today ? today.enYuksekGun1 : '--'}°
+            </div>
+            <div className="vr bg-secondary opacity-50"></div>
+            <div className="d-flex align-items-center gap-2 opacity-75">
+                <CloudSun size={18} />
+                <span className="fw-medium">Yarın</span> {tomorrow ? tomorrow.enYuksekGun1 : '--'}°
+            </div>
+            <div className="vr bg-secondary opacity-50"></div>
+            <div className="d-flex align-items-center gap-2 opacity-75">
+                <CloudRain size={18} />
+                <span className="fw-medium">{nextDay ? getDayName(nextDay.tarih) : '...'}</span> {nextDay ? nextDay.enYuksekGun1 : '--'}°
+            </div>
         </div>
-        <div className="vr bg-secondary opacity-50"></div>
-        <div className="d-flex align-items-center gap-2 opacity-75">
-            <CloudSun size={18} />
-            <span className="fw-medium">Yarın</span> 25°
-        </div>
-        <div className="vr bg-secondary opacity-50"></div>
-        <div className="d-flex align-items-center gap-2 opacity-75">
-            <CloudRain size={18} />
-            <span className="fw-medium">Pazartesi</span> 22°
-        </div>
-    </div>
-);
+    );
+};
 
 const RiskGauge = ({ value }) => {
     // Circular Progress Visualization
@@ -130,7 +144,7 @@ const METRICS = [
     { key: 'showLight', codes: ['light', 'luminosity', 'isik'], label: 'Işık', unit: 'Lux' }
 ];
 
-const IoTDashboard = ({ farmId }) => {
+const IoTDashboard = ({ farmId, dailyData }) => {
     const [devices, setDevices] = useState([]);
     const [advice, setAdvice] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -265,7 +279,7 @@ const IoTDashboard = ({ farmId }) => {
         devices.forEach(d => {
             const sensor = d.sensors.find(s => codes.includes(s.code));
             if (sensor?.telemetry?.[0]) {
-                const val = sensor.telemetry[0].value;
+                const val = Number(sensor.telemetry[0].value);
                 if ((selected.length === 0 || selected.includes(sensor.id.toString())) && val !== null) {
                     total += val;
                     count++;
@@ -288,7 +302,7 @@ const IoTDashboard = ({ farmId }) => {
         <div className="iot-dashboard pb-5" style={{ minHeight: '100vh' }}>
             {/* 1. Header & Controls */}
             <div className="container-fluid px-4 pt-3">
-                <WeatherStrip />
+                <WeatherStrip data={dailyData} />
 
                 <div className="d-flex justify-content-between align-items-center mb-4 slide-in delay-1">
                     <div className="d-flex align-items-center gap-3">

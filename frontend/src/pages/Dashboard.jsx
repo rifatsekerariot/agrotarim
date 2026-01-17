@@ -116,7 +116,7 @@ const Dashboard = () => {
         <Container fluid className="py-4 px-4 bg-light min-vh-100">
             <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4 custom-tabs border-bottom-0">
                 <Tab eventKey="iot" title={<><Activity size={18} className="me-2" />Eyleme Geçilebilir Analiz</>}>
-                    <IoTDashboard farmId={farmId} />
+                    <IoTDashboard farmId={farmId} dailyData={dailyData} />
                 </Tab>
 
                 <Tab eventKey="forecast" title="🌦️ MGM Resmi Tahminler">
