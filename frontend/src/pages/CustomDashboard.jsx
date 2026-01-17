@@ -310,6 +310,11 @@ const CustomDashboard = () => {
         });
     };
 
+    const handleWidgetUpdate = (updatedWidget) => {
+        const newWidgets = widgets.map(w => w.id === updatedWidget.id ? updatedWidget : w);
+        saveConfig(newWidgets);
+    };
+
     const handleAddWidget = () => {
         const widget = { ...newWidget, id: Date.now() };
 
@@ -390,7 +395,14 @@ const CustomDashboard = () => {
                                         unit={unit}
                                     />
                                 )}
-                                {w.type === 'map' && <WidgetMap devices={devices} title={w.title} />}
+                                {w.type === 'map' && (
+                                    <WidgetMap
+                                        widget={w}
+                                        devices={devices}
+                                        telemetry={telemetry}
+                                        onUpdate={handleWidgetUpdate}
+                                    />
+                                )}
                             </div>
                         </Col>
                     );
