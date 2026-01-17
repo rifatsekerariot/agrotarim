@@ -65,14 +65,38 @@ const IoTDashboard = ({ farmId }) => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="d-flex align-items-center gap-3">
                     <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla</h2>
-                    <select className="form-select form-select-sm" style={{ width: '120px' }} onChange={handleCropChange} defaultValue="">
+                    <select className="form-select form-select-sm" style={{ width: '150px' }} onChange={handleCropChange} defaultValue="">
                         <option value="" disabled>Ürün Seç</option>
-                        <option value="Mısır">🌽 Mısır</option>
-                        <option value="Buğday">🌾 Buğday</option>
-                        <option value="Pamuk">☁️ Pamuk</option>
-                        <option value="Ayçiçeği">🌻 Ayçiçeği</option>
-                        <option value="Zeytin">🫒 Zeytin</option>
-                        <option value="Fındık">🌰 Fındık</option>
+                        <optgroup label="Tahıllar">
+                            <option value="Buğday">Buğday</option>
+                            <option value="Arpa">Arpa</option>
+                            <option value="Mısır">Mısır</option>
+                            <option value="Pirinç">Pirinç (Çeltik)</option>
+                        </optgroup>
+                        <optgroup label="Sanayi Bitkileri">
+                            <option value="Pamuk">Pamuk</option>
+                            <option value="Ayçiçeği">Ayçiçeği</option>
+                            <option value="Şekerpancarı">Şekerpancarı</option>
+                            <option value="Tütün">Tütün</option>
+                            <option value="Çay">Çay</option>
+                        </optgroup>
+                        <optgroup label="Meyve & Yemiş">
+                            <option value="Fındık">Fındık</option>
+                            <option value="Zeytin">Zeytin</option>
+                            <option value="Antep Fıstığı">Antep Fıstığı</option>
+                            <option value="İncir">İncir</option>
+                            <option value="Üzüm">Üzüm</option>
+                            <option value="Kayısı">Kayısı</option>
+                            <option value="Turunçgil">Turunçgil (Narenciye)</option>
+                            <option value="Muz">Muz</option>
+                            <option value="Elma">Elma</option>
+                        </optgroup>
+                        <optgroup label="Sebze & Diğer">
+                            <option value="Domates">Domates</option>
+                            <option value="Patates">Patates</option>
+                            <option value="Kırmızı Mercimek">Kırmızı Mercimek</option>
+                            <option value="Nohut">Nohut</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div>
