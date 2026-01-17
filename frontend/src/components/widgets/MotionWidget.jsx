@@ -1,55 +1,50 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 
-const MotionWidget = ({ data }) => {
-    // 0 = No Motion, 1 = Motion Detected
-    const hasData = data && data.value != null;
-    const isMotion = hasData && data.value === 1;
+const MotionWidget = ({ data, settings = {} }) => {
+    const detected = data?.value ?? null;
+    const lastMotion = data?.lastMotion ?? null;
+    const { cooldownSeconds = 30 } = settings;
 
-    if (!hasData) {
+    // No data state
+    if (detected === null) {
         return (
-            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
-                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                <small>Veri Bekleniyor...</small>
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>👁️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
             </div>
         );
     }
 
+    const isActive = detected === 1 || detected === true;
+
     return (
-        <div className={`d-flex flex-column h-100 p-2 ${isMotion ? 'bg-danger bg-opacity-10' : ''}`}>
-            <div className="d-flex justify-content-between align-items-start mb-2">
-                <div className="text-muted small fw-bold">Hareket Algılama</div>
-                <i className="bi bi-eye fs-5 text-secondary"></i>
+        <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
+            {/* Motion Icon with Animation */}
+            <div
+                className="mb-3"
+                style={{
+                    fontSize: '3rem',
+                    animation: isActive ? 'pulse 1s infinite' : 'none'
+                }}
+            >
+                {isActive ? '🚨' : '✓'}
             </div>
 
-            <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center text-center">
-                {isMotion ? (
-                    <div className="animate-pulse text-danger">
-                        <i className="bi bi-person-walking display-1"></i>
-                        <div className="fw-bold mt-2">HAREKET!</div>
-                    </div>
-                ) : (
-                    <div className="text-success opacity-50">
-                        <i className="bi bi-shield-check display-1"></i>
-                        <div className="fw-bold mt-2">GÜVENLİ</div>
-                    </div>
-                )}
-            </div>
+            {/* Status */}
+            <Badge
+                bg={isActive ? 'danger' : 'success'}
+                className="mx-auto px-4 py-2 fs-6"
+            >
+                {isActive ? 'HAREKET ALGILANDI' : 'GÜVENLİ'}
+            </Badge>
 
-            <div className="mt-3 bg-white bg-opacity-50 rounded p-2 border border-light">
-                <div className="d-flex justify-content-between split-text small text-muted mb-1">
-                    <span>Konum:</span>
-                    <span className="fw-bold text-dark">-</span>
+            {/* Last Motion Time */}
+            {lastMotion && (
+                <div className="small text-muted mt-3">
+                    Son hareket: {new Date(lastMotion).toLocaleTimeString('tr-TR')}
                 </div>
-                <div className="d-flex justify-content-between split-text small text-muted">
-                    <span>Zaman:</span>
-                    <span className="fw-bold text-dark">{data.ts ? new Date(data.ts).toLocaleTimeString() : '-'}</span>
-                </div>
-            </div>
-
-            <Button variant="outline-danger" size="sm" className="mt-2 w-100">
-                <i className="bi bi-camera-video me-1"></i> Kamerayı Aç
-            </Button>
+            )}
         </div>
     );
 };

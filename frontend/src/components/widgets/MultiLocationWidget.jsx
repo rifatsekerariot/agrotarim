@@ -1,40 +1,68 @@
 import React from 'react';
-import { Button } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 
-const MultiLocationWidget = ({ data }) => {
-    // Mock List
-    const locations = [
-        { id: 1, name: 'Sera 1 (Domates)', temp: 24, status: 'normal' },
-        { id: 2, name: 'Sera 2 (Biber)', temp: 32, status: 'high' },
-        { id: 3, name: 'Sera 3 (Fide)', temp: 22, status: 'normal' },
-        { id: 4, name: 'Depo Alanı', temp: 18, status: 'low' },
-    ];
+const MultiLocationWidget = ({ data, settings = {} }) => {
+    const { locationCount = 4 } = settings;
+
+    // Get locations from data or create empty array
+    const locations = data?.locations ?? [];
+
+    // No data state
+    if (locations.length === 0) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>📍</div>
+                <p className="text-muted mb-0 small">Lokasyon Verisi Yok</p>
+                <p className="text-muted mb-0" style={{ fontSize: '0.7rem' }}>
+                    Birden fazla sensör bağlayın
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <div className="d-flex flex-column h-100">
-            <div className="px-3 py-2 border-bottom bg-light">
-                <h6 className="mb-0 fw-bold">📍 Tüm Lokasyonlar</h6>
+        <div className="d-flex flex-column h-100 p-2">
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold">📍 Lokasyonlar</span>
+                <Badge bg="secondary">{locations.length}</Badge>
             </div>
 
-            <div className="flex-grow-1 overflow-auto">
-                {locations.map(loc => (
-                    <div key={loc.id} className="d-flex justify-content-between align-items-center p-3 border-bottom hover-bg-light">
+            {/* Location List */}
+            <div className="flex-grow-1 overflow-auto custom-scrollbar">
+                {locations.slice(0, locationCount).map((loc, idx) => (
+                    <div
+                        key={idx}
+                        className="d-flex justify-content-between align-items-center p-2 mb-1 bg-light rounded"
+                    >
                         <div>
-                            <div className="fw-bold text-dark">{loc.name}</div>
-                            <small className="text-muted">Son veri: 2 dk önce</small>
+                            <div className="fw-medium small">{loc.name || `Lokasyon ${idx + 1}`}</div>
+                            <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                {loc.description || 'Açıklama yok'}
+                            </div>
                         </div>
-                        <div className="d-flex align-items-center gap-3">
-                            <span className="fs-5 fw-bold">{loc.temp}°C</span>
-                            {loc.status === 'normal' && <i className="bi bi-circle-fill text-success"></i>}
-                            {loc.status === 'high' && <i className="bi bi-circle-fill text-danger animate-pulse"></i>}
-                            {loc.status === 'low' && <i className="bi bi-circle-fill text-warning"></i>}
+                        <div className="text-end">
+                            {loc.temp !== undefined && (
+                                <div className="small">
+                                    <span className="text-primary fw-bold">{loc.temp.toFixed(1)}°C</span>
+                                </div>
+                            )}
+                            {loc.humidity !== undefined && (
+                                <div className="small text-muted">
+                                    {loc.humidity.toFixed(0)}%
+                                </div>
+                            )}
+                            {loc.status && (
+                                <Badge
+                                    bg={loc.status === 'ok' ? 'success' : loc.status === 'warning' ? 'warning' : 'danger'}
+                                    style={{ fontSize: '0.6rem' }}
+                                >
+                                    {loc.status === 'ok' ? '✓' : loc.status === 'warning' ? '!' : '✗'}
+                                </Badge>
+                            )}
                         </div>
                     </div>
                 ))}
-            </div>
-
-            <div className="mt-auto p-2">
-                <Button variant="outline-primary" size="sm" className="w-100">Detaylı Görünüm</Button>
             </div>
         </div>
     );

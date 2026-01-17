@@ -1,38 +1,75 @@
 import React from 'react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
+import { Badge } from 'react-bootstrap';
 
-const TempTrendWidget = ({ data }) => {
-    const temp = data?.value || 24.5;
-    const min = 18;
-    const max = 32;
-    // Mock sparkline 24h
-    const chartData = [20, 21, 22, 24, 28, 30, 32, 31, 29, 27, 26, 25, 24.5].map(v => ({ v }));
+const TempTrendWidget = ({ data, settings = {} }) => {
+    const currentValue = data?.value ?? null;
+    const history = data?.history ?? [];
+    const { minTemp = -10, maxTemp = 50 } = settings;
+
+    // No data state
+    if (currentValue === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>📈</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    // Generate mock history if not provided
+    const chartData = history.length > 0
+        ? history
+        : Array.from({ length: 12 }, (_, i) => ({
+            time: i,
+            value: currentValue + (Math.random() - 0.5) * 5
+        }));
+
+    // Determine trend
+    let trend = 'stable';
+    let trendIcon = '→';
+    if (chartData.length >= 2) {
+        const last = chartData[chartData.length - 1]?.value || currentValue;
+        const prev = chartData[chartData.length - 2]?.value || currentValue;
+        if (last > prev + 0.5) { trend = 'up'; trendIcon = '↑'; }
+        if (last < prev - 0.5) { trend = 'down'; trendIcon = '↓'; }
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-                <span className="text-muted small fw-bold">Şimdi</span>
-                <span className="badge bg-danger bg-opacity-10 text-danger rounded-pill">↗️ Artıyor</span>
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <span className="h4 fw-bold text-primary mb-0">{currentValue.toFixed(1)}°C</span>
+                </div>
+                <Badge bg={trend === 'up' ? 'danger' : trend === 'down' ? 'info' : 'secondary'}>
+                    {trendIcon} {trend === 'up' ? 'Yükseliyor' : trend === 'down' ? 'Düşüyor' : 'Stabil'}
+                </Badge>
             </div>
-            <div className="h1 fw-bold text-dark mb-3">{temp}°C</div>
 
-            <div className="flex-grow-1" style={{ minHeight: '40px' }}>
+            {/* Chart */}
+            <div className="flex-grow-1" style={{ minHeight: '60px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                        <defs>
-                            <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#dc3545" stopOpacity={0.5} />
-                                <stop offset="95%" stopColor="#dc3545" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <Area type="monotone" dataKey="v" stroke="#dc3545" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
-                    </AreaChart>
+                    <LineChart data={chartData}>
+                        <YAxis domain={[minTemp, maxTemp]} hide />
+                        <Tooltip
+                            formatter={(value) => [`${value.toFixed(1)}°C`, 'Sıcaklık']}
+                            contentStyle={{ fontSize: '12px' }}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#0d6efd"
+                            strokeWidth={2}
+                            dot={false}
+                        />
+                    </LineChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className="d-flex justify-content-between small text-muted mt-2 pt-2 border-top">
-                <span>Min: {min}°</span>
-                <span>Max: {max}°</span>
+            {/* Time Range */}
+            <div className="text-center small text-muted">
+                Son 1 saat
             </div>
         </div>
     );

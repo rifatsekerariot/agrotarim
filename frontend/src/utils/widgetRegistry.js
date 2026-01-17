@@ -96,58 +96,217 @@ export const WIDGET_TYPES = {
     MULTI_LOCATION: 'multi_location'
 };
 
-// Widget Settings Metadata
+// Widget Settings Metadata - Complete for all widgets
 export const WIDGET_SETTINGS = {
+    // ===== WATER =====
     [WIDGET_TYPES.WATER_TANK]: {
-        defaultSettings: {
-            capacity: 4000,
-            consumptionRate: 150
-        },
+        defaultSettings: { capacity: 4000, consumptionRate: 150, lowThreshold: 20 },
         settingsFields: [
             { key: 'capacity', label: 'Tank Kapasitesi (L)', type: 'number', min: 100, step: 100 },
-            { key: 'consumptionRate', label: 'Günlük Tüketim (L/gün)', type: 'number', min: 1, step: 10 }
+            { key: 'consumptionRate', label: 'Günlük Tüketim (L/gün)', type: 'number', min: 1, step: 10 },
+            { key: 'lowThreshold', label: 'Düşük Seviye Uyarısı (%)', type: 'number', min: 5, max: 50 }
+        ]
+    },
+    [WIDGET_TYPES.WATER_FLOW]: {
+        defaultSettings: { maxFlowRate: 100, unit: 'L/dk' },
+        settingsFields: [
+            { key: 'maxFlowRate', label: 'Max Akış Hızı', type: 'number', min: 1 },
+            { key: 'unit', label: 'Birim', type: 'select', options: ['L/dk', 'L/saat', 'm³/saat'] }
         ]
     },
     [WIDGET_TYPES.WATER_PRESSURE]: {
-        defaultSettings: {
-            normalMin: 2.0,
-            normalMax: 4.0
-        },
+        defaultSettings: { normalMin: 2.0, normalMax: 4.0, unit: 'bar' },
         settingsFields: [
-            { key: 'normalMin', label: 'Normal Basınç (Min - bar)', type: 'number', min: 0, max: 10, step: 0.1 },
-            { key: 'normalMax', label: 'Normal Basınç (Max - bar)', type: 'number', min: 0, max: 10, step: 0.1 }
+            { key: 'normalMin', label: 'Normal Basınç (Min)', type: 'number', min: 0, max: 10, step: 0.1 },
+            { key: 'normalMax', label: 'Normal Basınç (Max)', type: 'number', min: 0, max: 10, step: 0.1 }
+        ]
+    },
+
+    // ===== SOIL =====
+    [WIDGET_TYPES.SOIL_MOISTURE]: {
+        defaultSettings: { criticalLow: 30, optimalMin: 50, optimalMax: 70, criticalHigh: 90 },
+        settingsFields: [
+            { key: 'criticalLow', label: 'Kritik Düşük (%)', type: 'number', min: 0, max: 100 },
+            { key: 'optimalMin', label: 'Optimal Min (%)', type: 'number', min: 0, max: 100 },
+            { key: 'optimalMax', label: 'Optimal Max (%)', type: 'number', min: 0, max: 100 },
+            { key: 'criticalHigh', label: 'Kritik Yüksek (%)', type: 'number', min: 0, max: 100 }
         ]
     },
     [WIDGET_TYPES.SOIL_TEMP]: {
-        defaultSettings: {
-            idealMin: 15,
-            idealMax: 25
-        },
+        defaultSettings: { idealMin: 15, idealMax: 25 },
         settingsFields: [
-            { key: 'idealMin', label: 'İdeal Sıcaklık (Min - °C)', type: 'number', min: -10, max: 50 },
-            { key: 'idealMax', label: 'İdeal Sıcaklık (Max - °C)', type: 'number', min: -10, max: 50 }
+            { key: 'idealMin', label: 'İdeal Sıcaklık (Min °C)', type: 'number', min: -10, max: 50 },
+            { key: 'idealMax', label: 'İdeal Sıcaklık (Max °C)', type: 'number', min: -10, max: 50 }
+        ]
+    },
+    [WIDGET_TYPES.SOIL_PH]: {
+        defaultSettings: { optimalMin: 6.0, optimalMax: 7.5 },
+        settingsFields: [
+            { key: 'optimalMin', label: 'Optimal pH (Min)', type: 'number', min: 0, max: 14, step: 0.1 },
+            { key: 'optimalMax', label: 'Optimal pH (Max)', type: 'number', min: 0, max: 14, step: 0.1 }
+        ]
+    },
+    [WIDGET_TYPES.SOIL_EC]: {
+        defaultSettings: { optimalMin: 1.0, optimalMax: 2.5, unit: 'mS/cm' },
+        settingsFields: [
+            { key: 'optimalMin', label: 'Optimal EC (Min)', type: 'number', min: 0, max: 10, step: 0.1 },
+            { key: 'optimalMax', label: 'Optimal EC (Max)', type: 'number', min: 0, max: 10, step: 0.1 }
+        ]
+    },
+
+    // ===== LIGHT & AIR =====
+    [WIDGET_TYPES.LIGHT_INTENSITY]: {
+        defaultSettings: { sunlightThreshold: 10000, lowLightThreshold: 1000, unit: 'lux' },
+        settingsFields: [
+            { key: 'sunlightThreshold', label: 'Güneş Işığı Eşiği (lux)', type: 'number', min: 0 },
+            { key: 'lowLightThreshold', label: 'Düşük Işık Eşiği (lux)', type: 'number', min: 0 }
         ]
     },
     [WIDGET_TYPES.UV_INDEX]: {
-        defaultSettings: {
-            lowThreshold: 3,
-            moderateThreshold: 6,
-            highThreshold: 8
-        },
+        defaultSettings: { lowThreshold: 3, moderateThreshold: 6, highThreshold: 8 },
         settingsFields: [
             { key: 'lowThreshold', label: 'Düşük Risk Eşiği', type: 'number', min: 0, max: 15 },
             { key: 'moderateThreshold', label: 'Orta Risk Eşiği', type: 'number', min: 0, max: 15 },
             { key: 'highThreshold', label: 'Yüksek Risk Eşiği', type: 'number', min: 0, max: 15 }
         ]
     },
+    [WIDGET_TYPES.CO2_LEVEL]: {
+        defaultSettings: { normalMax: 1000, warningMax: 2000, dangerMax: 5000 },
+        settingsFields: [
+            { key: 'normalMax', label: 'Normal Max (ppm)', type: 'number', min: 0 },
+            { key: 'warningMax', label: 'Uyarı Max (ppm)', type: 'number', min: 0 },
+            { key: 'dangerMax', label: 'Tehlike Max (ppm)', type: 'number', min: 0 }
+        ]
+    },
+    [WIDGET_TYPES.AIR_QUALITY]: {
+        defaultSettings: { goodMax: 50, moderateMax: 100, unhealthyMax: 150 },
+        settingsFields: [
+            { key: 'goodMax', label: 'İyi (Max AQI)', type: 'number', min: 0, max: 500 },
+            { key: 'moderateMax', label: 'Orta (Max AQI)', type: 'number', min: 0, max: 500 },
+            { key: 'unhealthyMax', label: 'Sağlıksız (Max AQI)', type: 'number', min: 0, max: 500 }
+        ]
+    },
+
+    // ===== ENERGY =====
+    [WIDGET_TYPES.SMART_PLUG]: {
+        defaultSettings: { maxPower: 3000, costPerKwh: 2.5 },
+        settingsFields: [
+            { key: 'maxPower', label: 'Max Güç (W)', type: 'number', min: 0 },
+            { key: 'costPerKwh', label: 'Birim Fiyat (TL/kWh)', type: 'number', min: 0, step: 0.1 }
+        ]
+    },
+    [WIDGET_TYPES.POWER_METER]: {
+        defaultSettings: { maxPower: 10000, costPerKwh: 2.5, currency: 'TL' },
+        settingsFields: [
+            { key: 'maxPower', label: 'Max Güç (W)', type: 'number', min: 0 },
+            { key: 'costPerKwh', label: 'Birim Fiyat (TL/kWh)', type: 'number', min: 0, step: 0.1 }
+        ]
+    },
     [WIDGET_TYPES.BATTERY_STATUS]: {
-        defaultSettings: {
-            capacity: 5000,
-            consumption: 150
-        },
+        defaultSettings: { capacity: 5000, lowThreshold: 20, criticalThreshold: 10 },
         settingsFields: [
             { key: 'capacity', label: 'Pil Kapasitesi (mAh)', type: 'number', min: 100, step: 100 },
-            { key: 'consumption', label: 'Günlük Tüketim (mAh)', type: 'number', min: 1, step: 10 }
+            { key: 'lowThreshold', label: 'Düşük Uyarı (%)', type: 'number', min: 5, max: 50 },
+            { key: 'criticalThreshold', label: 'Kritik Uyarı (%)', type: 'number', min: 1, max: 30 }
+        ]
+    },
+
+    // ===== CLIMATE/TRENDS =====
+    [WIDGET_TYPES.TEMP_TREND]: {
+        defaultSettings: { minTemp: -10, maxTemp: 50, showHistory: true },
+        settingsFields: [
+            { key: 'minTemp', label: 'Min Sıcaklık (°C)', type: 'number', min: -50, max: 100 },
+            { key: 'maxTemp', label: 'Max Sıcaklık (°C)', type: 'number', min: -50, max: 100 }
+        ]
+    },
+    [WIDGET_TYPES.HUMIDITY_TREND]: {
+        defaultSettings: { warningLow: 30, warningHigh: 80, showHistory: true },
+        settingsFields: [
+            { key: 'warningLow', label: 'Düşük Uyarı (%)', type: 'number', min: 0, max: 100 },
+            { key: 'warningHigh', label: 'Yüksek Uyarı (%)', type: 'number', min: 0, max: 100 }
+        ]
+    },
+    [WIDGET_TYPES.FEELS_LIKE]: {
+        defaultSettings: { showHumidity: true },
+        settingsFields: []
+    },
+
+    // ===== WATER QUALITY =====
+    [WIDGET_TYPES.WATER_TEMP]: {
+        defaultSettings: { idealMin: 18, idealMax: 24 },
+        settingsFields: [
+            { key: 'idealMin', label: 'İdeal Min (°C)', type: 'number', min: 0, max: 50 },
+            { key: 'idealMax', label: 'İdeal Max (°C)', type: 'number', min: 0, max: 50 }
+        ]
+    },
+    [WIDGET_TYPES.WATER_QUALITY]: {
+        defaultSettings: { ppmMax: 500, goodMax: 150 },
+        settingsFields: [
+            { key: 'ppmMax', label: 'Max TDS (ppm)', type: 'number', min: 0 },
+            { key: 'goodMax', label: 'İyi TDS (Max ppm)', type: 'number', min: 0 }
+        ]
+    },
+
+    // ===== CONTROL & LEVEL =====
+    [WIDGET_TYPES.ULTRASONIC_LEVEL]: {
+        defaultSettings: { tankHeight: 200, emptyDistance: 200, fullDistance: 10 },
+        settingsFields: [
+            { key: 'tankHeight', label: 'Tank Yüksekliği (cm)', type: 'number', min: 1 },
+            { key: 'emptyDistance', label: 'Boş Mesafe (cm)', type: 'number', min: 0 },
+            { key: 'fullDistance', label: 'Dolu Mesafe (cm)', type: 'number', min: 0 }
+        ]
+    },
+    [WIDGET_TYPES.DISTANCE_SENSOR]: {
+        defaultSettings: { maxDistance: 400, unit: 'cm', warningThreshold: 50 },
+        settingsFields: [
+            { key: 'maxDistance', label: 'Max Mesafe', type: 'number', min: 1 },
+            { key: 'unit', label: 'Birim', type: 'select', options: ['cm', 'm', 'mm'] },
+            { key: 'warningThreshold', label: 'Uyarı Eşiği', type: 'number', min: 0 }
+        ]
+    },
+    [WIDGET_TYPES.RELAY_CONTROL]: {
+        defaultSettings: { labels: ['Röle 1', 'Röle 2', 'Röle 3', 'Röle 4'], channelCount: 4 },
+        settingsFields: [
+            { key: 'channelCount', label: 'Kanal Sayısı', type: 'number', min: 1, max: 8 }
+        ]
+    },
+    [WIDGET_TYPES.PWM_CONTROL]: {
+        defaultSettings: { minValue: 0, maxValue: 100, unit: '%', label: 'PWM Çıkış' },
+        settingsFields: [
+            { key: 'minValue', label: 'Min Değer', type: 'number' },
+            { key: 'maxValue', label: 'Max Değer', type: 'number' },
+            { key: 'label', label: 'Etiket', type: 'text' }
+        ]
+    },
+    [WIDGET_TYPES.SERVO_CONTROL]: {
+        defaultSettings: { minAngle: 0, maxAngle: 180, step: 1 },
+        settingsFields: [
+            { key: 'minAngle', label: 'Min Açı (°)', type: 'number', min: 0, max: 360 },
+            { key: 'maxAngle', label: 'Max Açı (°)', type: 'number', min: 0, max: 360 }
+        ]
+    },
+
+    // ===== ALARMS =====
+    [WIDGET_TYPES.MOTION_SENSOR]: {
+        defaultSettings: { cooldownSeconds: 30, showLastMotion: true },
+        settingsFields: [
+            { key: 'cooldownSeconds', label: 'Bekleme Süresi (sn)', type: 'number', min: 0 }
+        ]
+    },
+    [WIDGET_TYPES.WATER_LEAK]: {
+        defaultSettings: { alertSound: true, criticalAlert: true },
+        settingsFields: []
+    },
+
+    // ===== MULTI-SENSOR =====
+    [WIDGET_TYPES.GREENHOUSE_STATUS]: {
+        defaultSettings: { showTemp: true, showHumidity: true, showSoilMoisture: true, showLight: true },
+        settingsFields: []
+    },
+    [WIDGET_TYPES.MULTI_LOCATION]: {
+        defaultSettings: { locationCount: 4 },
+        settingsFields: [
+            { key: 'locationCount', label: 'Lokasyon Sayısı', type: 'number', min: 1, max: 10 }
         ]
     }
 };

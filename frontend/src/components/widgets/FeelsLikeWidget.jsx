@@ -1,27 +1,67 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const FeelsLikeWidget = ({ data }) => {
-    const real = data?.temp || 24.5;
-    const feels = 28; // calculated or from data
-    const diff = (feels - real).toFixed(1);
+const FeelsLikeWidget = ({ data, settings = {} }) => {
+    const temp = data?.temperature ?? data?.value ?? null;
+    const humidity = data?.humidity ?? null;
+
+    // No data state
+    if (temp === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🌡️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    // Simple heat index calculation
+    let feelsLike = temp;
+    if (humidity !== null && temp >= 20) {
+        // Simplified heat index formula
+        feelsLike = temp + 0.33 * humidity * 0.1 - 4;
+    }
+
+    let comfort = 'Konforlu';
+    let icon = '😊';
+    let variant = 'success';
+
+    if (feelsLike < 10) {
+        comfort = 'Soğuk';
+        icon = '🥶';
+        variant = 'primary';
+    } else if (feelsLike < 18) {
+        comfort = 'Serin';
+        icon = '😌';
+        variant = 'info';
+    } else if (feelsLike > 35) {
+        comfort = 'Çok Sıcak';
+        icon = '🥵';
+        variant = 'danger';
+    } else if (feelsLike > 28) {
+        comfort = 'Sıcak';
+        icon = '😓';
+        variant = 'warning';
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-            <div className="mb-2">
-                <div className="small text-muted">Hissedilen</div>
-                <div className="display-4 fw-bold text-dark">{feels}°</div>
+            {/* Icon */}
+            <div className="mb-2" style={{ fontSize: '2.5rem' }}>{icon}</div>
+
+            {/* Feels Like */}
+            <div className="mb-1">
+                <span className={`display-6 fw-bold text-${variant}`}>{feelsLike.toFixed(0)}°</span>
             </div>
 
-            <div className="mb-3">
-                <span className="badge bg-light text-muted border">Gerçek: {real}°C</span>
-            </div>
+            <Badge bg={variant} className="mx-auto mb-2">
+                {comfort}
+            </Badge>
 
-            <div className="alert alert-warning border-0 shadow-sm py-2 d-flex align-items-center justify-content-center gap-2 mb-0">
-                <i className="bi bi-thermometer-sun fs-4 text-warning"></i>
-                <div className="text-start lh-1">
-                    <div className="fw-bold small">Nem etkisiyle</div>
-                    <small className="text-muted">+{diff}°C daha sıcak</small>
-                </div>
+            {/* Actual values */}
+            <div className="small text-muted mt-auto">
+                <div>Gerçek: {temp.toFixed(1)}°C</div>
+                {humidity !== null && <div>Nem: {humidity.toFixed(0)}%</div>}
             </div>
         </div>
     );

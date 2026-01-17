@@ -1,64 +1,62 @@
 import React, { useState } from 'react';
-import { Form } from 'react-bootstrap';
+import { Form, Badge } from 'react-bootstrap';
 
-const PWMWidget = ({ data }) => {
-    const [speed, setSpeed] = useState(0);
-    const hasData = data && data.value != null;
+const PWMWidget = ({ data, settings = {}, onCommand }) => {
+    const currentValue = data?.value ?? null;
+    const { minValue = 0, maxValue = 100, unit = '%', label = 'PWM Çıkış' } = settings;
 
-    React.useEffect(() => {
-        if (hasData) {
-            setSpeed(Number(data.value));
+    const [sliderValue, setSliderValue] = useState(currentValue ?? minValue);
+
+    const handleChange = async (newValue) => {
+        setSliderValue(newValue);
+
+        if (onCommand) {
+            try {
+                await onCommand({
+                    type: 'pwm',
+                    value: newValue
+                });
+            } catch (error) {
+                console.error('PWM command failed:', error);
+            }
         }
-    }, [data]);
-
-    // Mock calculations based on speed
-    const rpm = Math.round(speed * 28); // max 2800
-    const power = Math.round(speed * 0.7); // max 70W
-
-    if (!hasData) {
-        return (
-            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
-                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                <small>Veri Bekleniyor...</small>
-            </div>
-        );
-    }
+    };
 
     return (
         <div className="d-flex flex-column h-100 p-2">
-            <div className="d-flex justify-content-between align-items-end mb-2">
-                <span className="display-4 fw-bold lh-1 text-primary">{speed}<span className="fs-4">%</span></span>
-                <i className={`bi bi-fan fs-1 text-secondary ${speed > 0 ? 'animate-spin' : ''}`} style={{ animationDuration: `${10000 / (speed || 1)}ms` }}></i>
+            {/* Label */}
+            <div className="text-center mb-2">
+                <span className="text-muted small">{label}</span>
             </div>
 
-            <div className="mb-4">
+            {/* Current Value Display */}
+            <div className="text-center mb-3">
+                <span className="display-6 fw-bold text-primary">{sliderValue}</span>
+                <span className="text-muted ms-1">{unit}</span>
+            </div>
+
+            {/* Slider */}
+            <div className="flex-grow-1 d-flex flex-column justify-content-center px-2">
                 <Form.Range
-                    value={speed}
-                    onChange={e => setSpeed(Number(e.target.value))}
-                    min={0}
-                    max={100}
+                    min={minValue}
+                    max={maxValue}
+                    value={sliderValue}
+                    onChange={(e) => handleChange(parseInt(e.target.value))}
                     className="custom-range"
                 />
+
+                {/* Range Labels */}
                 <div className="d-flex justify-content-between small text-muted mt-1">
-                    <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
+                    <span>{minValue}{unit}</span>
+                    <span>{maxValue}{unit}</span>
                 </div>
             </div>
 
-            <div className="row g-2 mt-auto small">
-                <div className="col-6">
-                    <div className="bg-light rounded p-2 text-center">
-                        <div className="text-muted mb-1">Hız (RPM)</div>
-                        <div className="fw-bold">{rpm}</div>
-                    </div>
-                </div>
-                <div className="col-6">
-                    <div className="bg-light rounded p-2 text-center">
-                        <div className="text-muted mb-1">Güç</div>
-                        <div className="fw-bold">{power} W</div>
-                    </div>
-                </div>
+            {/* Status */}
+            <div className="text-center mt-2">
+                <Badge bg={sliderValue > 0 ? 'primary' : 'secondary'}>
+                    {sliderValue > 0 ? 'AKTİF' : 'KAPALI'}
+                </Badge>
             </div>
         </div>
     );

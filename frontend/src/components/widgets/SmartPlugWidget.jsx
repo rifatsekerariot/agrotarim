@@ -1,49 +1,66 @@
-import React, { useState } from 'react';
-import { Button } from 'react-bootstrap';
+import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const SmartPlugWidget = ({ data }) => {
-    const [isOn, setIsOn] = useState(data?.isOn || true);
-    // Mock Data
-    const power = 1.2; // kW
-    const daily = 8.5; // kWh
-    const cost = 12; // TL
+const SmartPlugWidget = ({ data, settings = {}, onCommand }) => {
+    const isOn = data?.state ?? data?.value ?? null;
+    const power = data?.power ?? null;
+    const { maxPower = 3000, costPerKwh = 2.5 } = settings;
+
+    // No data state
+    if (isOn === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🔌</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    const active = isOn === 1 || isOn === true;
+
+    const handleToggle = async () => {
+        if (onCommand) {
+            try {
+                await onCommand({
+                    type: 'smart_plug',
+                    state: !active
+                });
+            } catch (error) {
+                console.error('Smart plug command failed:', error);
+            }
+        }
+    };
 
     return (
-        <div className="d-flex flex-column h-100 p-2">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <div className={`badge ${isOn ? 'bg-success' : 'bg-secondary'} rounded-pill px-3 py-2`}>
-                    <i className={`bi bi-circle-fill me-2 small`}></i>
-                    {isOn ? 'Çalışıyor' : 'Kapalı'}
-                </div>
-                <i className="bi bi-outlet fs-4 text-secondary"></i>
+        <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
+            {/* Plug Icon */}
+            <div
+                className="mb-3 cursor-pointer"
+                style={{ fontSize: '3rem', cursor: 'pointer' }}
+                onClick={handleToggle}
+            >
+                {active ? '🔌' : '⭕'}
             </div>
 
-            <div className="row g-2 mb-3">
-                <div className="col-6">
-                    <div className="small text-muted">Anlık</div>
-                    <div className="fw-bold fs-5">{power} kW</div>
-                </div>
-                <div className="col-6">
-                    <div className="small text-muted">Bugün</div>
-                    <div className="fw-bold fs-5">{daily} kWh</div>
-                </div>
-            </div>
+            {/* Status */}
+            <Badge
+                bg={active ? 'success' : 'secondary'}
+                className="mx-auto mb-2 px-3 py-2"
+                style={{ cursor: 'pointer' }}
+                onClick={handleToggle}
+            >
+                {active ? 'AÇIK' : 'KAPALI'}
+            </Badge>
 
-            <div className="alert alert-light border shadow-sm py-1 px-2 mb-3 text-center">
-                <small className="text-muted fw-bold">Tahmini Maliyet: <span className="text-dark">{cost} TL</span></small>
-            </div>
-
-            <div className="mt-auto d-flex gap-2">
-                <Button
-                    variant={isOn ? 'outline-danger' : 'outline-success'}
-                    size="sm"
-                    className="flex-grow-1"
-                    onClick={() => setIsOn(!isOn)}
-                >
-                    {isOn ? 'Kapat' : 'Aç'}
-                </Button>
-                <Button variant="outline-primary" size="sm"><i className="bi bi-stopwatch"></i></Button>
-            </div>
+            {/* Power Reading */}
+            {power !== null && active && (
+                <div className="mt-2">
+                    <div className="h5 mb-0 text-primary">{power.toFixed(0)} W</div>
+                    <div className="small text-muted">
+                        ~{(power * costPerKwh / 1000).toFixed(2)} TL/saat
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

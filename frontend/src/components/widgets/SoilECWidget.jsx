@@ -1,26 +1,53 @@
 import React from 'react';
-import { ProgressBar } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 
-const SoilECWidget = ({ data }) => {
-    const ec = data?.value || 1.2; // mS/cm
-    // Assume 0-2 range for visual
-    const percent = (ec / 2.5) * 100;
+const SoilECWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { optimalMin = 1.0, optimalMax = 2.5, unit = 'mS/cm' } = settings;
+
+    // No data state
+    if (value === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>⚡</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    let variant = 'success';
+    let statusText = 'Optimal';
+
+    if (value < optimalMin * 0.5) {
+        variant = 'warning';
+        statusText = 'Düşük';
+    } else if (value < optimalMin) {
+        variant = 'info';
+        statusText = 'Normal Alt';
+    } else if (value > optimalMax * 1.5) {
+        variant = 'danger';
+        statusText = 'Çok Yüksek';
+    } else if (value > optimalMax) {
+        variant = 'warning';
+        statusText = 'Yüksek';
+    }
 
     return (
-        <div className="d-flex flex-column h-100 p-2 justify-content-center">
-            <div className="text-center mb-3">
-                <div className="h1 fw-bold text-dark mb-0">{ec}</div>
-                <div className="text-muted small">mS/cm</div>
+        <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
+            {/* EC Value */}
+            <div className="mb-2">
+                <span className={`display-5 fw-bold text-${variant}`}>{value.toFixed(2)}</span>
+                <span className="text-muted small ms-1">{unit}</span>
             </div>
 
-            <ProgressBar now={percent} variant="info" className="mb-2" style={{ height: '10px' }} />
+            {/* Status */}
+            <Badge bg={variant} className="mx-auto mb-3">
+                {statusText}
+            </Badge>
 
-            <div className="alert alert-light border-0 shadow-sm d-flex align-items-center p-2 mb-0">
-                <i className="bi bi-lightning-charge-fill text-warning me-2 fs-5"></i>
-                <div>
-                    <div className="fw-bold small">Besin Seviyesi</div>
-                    <div className="text-success small">Normal</div>
-                </div>
+            {/* Info */}
+            <div className="small text-muted mt-auto">
+                Optimal: {optimalMin} - {optimalMax} {unit}
             </div>
         </div>
     );

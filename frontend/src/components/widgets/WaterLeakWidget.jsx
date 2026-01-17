@@ -1,35 +1,48 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const WaterLeakWidget = ({ data }) => {
-    const hasData = data && data.value != null;
-    const isLeak = hasData && data.value === 1;
+const WaterLeakWidget = ({ data, settings = {} }) => {
+    const detected = data?.value ?? null;
+    const { criticalAlert = true } = settings;
 
-    if (!hasData) {
+    // No data state
+    if (detected === null) {
         return (
-            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
-                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                <small>Veri Bekleniyor...</small>
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>💧</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
             </div>
         );
     }
 
+    const hasLeak = detected === 1 || detected === true;
+
     return (
-        <div className={`d-flex flex-column h-100 p-2 justify-content-center text-center ${isLeak ? 'bg-danger text-white' : 'bg-white'}`}>
-            <div className={`rounded-circle p-4 mx-auto mb-3 ${isLeak ? 'bg-white text-danger' : 'bg-success bg-opacity-10 text-success'}`}>
-                <i className={`bi ${isLeak ? 'bi-moisture' : 'bi-droplet'} display-4`}></i>
+        <div className={`d-flex flex-column h-100 p-2 justify-content-center text-center ${hasLeak ? 'bg-danger bg-opacity-10' : ''}`}>
+            {/* Leak Icon */}
+            <div
+                className="mb-3"
+                style={{
+                    fontSize: '3rem',
+                    animation: hasLeak ? 'pulse 0.5s infinite' : 'none'
+                }}
+            >
+                {hasLeak ? '🚿' : '✓'}
             </div>
 
-            <h3 className="fw-bold mb-2">
-                {isLeak ? 'SU KAÇAĞI!' : 'NORMAL'}
-            </h3>
+            {/* Status */}
+            <Badge
+                bg={hasLeak ? 'danger' : 'success'}
+                className="mx-auto px-4 py-2 fs-6"
+            >
+                {hasLeak ? 'SU SIZINTISI!' : 'NORMAL'}
+            </Badge>
 
-            <p className={isLeak ? 'text-white-50' : 'text-muted'}>
-                {isLeak ? 'Acil müdahale gerekli!' : 'Tüm bölgeler kuru ve güvenli.'}
-            </p>
-
-            <div className={`small border-top pt-2 mt-2 ${isLeak ? 'border-white border-opacity-25' : 'text-muted'}`}>
-                Son kontrol: {data.ts ? new Date(data.ts).toLocaleTimeString() : 'Bilinmiyor'}
-            </div>
+            {hasLeak && criticalAlert && (
+                <div className="mt-3 text-danger small fw-bold">
+                    ⚠️ Acil müdahale gerekli!
+                </div>
+            )}
         </div>
     );
 };

@@ -1,30 +1,53 @@
 import React from 'react';
-import { ProgressBar } from 'react-bootstrap';
+import { Badge } from 'react-bootstrap';
 
-const WaterQualityWidget = ({ data }) => {
-    const ph = data?.ph || 6.5;
-    const ec = data?.ec || 1.8; // mS/cm
+const WaterQualityWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { ppmMax = 500, goodMax = 150 } = settings;
+
+    // No data state
+    if (value === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>💧</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    let variant = 'success';
+    let statusText = 'İyi';
+    let icon = '✨';
+
+    if (value > ppmMax) {
+        variant = 'danger';
+        statusText = 'Kötü';
+        icon = '⚠️';
+    } else if (value > goodMax) {
+        variant = 'warning';
+        statusText = 'Orta';
+        icon = '~';
+    }
 
     return (
-        <div className="d-flex flex-column h-100 p-2 justify-content-center">
-            <div className="mb-3">
-                <div className="d-flex justify-content-between mb-1 align-items-end">
-                    <span className="fw-bold">pH Değeri</span>
-                    <span>{ph} <i className="bi bi-check-circle-fill text-success small ms-1"></i></span>
-                </div>
-                <ProgressBar now={(ph / 14) * 100} variant="success" style={{ height: '8px' }} />
+        <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
+            {/* Icon */}
+            <div className="mb-2" style={{ fontSize: '2rem' }}>{icon}</div>
+
+            {/* TDS Value */}
+            <div className="mb-2">
+                <span className={`display-6 fw-bold text-${variant}`}>{value.toFixed(0)}</span>
+                <span className="text-muted small ms-1">ppm</span>
             </div>
 
-            <div>
-                <div className="d-flex justify-content-between mb-1 align-items-end">
-                    <span className="fw-bold">EC Değeri</span>
-                    <span>{ec} mS/cm <i className="bi bi-check-circle-fill text-success small ms-1"></i></span>
-                </div>
-                <ProgressBar now={(ec / 3) * 100} variant="info" style={{ height: '8px' }} />
-            </div>
+            {/* Status */}
+            <Badge bg={variant} className="mx-auto">
+                {statusText} Kalite
+            </Badge>
 
-            <div className="mt-3 text-center">
-                <small className="text-success fw-bold"><i className="bi bi-shield-check me-1"></i> Su kalitesi uygun</small>
+            {/* Info */}
+            <div className="small text-muted mt-auto">
+                İyi: &lt;{goodMax} ppm
             </div>
         </div>
     );

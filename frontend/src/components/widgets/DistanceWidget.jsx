@@ -1,41 +1,53 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const DistanceWidget = ({ data }) => {
-    const hasData = data && data.value != null;
-    const distance = hasData ? data.value : 0;
+const DistanceWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { maxDistance = 400, unit = 'cm', warningThreshold = 50 } = settings;
 
-    // If no data, render waiting state
-    if (!hasData) {
+    // No data state
+    if (value === null) {
         return (
-            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
-                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                <small>Veri Bekleniyor...</small>
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>📏</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
             </div>
         );
     }
 
-    const isOpen = distance > 20;
+    const percentage = Math.min((value / maxDistance) * 100, 100);
+    const isClose = value <= warningThreshold;
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-            <div className="mb-3">
-                <div className={`p-3 rounded-circle d-inline-block ${isOpen ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'}`}>
-                    <i className={`bi ${isOpen ? 'bi-door-open-fill' : 'bi-door-closed-fill'} display-4`}></i>
-                </div>
+            {/* Distance Value */}
+            <div className="mb-2">
+                <span className={`display-5 fw-bold ${isClose ? 'text-warning' : 'text-primary'}`}>
+                    {value.toFixed(1)}
+                </span>
+                <span className="text-muted small ms-1">{unit}</span>
             </div>
 
-            <div className="mb-3">
-                <h4 className={isOpen ? 'text-danger fw-bold' : 'text-success fw-bold'}>
-                    {isOpen ? 'AÇIK' : 'KAPALI'}
-                </h4>
-                <div className="text-muted small">
-                    Mesafe: <span className="fw-bold text-dark">{distance} cm</span>
-                </div>
-            </div>
+            {/* Status */}
+            <Badge bg={isClose ? 'warning' : 'primary'} className="mx-auto mb-3">
+                {isClose ? 'Yakın' : 'Normal'}
+            </Badge>
 
-            <div className="alert alert-light border shadow-sm py-1 px-2 m-0 d-flex align-items-center justify-content-center gap-2">
-                <i className="bi bi-clock-history text-muted"></i>
-                <small className="text-muted">Son veri: <strong>{data.ts ? new Date(data.ts).toLocaleTimeString() : 'Az önce'}</strong></small>
+            {/* Distance Bar */}
+            <div className="mt-auto px-2">
+                <div className="bg-light rounded" style={{ height: '12px', overflow: 'hidden' }}>
+                    <div
+                        className={`h-100 ${isClose ? 'bg-warning' : 'bg-primary'}`}
+                        style={{
+                            width: `${percentage}%`,
+                            transition: 'width 0.3s ease'
+                        }}
+                    ></div>
+                </div>
+                <div className="d-flex justify-content-between mt-1 small text-muted">
+                    <span>0</span>
+                    <span>{maxDistance} {unit}</span>
+                </div>
             </div>
         </div>
     );

@@ -1,48 +1,93 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const SoilPHWidget = ({ data }) => {
-    const ph = data?.value || 6.8;
-    const min = 5.5;
-    const max = 7.5;
+const SoilPHWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { optimalMin = 6.0, optimalMax = 7.5 } = settings;
 
-    // Normalize percentage
-    const percent = Math.min(Math.max(((ph - min) / (max - min)) * 100, 0), 100);
+    // No data state
+    if (value === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🧪</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    let variant = 'success';
+    let statusText = 'Optimal';
+
+    if (value < 4.5) {
+        variant = 'danger';
+        statusText = 'Çok Asidik';
+    } else if (value < optimalMin) {
+        variant = 'warning';
+        statusText = 'Asidik';
+    } else if (value > 9.5) {
+        variant = 'danger';
+        statusText = 'Çok Bazik';
+    } else if (value > optimalMax) {
+        variant = 'warning';
+        statusText = 'Bazik';
+    }
+
+    // Calculate position on pH scale (0-14)
+    const position = (value / 14) * 100;
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-            <div className="mb-3">
-                <span className="display-6 fw-bold text-dark">{ph}</span>
-                <span className="ms-2 badge bg-success align-top small" style={{ fontSize: '0.8rem' }}>İdeal</span>
+            {/* pH Value */}
+            <div className="mb-2">
+                <span className={`display-5 fw-bold text-${variant}`}>{value.toFixed(1)}</span>
+                <span className="text-muted small ms-1">pH</span>
             </div>
 
-            {/* Gradient Bar */}
-            <div className="position-relative mx-3 mb-2">
-                <div style={{
-                    height: '8px',
-                    borderRadius: '4px',
-                    background: 'linear-gradient(90deg, #ffc107 0%, #198754 50%, #0d6efd 100%)', // Acid(Yellow) -> Neutral(Green) -> Base(Blue) approximation
-                    width: '100%'
-                }}></div>
+            {/* Status */}
+            <Badge bg={variant} className="mx-auto mb-3">
+                {statusText}
+            </Badge>
 
-                {/* Indicator */}
-                <div style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    left: `${percent}%`,
-                    width: '4px',
-                    height: '20px',
-                    background: '#333',
-                    transform: 'translateX(-50%)',
-                }}></div>
-            </div>
+            {/* pH Scale */}
+            <div className="mt-auto px-1">
+                <div
+                    className="position-relative"
+                    style={{
+                        height: '16px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(90deg, #dc3545 0%, #fd7e14 15%, #ffc107 30%, #28a745 50%, #17a2b8 70%, #6f42c1 85%, #dc3545 100%)'
+                    }}
+                >
+                    {/* Optimal Range Indicator */}
+                    <div
+                        className="position-absolute border border-2 border-dark"
+                        style={{
+                            left: `${(optimalMin / 14) * 100}%`,
+                            width: `${((optimalMax - optimalMin) / 14) * 100}%`,
+                            top: '-2px',
+                            bottom: '-2px',
+                            borderRadius: '4px'
+                        }}
+                    ></div>
 
-            <div className="d-flex justify-content-between mx-3 text-muted small fw-bold" style={{ fontSize: '0.7rem' }}>
-                <span>Asidik</span>
-                <span>Bazik</span>
-            </div>
-            <div className="d-flex justify-content-between mx-3 text-muted small mt-1" style={{ fontSize: '0.7rem' }}>
-                <span>{min}</span>
-                <span>{max}</span>
+                    {/* Current Value Indicator */}
+                    <div
+                        className="position-absolute bg-dark"
+                        style={{
+                            left: `${position}%`,
+                            transform: 'translateX(-50%)',
+                            top: '-8px',
+                            width: '3px',
+                            height: 'calc(100% + 16px)',
+                            borderRadius: '2px'
+                        }}
+                    ></div>
+                </div>
+                <div className="d-flex justify-content-between mt-1 small text-muted">
+                    <span>0 (Asit)</span>
+                    <span>7</span>
+                    <span>14 (Baz)</span>
+                </div>
             </div>
         </div>
     );

@@ -1,57 +1,94 @@
 import React, { useState } from 'react';
-import { Button, ButtonGroup } from 'react-bootstrap';
+import { Form, Badge, Button } from 'react-bootstrap';
 
-const ServoWidget = ({ data }) => {
-    const [position, setPosition] = useState(0);
-    const hasData = data && data.value != null;
+const ServoWidget = ({ data, settings = {}, onCommand }) => {
+    const currentAngle = data?.value ?? null;
+    const { minAngle = 0, maxAngle = 180, step = 1 } = settings;
 
-    React.useEffect(() => {
-        if (hasData) {
-            setPosition(Number(data.value));
+    const [angle, setAngle] = useState(currentAngle ?? minAngle);
+
+    const handleChange = async (newAngle) => {
+        setAngle(newAngle);
+
+        if (onCommand) {
+            try {
+                await onCommand({
+                    type: 'servo',
+                    angle: newAngle
+                });
+            } catch (error) {
+                console.error('Servo command failed:', error);
+            }
         }
-    }, [data]);
+    };
 
-    if (!hasData) {
-        return (
-            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-muted">
-                <div className="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
-                <small>Veri Bekleniyor...</small>
-            </div>
-        );
-    }
+    // Calculate rotation for visual
+    const rotation = ((angle - minAngle) / (maxAngle - minAngle)) * 180;
 
     return (
         <div className="d-flex flex-column h-100 p-2">
-            <div className="text-center mb-3">
-                <h2 className="mb-0 fw-bold">{position}%</h2>
-                <small className="text-muted">Açıklık</small>
-            </div>
+            {/* Servo Visual */}
+            <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                <div className="position-relative" style={{ width: '100px', height: '60px' }}>
+                    {/* Base */}
+                    <div
+                        className="position-absolute bottom-0 start-50 translate-middle-x bg-secondary"
+                        style={{ width: '40px', height: '20px', borderRadius: '4px' }}
+                    ></div>
 
-            {/* Window Visual */}
-            <div className="flex-grow-1 mx-auto bg-light border border-2 border-secondary rounded position-relative mb-3 overflow-hidden"
-                style={{ width: '100px', height: '80px', perspective: '200px' }}>
-
-                {/* Window Frame */}
-                <div className="w-100 h-100 position-absolute border border-secondary" style={{ opacity: 0.2 }}></div>
-
-                {/* Moving Pane - Rotates based on percentage */}
-                <div className="bg-info bg-opacity-25 border border-info w-100 h-100 shadow-sm"
-                    style={{
-                        transformOrigin: 'bottom center',
-                        transform: `rotateX(${-position}deg)`,
-                        transition: 'transform 0.5s ease',
-                        backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.5) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.5) 75%, transparent 75%, transparent)',
-                        backgroundSize: '10px 10px'
-                    }}>
+                    {/* Arm */}
+                    <div
+                        className="position-absolute bg-primary"
+                        style={{
+                            width: '8px',
+                            height: '45px',
+                            bottom: '15px',
+                            left: '50%',
+                            transformOrigin: 'bottom center',
+                            transform: `translateX(-50%) rotate(${rotation - 90}deg)`,
+                            borderRadius: '4px',
+                            transition: 'transform 0.3s ease'
+                        }}
+                    >
+                        <div
+                            className="position-absolute bg-white rounded-circle"
+                            style={{ width: '12px', height: '12px', top: '-6px', left: '-2px' }}
+                        ></div>
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-auto">
-                <ButtonGroup className="w-100 shadow-sm">
-                    <Button variant="outline-primary" size="sm" onClick={() => setPosition(100)}>Aç</Button>
-                    <Button variant="outline-success" size="sm" onClick={() => setPosition(45)}>Auto</Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => setPosition(0)}>Kapat</Button>
-                </ButtonGroup>
+            {/* Angle Display */}
+            <div className="text-center mb-2">
+                <span className="h4 fw-bold text-primary">{angle}°</span>
+            </div>
+
+            {/* Slider */}
+            <div className="px-2">
+                <Form.Range
+                    min={minAngle}
+                    max={maxAngle}
+                    step={step}
+                    value={angle}
+                    onChange={(e) => handleChange(parseInt(e.target.value))}
+                />
+                <div className="d-flex justify-content-between small text-muted">
+                    <span>{minAngle}°</span>
+                    <span>{maxAngle}°</span>
+                </div>
+            </div>
+
+            {/* Quick Positions */}
+            <div className="d-flex gap-1 mt-2 justify-content-center">
+                <Button size="sm" variant="outline-secondary" onClick={() => handleChange(minAngle)}>
+                    {minAngle}°
+                </Button>
+                <Button size="sm" variant="outline-secondary" onClick={() => handleChange((minAngle + maxAngle) / 2)}>
+                    90°
+                </Button>
+                <Button size="sm" variant="outline-secondary" onClick={() => handleChange(maxAngle)}>
+                    {maxAngle}°
+                </Button>
             </div>
         </div>
     );

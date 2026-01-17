@@ -1,32 +1,61 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const AirQualityWidget = ({ data }) => {
-    const voc = data?.voc || 125; // ppb
-    const pm25 = data?.pm25 || 12; // ug/m3
+const AirQualityWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { goodMax = 50, moderateMax = 100, unhealthyMax = 150 } = settings;
 
-    let status = 'İYİ';
-    let color = 'success';
-    // Mock logic
-    if (pm25 > 35) { status = 'ORTA'; color = 'warning'; }
-    if (pm25 > 55) { status = 'KÖTÜ'; color = 'danger'; }
+    // No data state
+    if (value === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🌫️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    let variant = 'success';
+    let statusText = 'İyi';
+    let icon = '😊';
+
+    if (value > unhealthyMax) {
+        variant = 'danger';
+        statusText = 'Sağlıksız';
+        icon = '😷';
+    } else if (value > moderateMax) {
+        variant = 'warning';
+        statusText = 'Hassas';
+        icon = '😐';
+    } else if (value > goodMax) {
+        variant = 'info';
+        statusText = 'Orta';
+        icon = '🙂';
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-            <div className="mb-3">
-                <div className="text-muted fw-bold small">GENEL DURUM</div>
-                <div className={`h2 fw-bold text-${color}`}>{status}</div>
-                <div className={`bg-${color} rounded-circle mx-auto mt-2`} style={{ width: '20px', height: '20px', boxShadow: `0 0 10px var(--bs-${color})` }}></div>
+            {/* Icon */}
+            <div className="mb-2" style={{ fontSize: '2.5rem' }}>{icon}</div>
+
+            {/* AQI Value */}
+            <div className="mb-1">
+                <span className={`display-6 fw-bold text-${variant}`}>{value.toFixed(0)}</span>
+                <span className="text-muted small ms-1">AQI</span>
             </div>
 
-            <div className="d-flex justify-content-center gap-3 border-top pt-3">
-                <div className="text-start">
-                    <div className="small text-muted fw-bold">VOC</div>
-                    <div className="h5 mb-0">{voc} <small className="text-muted fs-6">ppb</small></div>
-                </div>
-                <div className="vr"></div>
-                <div className="text-start">
-                    <div className="small text-muted fw-bold">PM2.5</div>
-                    <div className="h5 mb-0">{pm25} <small className="text-muted fs-6">µg/m³</small></div>
+            {/* Status Badge */}
+            <Badge bg={variant} className="mx-auto">
+                {statusText}
+            </Badge>
+
+            {/* Scale */}
+            <div className="mt-auto px-1">
+                <div className="d-flex" style={{ height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div className="bg-success" style={{ flex: goodMax }}></div>
+                    <div className="bg-info" style={{ flex: moderateMax - goodMax }}></div>
+                    <div className="bg-warning" style={{ flex: unhealthyMax - moderateMax }}></div>
+                    <div className="bg-danger" style={{ flex: 100 }}></div>
                 </div>
             </div>
         </div>

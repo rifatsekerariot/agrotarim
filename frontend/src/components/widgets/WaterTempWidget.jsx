@@ -1,57 +1,61 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 
-const WaterTempWidget = ({ data }) => {
-    // Re-using SoilTemp logic but optimized for water specific visuals (blue theme)
-    const temp = data?.value || 22.5;
-    const min = 15;
-    const max = 30;
-    const idealMin = 18;
-    const idealMax = 24;
+const WaterTempWidget = ({ data, settings = {} }) => {
+    const value = data?.value ?? null;
+    const { idealMin = 18, idealMax = 24 } = settings;
 
-    const percent = Math.min(Math.max(((temp - min) / (max - min)) * 100, 0), 100);
+    // No data state
+    if (value === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>🌡️</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    let variant = 'success';
+    let statusText = 'İdeal';
+    let icon = '✓';
+
+    if (value < idealMin - 5) {
+        variant = 'primary';
+        statusText = 'Çok Soğuk';
+        icon = '❄️';
+    } else if (value < idealMin) {
+        variant = 'info';
+        statusText = 'Soğuk';
+        icon = '🌊';
+    } else if (value > idealMax + 5) {
+        variant = 'danger';
+        statusText = 'Çok Sıcak';
+        icon = '🔥';
+    } else if (value > idealMax) {
+        variant = 'warning';
+        statusText = 'Sıcak';
+        icon = '☀️';
+    }
 
     return (
         <div className="d-flex flex-column h-100 p-2 justify-content-center text-center">
-            <div className="mb-4">
-                <span className="display-6 fw-bold text-dark">{temp}</span>
-                <span className="fs-5 text-muted">°C</span>
+            {/* Icon */}
+            <div className="mb-2" style={{ fontSize: '2rem' }}>{icon}</div>
+
+            {/* Temperature Value */}
+            <div className="mb-2">
+                <span className={`display-5 fw-bold text-${variant}`}>{value.toFixed(1)}</span>
+                <span className="text-muted small ms-1">°C</span>
             </div>
 
-            <div className="position-relative mb-2 mx-3">
-                <div style={{ height: '6px', background: '#e9ecef', borderRadius: '3px', width: '100%' }}></div>
+            {/* Status */}
+            <Badge bg={variant} className="mx-auto mb-3">
+                {statusText}
+            </Badge>
 
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: `${((idealMin - min) / (max - min)) * 100}%`,
-                    width: `${((idealMax - idealMin) / (max - min)) * 100}%`,
-                    height: '6px',
-                    background: '#0d6efd',
-                    opacity: 0.3,
-                    borderRadius: '2px'
-                }}></div>
-
-                <div style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    left: `${percent}%`,
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    background: '#0d6efd',
-                    border: '3px solid #fff',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    transform: 'translateX(-50%)'
-                }}></div>
-
-                <div className="d-flex justify-content-between mt-2 text-muted small" style={{ fontSize: '0.75rem' }}>
-                    <span>{min}°</span>
-                    <span>{max}°</span>
-                </div>
-            </div>
-
-            <div className="mt-2 text-center">
-                <span className="badge bg-primary rounded-pill">İdeal</span>
+            {/* Ideal Range */}
+            <div className="small text-muted mt-auto">
+                İdeal: {idealMin}°C - {idealMax}°C
             </div>
         </div>
     );

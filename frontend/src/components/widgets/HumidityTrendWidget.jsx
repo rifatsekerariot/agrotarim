@@ -1,38 +1,71 @@
 import React from 'react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
+import { Badge } from 'react-bootstrap';
 
-const HumidityTrendWidget = ({ data }) => {
-    const hum = data?.value || 68;
-    const min = 45;
-    const max = 85;
-    // Mock sparkline 24h
-    const chartData = [80, 78, 75, 70, 65, 60, 55, 50, 55, 60, 65, 68].map(v => ({ v }));
+const HumidityTrendWidget = ({ data, settings = {} }) => {
+    const currentValue = data?.value ?? null;
+    const history = data?.history ?? [];
+    const { warningLow = 30, warningHigh = 80 } = settings;
+
+    // No data state
+    if (currentValue === null) {
+        return (
+            <div className="d-flex flex-column h-100 p-2 justify-content-center align-items-center text-center">
+                <div className="text-muted mb-2" style={{ fontSize: '2rem' }}>💧</div>
+                <p className="text-muted mb-0 small">Sensör Bağlı Değil</p>
+            </div>
+        );
+    }
+
+    // Generate mock history if not provided
+    const chartData = history.length > 0
+        ? history
+        : Array.from({ length: 12 }, (_, i) => ({
+            time: i,
+            value: currentValue + (Math.random() - 0.5) * 10
+        }));
+
+    // Determine status
+    let status = 'Normal';
+    let variant = 'success';
+    if (currentValue < warningLow) { status = 'Düşük'; variant = 'warning'; }
+    if (currentValue > warningHigh) { status = 'Yüksek'; variant = 'warning'; }
 
     return (
         <div className="d-flex flex-column h-100 p-2">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-                <span className="text-muted small fw-bold">Şimdi</span>
-                <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill">↘️ Düşüyor</span>
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <span className="h4 fw-bold text-info mb-0">{currentValue.toFixed(0)}%</span>
+                </div>
+                <Badge bg={variant}>
+                    {status}
+                </Badge>
             </div>
-            <div className="h1 fw-bold text-dark mb-3">{hum}%</div>
 
-            <div className="flex-grow-1" style={{ minHeight: '40px' }}>
+            {/* Chart */}
+            <div className="flex-grow-1" style={{ minHeight: '60px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                        <defs>
-                            <linearGradient id="colorHum" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#0d6efd" stopOpacity={0.5} />
-                                <stop offset="95%" stopColor="#0d6efd" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <Area type="monotone" dataKey="v" stroke="#0d6efd" strokeWidth={2} fillOpacity={1} fill="url(#colorHum)" />
-                    </AreaChart>
+                    <LineChart data={chartData}>
+                        <YAxis domain={[0, 100]} hide />
+                        <Tooltip
+                            formatter={(value) => [`${value.toFixed(0)}%`, 'Nem']}
+                            contentStyle={{ fontSize: '12px' }}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#17a2b8"
+                            strokeWidth={2}
+                            dot={false}
+                        />
+                    </LineChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className="d-flex justify-content-between small text-muted mt-2 pt-2 border-top">
-                <span>Min: {min}%</span>
-                <span>Max: {max}%</span>
+            {/* Range */}
+            <div className="text-center small text-muted">
+                Optimal: {warningLow}% - {warningHigh}%
             </div>
         </div>
     );
