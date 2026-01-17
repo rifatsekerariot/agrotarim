@@ -186,6 +186,34 @@ const Settings = () => {
         } catch (e) { alert('❌ Hata'); }
     };
 
+    // ========== SMS PROVIDERS ACTIONS ==========
+    const handleTestSmsProvider = async (id, phoneNumber) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/sms/providers/${id}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ testPhoneNumber: phoneNumber })
+        });
+        if (!res.ok) throw new Error('Test SMS gönderilemedi');
+    };
+
+    const handleDeleteSmsProvider = async (id) => {
+        if (!window.confirm('Bu SMS provider\'ı silmek istediğinizden emin misiniz?')) return;
+        const token = localStorage.getItem('token');
+        await fetch(`/api/sms/providers/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        fetchAll();
+    };
+
+    const handleEditSmsProvider = (provider) => {
+        alert('SMS Provider düzenleme özelliği yakında eklenecek. Provider: ' + provider.displayName);
+    };
+
 
     if (loading) {
         return (
