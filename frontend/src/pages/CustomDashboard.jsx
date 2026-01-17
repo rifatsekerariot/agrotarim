@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Modal, Form, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Button as BSButton, Modal, Form, Badge } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -397,16 +397,16 @@ const CustomDashboard = () => {
                     return (
                         <Col key={w.id} md={colWidth} className="mb-4">
                             <div style={{ position: 'relative', height: '100%' }}>
-                                <div style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.8 }} className="d-flex gap-1">
-                                    <Button size="sm" variant="light" className="border shadow-sm p-0 px-2" title="Küçült"
+                                <div style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.9 }} className="d-flex gap-1">
+                                    <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Küçült"
                                         onClick={() => resizeWidget(w.id, -1)} disabled={colWidth <= 3}>
-                                        <i className="bi bi-dash-lg"></i>
+                                        <i className="bi bi-dash-lg fw-bold"></i>
                                     </Button>
-                                    <Button size="sm" variant="light" className="border shadow-sm p-0 px-2" title="Büyüt"
+                                    <Button size="sm" variant="light" className="border shadow-sm py-0 px-2" title="Büyüt"
                                         onClick={() => resizeWidget(w.id, 1)} disabled={colWidth >= 12}>
-                                        <i className="bi bi-plus-lg"></i>
+                                        <i className="bi bi-plus-lg fw-bold"></i>
                                     </Button>
-                                    <Button size="sm" variant="danger" className="shadow-sm p-0 px-2"
+                                    <Button size="sm" variant="danger" className="shadow-sm py-0 px-2"
                                         onClick={() => removeWidget(w.id)}>
                                         <i className="bi bi-x-lg"></i>
                                     </Button>
