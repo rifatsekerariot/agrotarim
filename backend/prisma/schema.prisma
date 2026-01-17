@@ -27,6 +27,7 @@ model Farm {
   plantingDate DateTime?
   devices     Device[]
   alertRules  AlertRule[]
+  dashboardConfig Json?    // Stores custom dashboard layout: { widgets: [] }
   created_at  DateTime @default(now())
 }
 
@@ -34,7 +35,7 @@ model Farm {
 model Device {
   id            Int      @id @default(autoincrement())
   farmId        Int
-  farm          Farm     @relation(fields: [farmId], references: [id])
+  farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
   name          String   // e.g. "North Field Station"
   serialNumber  String   @unique // MAC or Unique Hardware ID
   model         String?  // e.g. "AgroNode-V1"
@@ -57,7 +58,7 @@ model Device {
 model Sensor {
   id          Int      @id @default(autoincrement())
   deviceId    Int
-  device      Device   @relation(fields: [deviceId], references: [id])
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   
   name        String   // User friendly name: "Soil Sensor 1"
   code        String   // System identifier: "soil_vwc_1", "air_temp"
@@ -72,7 +73,7 @@ model Sensor {
 model Telemetry {
   id        BigInt   @id @default(autoincrement()) // BigInt for millions of rows
   sensorId  Int
-  sensor    Sensor   @relation(fields: [sensorId], references: [id])
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
   
   value     Float
   timestamp DateTime @default(now())

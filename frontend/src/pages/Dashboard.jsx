@@ -127,6 +127,9 @@ const Dashboard = () => {
                     <span className="fs-6 ms-2 badge bg-success text-white">PRO</span>
                 </h1>
                 <div>
+                    <Button variant="outline-success" className="me-2" onClick={() => navigate('/custom')}>
+                        <i className="bi bi-grid-1x2-fill"></i> Özel Panel
+                    </Button>
                     <Button variant="outline-primary" className="me-2" onClick={() => navigate('/settings')}>
                         <i className="bi bi-gear-fill"></i> Ayarlar
                     </Button>

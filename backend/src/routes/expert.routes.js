@@ -39,4 +39,34 @@ router.post('/:farmId/config', async (req, res) => {
     }
 });
 
+// GET Dashboard Layout
+router.get('/:farmId/dashboard', async (req, res) => {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    try {
+        const farm = await prisma.farm.findUnique({
+            where: { id: parseInt(req.params.farmId) },
+            select: { dashboardConfig: true }
+        });
+        res.json(farm?.dashboardConfig || { widgets: [] });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// SAVE Dashboard Layout
+router.post('/:farmId/dashboard', async (req, res) => {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    try {
+        await prisma.farm.update({
+            where: { id: parseInt(req.params.farmId) },
+            data: { dashboardConfig: req.body }
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 module.exports = router;

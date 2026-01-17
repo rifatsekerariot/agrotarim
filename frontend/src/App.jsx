@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import Settings from './pages/Settings';
+import CustomDashboard from './pages/CustomDashboard';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -38,6 +39,14 @@ function App() {
                     element={
                         <PrivateRoute>
                             <Settings />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/custom"
+                    element={
+                        <PrivateRoute>
+                            <CustomDashboard />
                         </PrivateRoute>
                     }
                 />
