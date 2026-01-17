@@ -41,6 +41,10 @@ model Device {
   model         String?  // e.g. "AgroNode-V1"
   firmwareVer   String?
   
+  // Location
+  latitude      Float?
+  longitude     Float?
+
   // Status Monitoring
   batteryLevel  Int?     // Percentage
   signalQuality Int?     // RSSI or percentage

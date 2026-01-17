@@ -19,7 +19,7 @@ exports.getDevices = async (req, res) => {
 
 exports.createDevice = async (req, res) => {
     try {
-        const { name, serialNumber, model, farmId, telemetryMappings } = req.body;
+        const { name, serialNumber, model, farmId, telemetryMappings, latitude, longitude } = req.body;
 
         // Ensure Farm exists
         let targetFarmId = farmId;
@@ -35,6 +35,8 @@ exports.createDevice = async (req, res) => {
                 model,
                 farmId: parseInt(targetFarmId),
                 telemetryMappings: telemetryMappings || {},
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null,
                 status: 'offline'
             }
         });
@@ -47,13 +49,15 @@ exports.createDevice = async (req, res) => {
 exports.updateDevice = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, telemetryMappings } = req.body;
+        const { name, telemetryMappings, latitude, longitude } = req.body;
 
         const device = await prisma.device.update({
             where: { id: parseInt(id) },
             data: {
                 name,
-                telemetryMappings
+                telemetryMappings,
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null
             }
         });
         res.json(device);

@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Modal, Form, Badge } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet Marker Icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // --- Widget Components ---
 
@@ -49,6 +60,7 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!deviceSerial) return;
         fetchHistory();
         const interval = setInterval(fetchHistory, 30000); // Update every 30s
         return () => clearInterval(interval);
@@ -56,22 +68,17 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
 
     const fetchHistory = async () => {
         try {
-            // Fetch last 24h history
             const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=24`);
             const json = await res.json();
 
-            // API returns { "t_air": [...], "h_air": [...] }
-            // We need to extract the specific sensor array and format for Recharts
             if (json[sensorCode]) {
                 const formatted = json[sensorCode].map(apiPoint => ({
                     time: new Date(apiPoint.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     value: apiPoint.value,
-                    timestamp: new Date(apiPoint.timestamp).getTime() // for sorting if needed
-                })).reverse(); // API usually returns newest first? verify. TelemetryService usually sorts desc. Recharts needs asc in X axis usually.
+                    timestamp: new Date(apiPoint.timestamp).getTime()
+                })).reverse();
 
-                // Sort ascending by time
                 formatted.sort((a, b) => a.timestamp - b.timestamp);
-
                 setData(formatted);
             }
         } catch (error) {
@@ -81,11 +88,10 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
         }
     };
 
-    // Determine Color
     let strokeColor = '#8884d8';
-    if (sensorCode.includes('temp') || sensorCode.includes('sicaklik') || title.toLowerCase().includes('sıcaklık')) strokeColor = '#dc3545'; // Red
-    else if (sensorCode.includes('hum') || sensorCode.includes('nem')) strokeColor = '#0dcaf0'; // Blue
-    else if (sensorCode.includes('soil') || sensorCode.includes('toprak')) strokeColor = '#198754'; // Green
+    if (sensorCode.includes('temp') || sensorCode.includes('sicaklik') || (title && title.toLowerCase().includes('sıcaklık'))) strokeColor = '#dc3545';
+    else if (sensorCode.includes('hum') || sensorCode.includes('nem')) strokeColor = '#0dcaf0';
+    else if (sensorCode.includes('soil') || sensorCode.includes('toprak')) strokeColor = '#198754';
 
     return (
         <Card className="h-100 shadow-sm border-0">
@@ -111,26 +117,149 @@ const WidgetChart = ({ deviceSerial, sensorCode, title, unit }) => {
     );
 };
 
+// Helper for Map Clicks
+const MapClickHandler = ({ onMapClick }) => {
+    useMapEvents({
+        click: (e) => {
+            onMapClick(e.latlng);
+        },
+    });
+    return null;
+};
+
+const WidgetMap = ({ widget, devices, telemetry, onUpdate }) => {
+    const [markers, setMarkers] = useState(widget.markers || []);
+    const [isEditing, setIsEditing] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [pendingLoc, setPendingLoc] = useState(null);
+    const [newMarker, setNewMarker] = useState({ deviceId: '', sensorCode: '' });
+
+    // Devices with GPS (optional background reference)
+    const validDevices = devices.filter(d => d.latitude && d.longitude);
+    const center = markers.length > 0 ? [markers[0].lat, markers[0].lng] :
+        (validDevices.length > 0 ? [validDevices[0].latitude, validDevices[0].longitude] : [39.92, 32.85]);
+
+    const handleMapClick = (latlng) => {
+        if (!isEditing) return;
+        setPendingLoc(latlng);
+        setNewMarker({ deviceId: '', sensorCode: '' });
+        setShowModal(true);
+    };
+
+    const saveMarker = () => {
+        const updatedMarkers = [...markers, { ...newMarker, lat: pendingLoc.lat, lng: pendingLoc.lng, id: Date.now() }];
+        setMarkers(updatedMarkers);
+        onUpdate({ ...widget, markers: updatedMarkers });
+        setShowModal(false);
+    };
+
+    const removeMarker = (e, markerId) => {
+        e.stopPropagation();
+        if (!window.confirm("Bu işareti kaldırmak istiyor musunuz?")) return;
+        const updatedMarkers = markers.filter(m => m.id !== markerId);
+        setMarkers(updatedMarkers);
+        onUpdate({ ...widget, markers: updatedMarkers });
+    };
+
+    // Helper to get sensors for selected device in Modal
+    const getSensorsForDevice = (devId) => {
+        const dev = devices.find(d => d.id == devId);
+        if (!dev) return [];
+        const mapped = dev.telemetryMappings ? Object.values(dev.telemetryMappings) : [];
+        const dbSensors = dev.sensors ? dev.sensors.map(s => s.code) : [];
+        return [...new Set([...mapped, ...dbSensors])];
+    };
+
+    return (
+        <Card className="h-100 shadow-sm border-0">
+            <Card.Body className="p-0 d-flex flex-column" style={{ height: '100%' }}>
+                <div className="p-2 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 className="mb-0 text-muted">{widget.title || "İnteraktif Harita"}</h6>
+                        <small className="text-muted" style={{ fontSize: '0.7rem' }}>
+                            {isEditing ? 'Haritaya tıklayarak sensör ekleyin.' : 'Verileri görmek için işaretlere tıklayın.'}
+                        </small>
+                    </div>
+                    <BSButton size="sm" variant={isEditing ? "warning" : "outline-primary"} onClick={() => setIsEditing(!isEditing)}>
+                        {isEditing ? <i className="bi bi-check-lg"></i> : <i className="bi bi-pencil-fill"></i>}
+                    </BSButton>
+                </div>
+                <div style={{ flex: 1, minHeight: '300px' }}>
+                    <MapContainer center={center} zoom={6} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+                        <TileLayer
+                            attribution='&copy; OpenStreetMap contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <MapClickHandler onMapClick={handleMapClick} />
+
+                        {/* Configured Custom Markers */}
+                        {markers.map(m => {
+                            const devTel = telemetry[m.deviceId] || {};
+                            const sensData = devTel[m.sensorCode];
+                            const val = sensData ? sensData.value : '-';
+                            const unit = sensData ? sensData.unit : '';
+                            const devName = devices.find(d => d.id == m.deviceId)?.name || 'Unknown';
+
+                            return (
+                                <Marker key={m.id} position={[m.lat, m.lng]}>
+                                    <Popup>
+                                        <div className="text-center">
+                                            <strong>{devName}</strong>
+                                            <div className="text-muted small">{m.sensorCode}</div>
+                                            <h4 className="my-2 text-primary">{val} <small>{unit}</small></h4>
+                                            {isEditing && (
+                                                <BSButton size="sm" variant="danger" onClick={(e) => removeMarker(e, m.id)}>Sil</BSButton>
+                                            )}
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
+                    </MapContainer>
+                </div>
+
+                {/* Local Modal for Marker Adding */}
+                {showModal && (
+                    <div className="position-absolute top-50 start-50 translate-middle bg-white p-3 shadow rounded"
+                        style={{ zIndex: 9999, width: '300px', border: '1px solid #ddd' }}>
+                        <h6>Noktaya Sensör Ata</h6>
+                        <Form.Select className="mb-2"
+                            onChange={e => setNewMarker({ ...newMarker, deviceId: e.target.value, sensorCode: '' })}>
+                            <option value="">Cihaz Seç...</option>
+                            {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </Form.Select>
+                        <Form.Select className="mb-2" disabled={!newMarker.deviceId}
+                            onChange={e => setNewMarker({ ...newMarker, sensorCode: e.target.value })}>
+                            <option value="">Sensör Seç...</option>
+                            {getSensorsForDevice(newMarker.deviceId).map(s => <option key={s} value={s}>{s}</option>)}
+                        </Form.Select>
+                        <div className="d-flex justify-content-end gap-2">
+                            <BSButton size="sm" variant="secondary" onClick={() => setShowModal(false)}>İptal</BSButton>
+                            <BSButton size="sm" variant="success"
+                                disabled={!newMarker.deviceId || !newMarker.sensorCode}
+                                onClick={saveMarker}>Ekle</BSButton>
+                        </div>
+                    </div>
+                )}
+            </Card.Body>
+        </Card>
+    );
+};
+
 const CustomDashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [devices, setDevices] = useState([]);
     const [showModal, setShowModal] = useState(false);
 
-    // Config State
-    const farmId = 1; // Default MVP
+    const farmId = 1;
 
-    // New Widget Form State
-    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCode: '', type: 'chart', title: '' });
+    const [newWidget, setNewWidget] = useState({ deviceId: '', sensorCode: '', type: 'card', title: '', width: 4 });
     const [selectedDeviceSensors, setSelectedDeviceSensors] = useState([]);
-
-    // Live Data Storage for gauges/cards
-    const [telemetry, setTelemetry] = useState({}); // { deviceSerial: { sensors: {...} } }
+    const [telemetry, setTelemetry] = useState({});
 
     useEffect(() => {
         fetchConfig();
         fetchDevices();
-
-        // Poll for live data (MVP approach - could be MQTT over WS)
         const interval = setInterval(fetchLiveData, 5000);
         return () => clearInterval(interval);
     }, []);
@@ -183,7 +312,15 @@ const CustomDashboard = () => {
 
     const handleAddWidget = () => {
         const widget = { ...newWidget, id: Date.now() };
-        // Find unit of selected sensor
+
+        if (widget.type === 'map') {
+            widget.deviceId = 'all';
+            widget.sensorCode = 'location';
+            saveConfig([...widgets, widget]);
+            setShowModal(false);
+            return;
+        }
+
         const device = devices.find(d => d.id == widget.deviceId);
         if (device) {
             widget.serialNumber = device.serialNumber;
@@ -200,13 +337,10 @@ const CustomDashboard = () => {
     };
 
     const handleDeviceSelect = (devId) => {
-        setNewWidget({ ...newWidget, deviceId: devId, sensorCode: '' });
+        setNewWidget({ ...newWidget, deviceId: devId, sensorCode: '', width: 4 });
         const dev = devices.find(d => d.id == devId);
         if (dev) {
-            // Populate sensors
-            // 1. From Mappings logic
             const mapped = dev.telemetryMappings ? Object.values(dev.telemetryMappings) : [];
-            // 2. From DB sensors
             const dbSensors = dev.sensors ? dev.sensors.map(s => s.code) : [];
             const combined = [...new Set([...mapped, ...dbSensors])];
             setSelectedDeviceSensors(combined);
@@ -237,11 +371,13 @@ const CustomDashboard = () => {
                     const ts = sensorData ? sensorData.ts : null;
                     const unit = sensorData ? sensorData.unit : '';
 
+                    const colWidth = w.width || 4;
+
                     return (
-                        <Col key={w.id} md={w.type === 'chart' ? 12 : 4} className="mb-4">
+                        <Col key={w.id} md={colWidth} className="mb-4">
                             <div style={{ position: 'relative', height: '100%' }}>
                                 <Button size="sm" variant="danger"
-                                    style={{ position: 'absolute', right: 5, top: 5, zIndex: 10, opacity: 0.5 }}
+                                    style={{ position: 'absolute', right: 5, top: 5, zIndex: 1000, opacity: 0.5 }}
                                     onClick={() => removeWidget(w.id)}>x</Button>
 
                                 {w.type === 'card' && <WidgetCard data={val} unit={unit} title={w.title || w.sensorCode} lastUpdate={ts} />}
@@ -254,13 +390,13 @@ const CustomDashboard = () => {
                                         unit={unit}
                                     />
                                 )}
+                                {w.type === 'map' && <WidgetMap devices={devices} title={w.title} />}
                             </div>
                         </Col>
                     );
                 })}
             </Row>
 
-            {/* Config Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Yeni Bileşen Oluştur</Modal.Title>
@@ -268,27 +404,43 @@ const CustomDashboard = () => {
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Cihaz Seçin</Form.Label>
-                            <Form.Select onChange={e => handleDeviceSelect(e.target.value)}>
-                                <option value="">Seçiniz...</option>
-                                {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.serialNumber})</option>)}
-                            </Form.Select>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Veri Kaynağı (Sensör)</Form.Label>
-                            <Form.Select onChange={e => setNewWidget({ ...newWidget, sensorCode: e.target.value })}>
-                                <option value="">Seçiniz...</option>
-                                {selectedDeviceSensors.map(s => <option key={s} value={s}>{s}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
                             <Form.Label>Görünüm Tipi</Form.Label>
                             <Form.Select onChange={e => setNewWidget({ ...newWidget, type: e.target.value })}>
-                                <option value="chart">Zaman Grafiği (Line Chart)</option>
                                 <option value="card">Sayı Kartı (Card)</option>
                                 <option value="gauge">İbreli Gösterge (Gauge)</option>
+                                <option value="chart">Zaman Grafiği (Line Chart)</option>
+                                <option value="map">Harita (Map)</option>
+                            </Form.Select>
+                        </Form.Group>
+
+                        {newWidget.type !== 'map' && (
+                            <>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Cihaz Seçin</Form.Label>
+                                    <Form.Select onChange={e => handleDeviceSelect(e.target.value)}>
+                                        <option value="">Seçiniz...</option>
+                                        {devices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.serialNumber})</option>)}
+                                    </Form.Select>
+                                </Form.Group>
+
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Veri Kaynağı (Sensör)</Form.Label>
+                                    <Form.Select onChange={e => setNewWidget({ ...newWidget, sensorCode: e.target.value })}>
+                                        <option value="">Seçiniz...</option>
+                                        {selectedDeviceSensors.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </Form.Select>
+                                </Form.Group>
+                            </>
+                        )}
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Genişlik</Form.Label>
+                            <Form.Select value={newWidget.width} onChange={e => setNewWidget({ ...newWidget, width: parseInt(e.target.value) })}>
+                                <option value="3">Küçük (1/4)</option>
+                                <option value="4">Normal (1/3)</option>
+                                <option value="6">Orta (1/2)</option>
+                                <option value="8">Geniş (2/3)</option>
+                                <option value="12">Tam Ekran (1/1)</option>
                             </Form.Select>
                         </Form.Group>
 
@@ -302,7 +454,7 @@ const CustomDashboard = () => {
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>İptal</Button>
                     <Button variant="primary"
-                        disabled={!newWidget.deviceId || !newWidget.sensorCode}
+                        disabled={newWidget.type !== 'map' && (!newWidget.deviceId || !newWidget.sensorCode)}
                         onClick={handleAddWidget}>Ekle</Button>
                 </Modal.Footer>
             </Modal>

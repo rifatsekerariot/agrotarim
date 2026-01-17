@@ -10,6 +10,8 @@ const Settings = () => {
         name: '',
         serialNumber: '',
         model: '',
+        latitude: '',
+        longitude: '',
         jsonMap: '' // String representation of JSON
     });
 
@@ -46,6 +48,8 @@ const Settings = () => {
             name: formData.name,
             serialNumber: formData.serialNumber,
             model: formData.model,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
             telemetryMappings
         };
 
@@ -78,6 +82,8 @@ const Settings = () => {
             name: device.name,
             serialNumber: device.serialNumber,
             model: device.model || '',
+            latitude: device.latitude || '',
+            longitude: device.longitude || '',
             jsonMap: JSON.stringify(device.telemetryMappings || {}, null, 2)
         });
         setIsEditing(true);
@@ -171,6 +177,19 @@ const Settings = () => {
                                     <label className="form-label">Model (Opsiyonel)</label>
                                     <input type="text" className="form-control"
                                         value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} />
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col">
+                                        <label className="form-label">Enlem (Lat)</label>
+                                        <input type="number" step="any" className="form-control" placeholder="36.8"
+                                            value={formData.latitude} onChange={e => setFormData({ ...formData, latitude: e.target.value })} />
+                                    </div>
+                                    <div className="col">
+                                        <label className="form-label">Boylam (Lon)</label>
+                                        <input type="number" step="any" className="form-control" placeholder="30.7"
+                                            value={formData.longitude} onChange={e => setFormData({ ...formData, longitude: e.target.value })} />
+                                    </div>
                                 </div>
 
                                 <div className="mb-3">
