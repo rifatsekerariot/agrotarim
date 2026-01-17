@@ -129,10 +129,17 @@ router.post('/servers/:id/test', async (req, res) => {
 
         // Test based on server type
         if (server.serverType === 'chirpstack_v4') {
-            // Try to connect to ChirpStack API
             const axios = require('axios');
+
+            // Sanitize host and build URL
+            const cleanHost = server.host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+            const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
+            const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
+
+            console.log(`[LoRa Test] Testing connection to: ${baseUrl}/api/tenants`);
+
             try {
-                const response = await axios.get(`http://${server.host}:${server.port}/api/tenants`, {
+                const response = await axios.get(`${baseUrl}/api/tenants`, {
                     headers: {
                         'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}`
                     },
@@ -151,9 +158,13 @@ router.post('/servers/:id/test', async (req, res) => {
                     tenants: response.data?.result?.length || 0
                 });
             } catch (apiError) {
+                const errMsg = apiError.response?.data?.message || apiError.message;
+                const status = apiError.response?.status || 'N/A';
+                console.error(`[LoRa Test] Failed: ${status} - ${errMsg}`, apiError.config?.url);
+
                 res.status(400).json({
                     success: false,
-                    message: `Bağlantı hatası: ${apiError.message}`
+                    message: `Bağlantı hatası (${status}): ${errMsg}`
                 });
             }
         } else {
@@ -180,31 +191,44 @@ router.post('/servers/:id/sync', async (req, res) => {
 
         try {
             let tenantId = server.tenantId;
-            const baseUrl = `http://${server.host}:${server.port}`;
+            // Sanitize host and build URL
+            const cleanHost = server.host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+            const protocol = server.host.trim().startsWith('https') ? 'https' : 'http';
+            const baseUrl = cleanHost.includes(':') ? `${protocol}://${cleanHost}` : `${protocol}://${cleanHost}:${server.port}`;
 
-            // If no tenant ID configured, try to get it from API
+            console.log(`[LoRa Sync] Starting sync from: ${baseUrl}`);
+
+            const headers = { 'Grpc-Metadata-Authorization': `Bearer ${server.apiKey}` };
+
+            // 1. Fetch Tenant ID if not configured
             if (!tenantId) {
+                console.log(`[LoRa Sync] Fetching tenant ID from ${baseUrl}/api/tenants`);
                 const tenantsRes = await axios.get(`${baseUrl}/api/tenants?limit=1`, { headers, timeout: 10000 });
                 if (tenantsRes.data?.result?.length > 0) {
                     tenantId = tenantsRes.data.result[0].id;
+                    console.log(`[LoRa Sync] Found tenant ID: ${tenantId}`);
                 } else {
                     return res.status(400).json({ success: false, message: 'Tenant bulunamadı. Lütfen Tenant ID girin.' });
                 }
             }
 
-            // Get applications for this tenant
+            // 2. Fetch Applications
+            console.log(`[LoRa Sync] Fetching applications for tenant: ${tenantId}`);
             const appsRes = await axios.get(`${baseUrl}/api/applications?limit=100&tenantId=${tenantId}`, { headers, timeout: 10000 });
             const applications = appsRes.data?.result || [];
 
             if (applications.length === 0) {
+                console.log(`[LoRa Sync] No applications found for tenant ${tenantId}`);
                 return res.json({ success: true, message: 'Hiç Application bulunamadı.', applications: 0 });
             }
 
+            console.log(`[LoRa Sync] Found ${applications.length} applications`);
             let synced = 0;
             let skipped = 0;
 
-            // For each application, get devices
+            // 3. Fetch Devices for each Application
             for (const app of applications) {
+                console.log(`[LoRa Sync] Fetching devices for application: ${app.name} (${app.id})`);
                 const devicesRes = await axios.get(`${baseUrl}/api/devices?limit=100&applicationId=${app.id}`, { headers, timeout: 10000 });
                 const devices = devicesRes.data?.result || [];
 
@@ -241,16 +265,21 @@ router.post('/servers/:id/sync', async (req, res) => {
                 data: { lastSync: new Date() }
             });
 
+            console.log(`[LoRa Sync] Complete. Synced: ${synced}, Updated: ${skipped}`);
             res.json({
                 success: true,
                 message: `${synced} cihaz eklendi, ${skipped} cihaz güncellendi.`,
                 applications: applications.length
             });
         } catch (apiError) {
-            console.error('ChirpStack API Error:', apiError.response?.data || apiError.message);
+            const errMsg = apiError.response?.data?.message || apiError.message;
+            const status = apiError.response?.status || 'N/A';
+            const url = apiError.config?.url || 'N/A';
+            console.error(`[LoRa Sync] Error at ${url}: ${status} - ${errMsg}`);
+
             res.status(400).json({
                 success: false,
-                message: `ChirpStack API hatası: ${apiError.response?.data?.message || apiError.message}`
+                message: `ChirpStack API hatası (${status}): ${errMsg}`
             });
         }
     } catch (error) {
