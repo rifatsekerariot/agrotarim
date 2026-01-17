@@ -2,16 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Card, Button, Alert, Row, Col, Badge, ListGroup } from 'react-bootstrap';
 import { generateExpertAdvice } from '../utils/expertSystem';
 
-const VerifiableAI = ({ riskData }) => {
+const VerifiableAI = ({ riskData, cropType = 'Genel' }) => {
     const [advice, setAdvice] = useState(null);
     const [showProof, setShowProof] = useState(false);
 
     useEffect(() => {
         if (riskData && riskData.raw_data && riskData.risk_report) {
-            const result = generateExpertAdvice(riskData.raw_data, riskData.risk_report);
+            const result = generateExpertAdvice(riskData.raw_data, riskData.risk_report, cropType);
             setAdvice(result);
         }
-    }, [riskData]);
+    }, [riskData, cropType]);
 
     if (!advice) return null;
 
