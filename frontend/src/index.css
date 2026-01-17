@@ -1,3 +1,47 @@
 body {
   background-color: #f8f9fa;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  /* Larger base font for mobile */
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    padding-bottom: 20px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  h5 {
+    font-size: 1.1rem;
+  }
+
+  /* Make buttons easier to tap */
+  .btn {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* Custom scrollbar for tables on mobile */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background-color: #adb5bd;
+  border-radius: 4px;
+}
+
+/* Card Hover Effect */
+.card {
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
 }

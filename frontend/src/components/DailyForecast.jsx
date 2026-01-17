@@ -34,26 +34,26 @@ const DailyForecast = ({ data }) => {
             <Card.Header className="bg-primary text-white">
                 <i className="bi bi-calendar-range me-2"></i> 5 Günlük Tahmin
             </Card.Header>
-            <Card.Body>
-                <Row className="text-center">
+            <Card.Body className="p-2">
+                <div className="d-flex flex-wrap justify-content-around text-center">
                     {days.map((day, idx) => (
-                        <Col key={idx} xs={12} sm={2} className="mb-3 border-end">
-                            <div className="fw-bold text-muted">{formatDate(day.date)}</div>
-                            <div className="fs-1 my-2">
+                        <div key={idx} className="forecast-day-card p-2 mb-2 border rounded shadow-sm bg-white" style={{ minWidth: '130px', flex: '1 1 auto', margin: '5px' }}>
+                            <div className="fw-bold text-muted small">{formatDate(day.date)}</div>
+                            <div className="fs-1 my-1 text-primary">
                                 <i className={`bi ${getIcon(day.hadise)}`}></i>
                             </div>
-                            <div className="fs-5 fw-bold">
-                                <span className="text-danger">{day.max}°</span> / <span className="text-primary">{day.min}°</span>
+                            <div className="fs-5 fw-bold mb-1">
+                                <span className="text-danger">{day.max}°</span> <span className="text-muted">/</span> <span className="text-primary">{day.min}°</span>
                             </div>
-                            <div className="small text-muted">
-                                <i className="bi bi-wind"></i> {day.wind} km/s
+                            <div className="small text-muted mb-1">
+                                <i className="bi bi-wind me-1"></i>{day.wind} km/s
                             </div>
-                            <div className="small mt-1 badge bg-light text-dark border">
+                            <div className="badge bg-light text-dark border text-wrap" style={{ maxWidth: '100px' }}>
                                 {day.hadise}
                             </div>
-                        </Col>
+                        </div>
                     ))}
-                </Row>
+                </div>
             </Card.Body>
         </Card>
     );
