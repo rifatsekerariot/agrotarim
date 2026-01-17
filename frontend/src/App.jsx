@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import Settings from './pages/Settings';
 import CustomDashboard from './pages/CustomDashboard';
+import UserManagement from './pages/UserManagement';
 
 import MainLayout from './components/MainLayout';
 
@@ -49,6 +50,14 @@ function App() {
                     element={
                         <PrivateRoute>
                             <CustomDashboard />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/users"
+                    element={
+                        <PrivateRoute>
+                            <UserManagement />
                         </PrivateRoute>
                     }
                 />

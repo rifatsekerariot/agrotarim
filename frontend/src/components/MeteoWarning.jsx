@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, Button, Modal, ListGroup, Badge } from 'react-bootstrap';
 import { AlertTriangle, Thermometer, Calendar, Zap, Info, ShieldCheck, Snowflake, Wind, Flame } from 'lucide-react';
 
-const MeteoWarning = ({ data, dailyData }) => {
+const MeteoWarning = ({ data, dailyData, alerts }) => {
     const [showMeasures, setShowMeasures] = useState(false);
 
     // 1. Check for Local Frost Risk (Data-Driven from Daily Forecast)
@@ -14,7 +14,7 @@ const MeteoWarning = ({ data, dailyData }) => {
 
         // Check next 3 days
         for (let i = 1; i <= 3; i++) {
-            const minTemp = forecast[`enDusukGun${i} `];
+            const minTemp = forecast[`enDusukGun${i}`];
             if (minTemp !== undefined && minTemp <= 0) {
                 risks.push({ day: i, temp: minTemp });
             }
@@ -34,10 +34,27 @@ const MeteoWarning = ({ data, dailyData }) => {
                 type: severe ? 'Kuvvetli Zirai Don' : 'Zirai Don Riski',
                 minTemp: minVal,
                 severity: severe ? 'Yüksek' : 'Orta',
-                dates: `${startDate.getDate()} - ${endDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} `
+                dates: `${startDate.getDate()} - ${endDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
             };
         }
     }
+
+    // 2. Check for Expert Alerts (If no frost risk, but Expert says Alert)
+    // This ensures consistency with IoTDashboard
+    let expertRisk = null;
+    if (!frostRisk && alerts && alerts.length > 0) {
+        const primaryAlert = alerts[0]; // Take highest priority
+        expertRisk = {
+            type: primaryAlert.msg,
+            minTemp: '-',
+            severity: primaryAlert.level === 'critical' ? 'Yüksek' : 'Orta',
+            dates: 'Anlık Durum',
+            isExternal: true,
+            action: primaryAlert.action
+        };
+    }
+
+    const activeRisk = frostRisk || expertRisk;
 
     const measures = [
         {
@@ -62,8 +79,8 @@ const MeteoWarning = ({ data, dailyData }) => {
         }
     ];
 
-    // Prioritize Frost Risk for this MVP view
-    if (!frostRisk) {
+    // No Risk at all
+    if (!activeRisk) {
         return (
             <Card className="mgm-card mb-4 border-success border-start border-4">
                 <Card.Body className="p-4 d-flex align-items-center">
@@ -72,7 +89,7 @@ const MeteoWarning = ({ data, dailyData }) => {
                     </div>
                     <div>
                         <h6 className="fw-bold mb-1 text-success">Risk Bulunmuyor</h6>
-                        <small className="text-muted">Önümüzdeki günlerde zirai don riski beklenmiyor.</small>
+                        <small className="text-muted">Önümüzdeki günlerde meteorolojik risk beklenmiyor.</small>
                     </div>
                 </Card.Body>
             </Card>
@@ -85,15 +102,15 @@ const MeteoWarning = ({ data, dailyData }) => {
                 <Card.Body className="p-4">
                     <div className="d-flex align-items-center mb-3">
                         <AlertTriangle size={24} className="text-danger me-2" />
-                        <h5 className="fw-bold text-danger mb-0">{frostRisk.type}!</h5>
+                        <h5 className="fw-bold text-danger mb-0">{activeRisk.type}</h5>
                     </div>
 
                     <div className="d-flex flex-column gap-3 mb-4">
                         <div className="d-flex align-items-center">
                             <Thermometer className="text-muted me-3" size={20} />
                             <div>
-                                <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>En Düşük</small>
-                                <span className="fs-5 fw-bold text-dark">{frostRisk.minTemp}°C</span>
+                                <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Değer</small>
+                                <span className="fs-5 fw-bold text-dark">{activeRisk.minTemp !== '-' ? `${activeRisk.minTemp}°C` : 'Kritik'}</span>
                             </div>
                         </div>
 
@@ -101,7 +118,7 @@ const MeteoWarning = ({ data, dailyData }) => {
                             <Calendar className="text-muted me-3" size={20} />
                             <div>
                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Tarih</small>
-                                <span className="fs-6 fw-medium text-dark">{frostRisk.dates}</span>
+                                <span className="fs-6 fw-medium text-dark">{activeRisk.dates}</span>
                             </div>
                         </div>
 
@@ -109,28 +126,36 @@ const MeteoWarning = ({ data, dailyData }) => {
                             <Zap className="text-muted me-3" size={20} />
                             <div>
                                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Etki Seviyesi</small>
-                                <span className={`fs - 6 fw - bold ${frostRisk.severity === 'Yüksek' ? 'text-danger' : 'text-warning'} `}>
-                                    {frostRisk.severity} ({frostRisk.minTemp}°C)
+                                <span className={`fs-6 fw-bold ${activeRisk.severity === 'Yüksek' ? 'text-danger' : 'text-warning'}`}>
+                                    {activeRisk.severity}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="d-grid gap-2">
-                        <Button
-                            variant="danger"
-                            className="border-0 shadow-sm"
-                            style={{ background: '#ef4444' }}
-                            onClick={() => setShowMeasures(true)}
-                        >
-                            Koruyucu Önlemler →
-                        </Button>
-                    </div>
+                    {activeRisk === frostRisk && (
+                        <div className="d-grid gap-2">
+                            <Button
+                                variant="danger"
+                                className="border-0 shadow-sm"
+                                style={{ background: '#ef4444' }}
+                                onClick={() => setShowMeasures(true)}
+                            >
+                                Koruyucu Önlemler →
+                            </Button>
+                        </div>
+                    )}
+
+                    {activeRisk !== frostRisk && activeRisk.action && (
+                        <div className="alert alert-warning mt-2 mb-0 small">
+                            <strong>Öneri:</strong> {activeRisk.action}
+                        </div>
+                    )}
 
                     <div className="mt-3 pt-3 border-top d-flex align-items-start gap-2">
                         <Info size={14} className="text-muted mt-1 flex-shrink-0" />
                         <small className="text-muted" style={{ fontSize: '0.75rem' }}>
-                            MGM tahmin verilerine dayalı otomatik analizdir. Resmi uyarı niteliği taşımaz.
+                            {activeRisk.isExternal ? 'AgroZeka® Akıllı Asistan analizi ile tespit edilmiştir.' : 'MGM tahmin verilerine dayalı otomatik analizdir.'}
                         </small>
                     </div>
                 </Card.Body>
@@ -141,10 +166,12 @@ const MeteoWarning = ({ data, dailyData }) => {
                     <Modal.Title><ShieldCheck className="me-2" /> Zirai Don Korunma Yöntemleri</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-4">
-                    <p className="lead mb-4">
-                        Bölgenizde <strong>{frostRisk.dates}</strong> tarihleri arasında <strong>{frostRisk.minTemp}°C</strong> sıcaklık beklenmektedir.
-                        Ürün kaybını en aza indirmek için aşağıdaki Bakanlık onaylı yöntemleri uygulayabilirsiniz.
-                    </p>
+                    {frostRisk && (
+                        <p className="lead mb-4">
+                            Bölgenizde <strong>{frostRisk.dates}</strong> tarihleri arasında <strong>{frostRisk.minTemp}°C</strong> sıcaklık beklenmektedir.
+                            Ürün kaybını en aza indirmek için aşağıdaki Bakanlık onaylı yöntemleri uygulayabilirsiniz.
+                        </p>
+                    )}
 
                     {measures.map((m, idx) => (
                         <Card key={idx} className={`mb - 3 border - ${m.variant} shadow - sm`}>

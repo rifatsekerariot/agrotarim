@@ -26,6 +26,7 @@ const Dashboard = () => {
     const [hourlyData, setHourlyData] = useState(null);
     const [agriData, setAgriData] = useState(null);
     const [warnings, setWarnings] = useState(null);
+    const [expertAdvice, setExpertAdvice] = useState(null);
 
     // Tab State
     const [activeTab, setActiveTab] = useState('iot');
@@ -34,6 +35,20 @@ const Dashboard = () => {
     const farmId = 1;
 
     useEffect(() => {
+        // Fetch Expert Advice on mount to share with MeteoWarning
+        const fetchExpert = async () => {
+            try {
+                const res = await fetch(`/api/expert/${farmId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setExpertAdvice(data);
+                }
+            } catch (e) {
+                console.error("Expert fetch failed", e);
+            }
+        };
+        fetchExpert();
+
         const fetchProvinces = async () => {
             // ... existing logic ...
             try {
@@ -168,7 +183,7 @@ const Dashboard = () => {
                                 {/* Left Column: Official Warnings & Agri Data */}
                                 <Col lg={6} className="mb-4">
                                     <h6 className="text-uppercase text-muted fw-bold mb-3 small">Meteorolojik Uyarılar ve Tarım</h6>
-                                    <MeteoWarning data={warnings} dailyData={dailyData} />
+                                    <MeteoWarning data={warnings} dailyData={dailyData} alerts={expertAdvice?.alerts} />
                                     <AgriculturalForecast data={agriData} />
 
                                     {/* AI Insight Card (Mock) */}

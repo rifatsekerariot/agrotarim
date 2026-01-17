@@ -41,6 +41,9 @@ const MainLayout = ({ children }) => {
                             <Nav.Link as={Link} to="/settings" className={`px-3 fw-medium ${isActive('/settings') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
                                 <i className="bi bi-gear me-1"></i> Ayarlar
                             </Nav.Link>
+                            <Nav.Link as={Link} to="/users" className={`px-3 fw-medium ${isActive('/users') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
+                                <i className="bi bi-people me-1"></i> Kullanıcılar
+                            </Nav.Link>
                         </Nav>
                         <div className="d-flex align-items-center gap-2">
                             <Button
