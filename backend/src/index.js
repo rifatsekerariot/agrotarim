@@ -63,9 +63,14 @@ app.use((err, req, res, next) => {
 // mqttService.connect();
 
 // Initialize ChirpStack MQTT Service (LoRaWAN servers)
-// Initialize ChirpStack MQTT Service (LoRaWAN servers)
 const chirpStackService = require('./services/chirpstack.service');
-chirpStackService.initialize();
+(async () => {
+    try {
+        await chirpStackService.initialize();
+    } catch (err) {
+        console.error('[Server] ChirpStack initialization failed, server continues:', err.message);
+    }
+})();
 // console.log('[Server] ChirpStack service temporarily disabled');
 
 app.listen(PORT, () => {
