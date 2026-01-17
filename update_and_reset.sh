@@ -15,13 +15,11 @@ docker-compose up -d --build
 echo "⏳ Waiting for Database to be ready..."
 sleep 10
 
-# 4. Database Reset & Migrate
-echo "♻️  Resetting Database and applying new Schema..."
-# --force skips interactive confirmation for data loss
-docker-compose exec -T backend npx prisma migrate reset --force
-
-# 5. Apply Migrations (just in case)
-docker-compose exec -T backend npx prisma migrate deploy
+# 4. Database Reset & Push (Schema Sync)
+echo "♻️  Syncing Database Schema (db push)..."
+# db push updates the schema to match schema.prisma exactly. 
+# --accept-data-loss allows it to delete/recreate tables if needed.
+docker-compose exec -T backend npx prisma db push --accept-data-loss
 
 # 6. Seed Knowledge Base
 echo "🌱 Seeding Crop Knowledge Base..."
