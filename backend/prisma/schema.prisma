@@ -300,3 +300,10 @@ model AlertLog {
   isResolved  Boolean     @default(false)
   resolvedAt  DateTime?
 }
+
+model SystemSetting {
+  key         String   @id
+  value       String   // Encrypted value or JSON
+  description String?
+  updatedAt   DateTime @updatedAt
+}

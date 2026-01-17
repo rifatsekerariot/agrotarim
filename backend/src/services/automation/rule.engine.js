@@ -102,9 +102,14 @@ class RuleEngine {
             }
         });
 
-        // 2. Dispatch Actions (Phase 2 placeholder)
-        // const actions = await prisma.ruleAction.findMany({ where: { ruleId: rule.id } });
-        // ActionDispatcher.dispatch(actions, rule.name, value);
+        // 2. Dispatch Actions
+        const actions = await prisma.ruleAction.findMany({ where: { ruleId: rule.id } });
+        try {
+            const ActionDispatcher = require('./action.dispatcher');
+            await ActionDispatcher.dispatch(actions, rule.name, value);
+        } catch (err) {
+            console.error("Failed to dispatch actions:", err);
+        }
     }
 }
 

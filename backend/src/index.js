@@ -43,7 +43,9 @@ app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/expert', expertRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/lora', loraRoutes);
+app.use('/api/lora', loraRoutes);
 app.use('/api/device-models', deviceModelRoutes);
+app.use('/api/settings', require('./routes/settings.routes'));
 
 app.get('/', (req, res) => {
     res.json({ message: 'AgroMeta API is running', version: '1.0.0' });

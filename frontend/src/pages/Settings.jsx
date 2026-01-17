@@ -25,6 +25,12 @@ const Settings = () => {
     const [testSmsPhone, setTestSmsPhone] = useState('');
     const [smsTestResult, setSmsTestResult] = useState(null);
 
+    // SMTP State
+    const [smtpForm, setSmtpForm] = useState({
+        SMTP_HOST: '', SMTP_PORT: '587', SMTP_USER: '', SMTP_PASS: '', SMTP_SECURE: 'false', SMTP_FROM: ''
+    });
+    const [smtpLoading, setSmtpLoading] = useState(false);
+
     // Modal States
     const [showDeviceModal, setShowDeviceModal] = useState(false);
     const [showServerModal, setShowServerModal] = useState(false);
@@ -49,26 +55,38 @@ const Settings = () => {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Bearer ${token}` };
 
-            const [devRes, serverRes, smsRes] = await Promise.all([
+            const [devRes, serverRes, smsRes, settingsRes] = await Promise.all([
                 fetch('/api/devices'),
                 fetch('/api/lora/servers'),
-                fetch('/api/sms/providers', { headers })
+                fetch('/api/sms/providers', { headers }),
+                fetch('/api/settings', { headers })
             ]);
 
             if (devRes.ok) {
                 const devData = await devRes.json();
                 setDevices(Array.isArray(devData) ? devData : []);
-            } else { setDevices([]); }
+            }
 
             if (serverRes.ok) {
                 const serverData = await serverRes.json();
                 setLoraServers(Array.isArray(serverData) ? serverData : []);
-            } else { setLoraServers([]); }
+            }
 
             if (smsRes.ok) {
                 const smsData = await smsRes.json();
                 setSmsProviders(Array.isArray(smsData) ? smsData : []);
-            } else { setSmsProviders([]); }
+            }
+
+            if (settingsRes.ok) {
+                const settingsData = await settingsRes.json();
+                const newForm = { ...smtpForm };
+                settingsData.forEach(s => {
+                    if (newForm.hasOwnProperty(s.key)) {
+                        newForm[s.key] = s.value;
+                    }
+                });
+                setSmtpForm(newForm);
+            }
         } catch (e) {
             console.error('Fetch error:', e);
             setDevices([]);
@@ -441,23 +459,137 @@ const Settings = () => {
                             </Table>
                         </Card.Body>
                     </Card>
-                </Tab>
+                    {/* ========== SMTP SETTINGS TAB ========== */}
+                    <Tab eventKey="smtp" title={<><MessageSquare size={16} className="me-2" />E-Posta (SMTP)</>}>
+                        <Card className="border-0 shadow-sm">
+                            <Card.Header className="bg-white"><h6 className="mb-0">SMTP Sunucu Ayarları</h6></Card.Header>
+                            <Card.Body>
+                                <Alert variant="info" className="mb-4">
+                                    <small>Not: Gmail kullanıyorsanız "Uygulama Şifresi" (App Password) oluşturmanız gerekebilir.</small>
+                                </Alert>
+                                <Form onSubmit={handleSaveSmtp}>
+                                    <Row className="mb-3">
+                                        <Col md={8}>
+                                            <Form.Group>
+                                                <Form.Label>SMTP Host</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_HOST} onChange={e => setSmtpForm({ ...smtpForm, SMTP_HOST: e.target.value })} placeholder="smtp.gmail.com" />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={4}>
+                                            <Form.Group>
+                                                <Form.Label>Port</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_PORT} onChange={e => setSmtpForm({ ...smtpForm, SMTP_PORT: e.target.value })} />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Kullanıcı Adı (E-posta)</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_USER} onChange={e => setSmtpForm({ ...smtpForm, SMTP_USER: e.target.value })} autoComplete="off" />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Şifre</Form.Label>
+                                                <Form.Control type="password" value={smtpForm.SMTP_PASS} onChange={e => setSmtpForm({ ...smtpForm, SMTP_PASS: e.target.value })} placeholder="Uygulama Şifresi" autoComplete="new-password" />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Gönderen Adı/Email (From)</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_FROM} onChange={e => setSmtpForm({ ...smtpForm, SMTP_FROM: e.target.value })} placeholder='"AgroMeta" <no-reply@domain.com>' />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6} className="d-flex align-items-center pt-3">
+                                            <Form.Check type="switch" label="Güvenli Bağlantı (Secure/True)" checked={smtpForm.SMTP_SECURE === 'true'} onChange={e => setSmtpForm({ ...smtpForm, SMTP_SECURE: e.target.checked.toString() })} />
+                                        </Col>
+                                    </Row>
+                                    <div className="d-flex justify-content-end gap-2">
+                                        <Button variant="primary" type="submit" disabled={smtpLoading}>
+                                            {smtpLoading ? <Spinner size="sm" /> : <><Check size={18} className="me-1" /> Ayarları Kaydet</>}
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Card.Body>
+                        </Card>
+                    </Tab>
 
-                {/* ========== SMS PROVIDERS TAB ========== */}
-                <Tab eventKey="sms" title={<><MessageSquare size={16} className="me-2" />SMS Providers ({smsProviders.length})</>}>
-                    <SmsProvidersTab
-                        providers={smsProviders}
-                        onEdit={handleEditSmsProvider}
-                        onDelete={handleDeleteSmsProvider}
-                        onTest={handleTestSmsProvider}
-                        loading={loading}
-                        onAdd={() => {
-                            setEditingSmsId(null);
-                            setSmsForm({ name: 'netgsm', displayName: '', priority: 50, isActive: false, config: {} });
-                            setShowSmsModal(true);
-                        }}
-                    />
-                </Tab>
+                    {/* ========== SMS PROVIDERS TAB ========== */}
+                    <Tab eventKey="sms" title={<><MessageSquare size={16} className="me-2" />SMS Providers ({smsProviders.length})</>}>
+                        <SmsProvidersTab
+                            providers={smsProviders}
+                            onEdit={handleEditSmsProvider}
+                            onDelete={handleDeleteSmsProvider}
+                            onTest={handleTestSmsProvider}
+                            loading={loading}
+                            onAdd={() => {
+                                setEditingSmsId(null);
+                                setSmsForm({ name: 'netgsm', displayName: '', priority: 50, isActive: false, config: {} });
+                                setShowSmsModal(true);
+                            }}
+                        />
+                    </Tab>
+
+                    {/* ========== SMTP SETTINGS TAB ========== */}
+                    <Tab eventKey="smtp" title={<><div className="d-flex align-items-center"><MessageSquare size={16} className="me-2" />E-Posta (SMTP)</div></>}>
+                        <Card className="border-0 shadow-sm">
+                            <Card.Header className="bg-white"><h6 className="mb-0">SMTP Sunucu Ayarları</h6></Card.Header>
+                            <Card.Body>
+                                <Alert variant="info" className="mb-4">
+                                    <small>Not: Gmail kullanıyorsanız "Uygulama Şifresi" (App Password) oluşturmanız gerekebilir.</small>
+                                </Alert>
+                                <Form onSubmit={handleSaveSmtp}>
+                                    <Row className="mb-3">
+                                        <Col md={8}>
+                                            <Form.Group>
+                                                <Form.Label>SMTP Host</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_HOST} onChange={e => setSmtpForm({ ...smtpForm, SMTP_HOST: e.target.value })} placeholder="smtp.gmail.com" />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={4}>
+                                            <Form.Group>
+                                                <Form.Label>Port</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_PORT} onChange={e => setSmtpForm({ ...smtpForm, SMTP_PORT: e.target.value })} />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Kullanıcı Adı (E-posta)</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_USER} onChange={e => setSmtpForm({ ...smtpForm, SMTP_USER: e.target.value })} autoComplete="off" />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Şifre</Form.Label>
+                                                <Form.Control type="password" value={smtpForm.SMTP_PASS} onChange={e => setSmtpForm({ ...smtpForm, SMTP_PASS: e.target.value })} placeholder="Uygulama Şifresi" autoComplete="new-password" />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Gönderen Adı/Email (From)</Form.Label>
+                                                <Form.Control value={smtpForm.SMTP_FROM} onChange={e => setSmtpForm({ ...smtpForm, SMTP_FROM: e.target.value })} placeholder='"AgroMeta" <no-reply@domain.com>' />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6} className="d-flex align-items-center pt-3">
+                                            <Form.Check type="switch" label="Güvenli Bağlantı (Secure/True)" checked={smtpForm.SMTP_SECURE === 'true'} onChange={e => setSmtpForm({ ...smtpForm, SMTP_SECURE: e.target.checked.toString() })} />
+                                        </Col>
+                                    </Row>
+                                    <div className="d-flex justify-content-end gap-2">
+                                        <Button variant="primary" type="submit" disabled={smtpLoading}>
+                                            {smtpLoading ? <Spinner size="sm" /> : <><Check size={18} className="me-1" /> Ayarları Kaydet</>}
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Card.Body>
+                        </Card>
+                    </Tab>
 
             </Tabs>
 
