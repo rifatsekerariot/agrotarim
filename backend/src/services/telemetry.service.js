@@ -76,7 +76,7 @@ const TelemetryService = {
                 sensors: {
                     include: {
                         telemetry: {
-                            take: 1,
+                            take: 12,
                             orderBy: { timestamp: 'desc' }
                         }
                     }

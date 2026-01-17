@@ -1,7 +1,8 @@
 // Imports updated (removed Map-related)
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Alert, Spinner, Badge } from 'react-bootstrap';
-import { RefreshCcw, Wifi, WifiOff, MapPin, Thermometer, Droplets } from 'lucide-react';
+import { RefreshCcw, Wifi, WifiOff, MapPin, Thermometer, Droplets, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
 const IoTDashboard = ({ farmId }) => {
     const [devices, setDevices] = useState([]);
@@ -47,12 +48,6 @@ const IoTDashboard = ({ farmId }) => {
         return () => clearInterval(interval);
     }, [farmId]);
 
-    const getSensorValue = (device, code) => {
-        const sensor = device.sensors.find(s => s.code === code);
-        const val = sensor?.telemetry?.[0]?.value;
-        return val !== undefined ? val : "--";
-    };
-
     const handleCropChange = async (e) => {
         const newCrop = e.target.value;
         setSelectedCrop(newCrop); // Immediate UI update
@@ -83,179 +78,262 @@ const IoTDashboard = ({ farmId }) => {
         }
     };
 
+    // --- HELPER FUNCTIONS ---
+
+    const getSensorData = (device, code) => {
+        // Returns the FULL array of telemetry for sparklines
+        const sensor = device.sensors.find(s => s.code === code);
+        return sensor?.telemetry || [];
+    };
+
+    const getLatestValue = (device, code) => {
+        const data = getSensorData(device, code);
+        return data.length > 0 ? data[0].value : null;
+    };
+
+    const getTrend = (device, code) => {
+        const data = getSensorData(device, code);
+        if (data.length < 2) return 'stable';
+        const current = data[0].value;
+        const prev = data[1].value; // Previous reading
+        if (current > prev) return 'up';
+        if (current < prev) return 'down';
+        return 'stable';
+    };
+
+    // --- KPI CALCULATIONS ---
+    const calculateKPIs = () => {
+        let totalTemp = 0, tempCount = 0;
+        let totalHum = 0, humCount = 0;
+        let activeAlerts = 0;
+
+        devices.forEach(d => {
+            const t = getLatestValue(d, 't_air');
+            const h = getLatestValue(d, 'h_air');
+            if (t !== null) { totalTemp += t; tempCount++; }
+            if (h !== null) { totalHum += h; humCount++; }
+        });
+
+        if (advice?.alerts) {
+            activeAlerts = advice.alerts.length;
+        }
+
+        return {
+            avgTemp: tempCount ? (totalTemp / tempCount).toFixed(1) : '--',
+            avgHum: humCount ? (totalHum / humCount).toFixed(0) : '--',
+            activeAlerts
+        };
+    };
+
+    const kpis = calculateKPIs();
+
+    // --- RENDERERS ---
+
+    const renderSparkline = (data, color) => {
+        // Reverse data for chart (Backend sends DESC timestamp, Chart needs ASC time)
+        const chartData = [...data].reverse().map(d => ({ v: d.value }));
+        if (chartData.length < 2) return null;
+
+        return (
+            <div style={{ width: '80px', height: '30px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} />
+                        <YAxis domain={['dataMin', 'dataMax']} hide />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        );
+    };
+
     if (loading && devices.length === 0) return <div className="text-center p-5"><Spinner animation="border" /></div>;
 
     return (
-        <div className="iot-dashboard p-3">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div className="d-flex align-items-center gap-3">
-                    <h2 className="mb-0 text-success"><i className="bi bi-cpu"></i> Akıllı Tarla</h2>
+        <div className="iot-dashboard p-2">
 
-                    {/* City Selector */}
-                    <select className="form-select form-select-sm" style={{ width: '130px' }}
-                        onChange={handleCityChange} value={selectedCity}>
-                        <option value="" disabled>Şehir Seç</option>
-                        <optgroup label="Akdeniz">
-                            <option value="Adana">Adana</option>
-                            <option value="Antalya">Antalya</option>
-                            <option value="Mersin">Mersin</option>
-                        </optgroup>
-                        <optgroup label="Karadeniz">
-                            <option value="Trabzon">Trabzon</option>
-                            <option value="Ordu">Ordu</option>
-                            <option value="Samsun">Samsun</option>
-                        </optgroup>
-                        <optgroup label="İç Anadolu">
-                            <option value="Konya">Konya</option>
-                            <option value="Ankara">Ankara</option>
-                        </optgroup>
-                        <optgroup label="Marmara">
-                            <option value="Bursa">Bursa</option>
-                            <option value="Edirne">Edirne</option>
-                        </optgroup>
-                        <optgroup label="Ege">
-                            <option value="İzmir">İzmir</option>
-                            <option value="Aydın">Aydın</option>
-                        </optgroup>
-                        <optgroup label="Güneydoğu">
-                            <option value="Şanlıurfa">Şanlıurfa</option>
-                            <option value="Diyarbakır">Diyarbakır</option>
-                        </optgroup>
-                    </select>
+            {/* 1. CONFIG BAR (Subtle) */}
+            <div className="d-flex justify-content-end mb-3 gap-2 align-items-center">
+                <small className="text-muted me-2">Konfigürasyon:</small>
+                {/* City Selector */}
+                <select className="form-select form-select-sm border-0 bg-light" style={{ width: '120px' }}
+                    onChange={handleCityChange} value={selectedCity}>
+                    <option value="" disabled>Şehir Seç</option>
+                    <optgroup label="Akdeniz">
+                        <option value="Adana">Adana</option>
+                        <option value="Antalya">Antalya</option>
+                        <option value="Mersin">Mersin</option>
+                    </optgroup>
+                    {/* ... Add other regions if needed, keeping it concise */}
+                    <option value="Konya">Konya</option>
+                    <option value="İzmir">İzmir</option>
+                    <option value="Bursa">Bursa</option>
+                    <option value="Şanlıurfa">Şanlıurfa</option>
+                </select>
 
-                    {/* Crop Selector */}
-                    <select className="form-select form-select-sm" style={{ width: '150px' }}
-                        onChange={handleCropChange} value={selectedCrop}>
-                        <option value="" disabled>Ürün Seç</option>
-                        <optgroup label="Tahıllar">
-                            <option value="Buğday">Buğday</option>
-                            <option value="Arpa">Arpa</option>
-                            <option value="Mısır">Mısır</option>
-                            <option value="Pirinç">Pirinç (Çeltik)</option>
-                        </optgroup>
-                        <optgroup label="Sanayi Bitkileri">
-                            <option value="Pamuk">Pamuk</option>
-                            <option value="Ayçiçeği">Ayçiçeği</option>
-                            <option value="Şekerpancarı">Şekerpancarı</option>
-                            <option value="Tütün">Tütün</option>
-                            <option value="Çay">Çay</option>
-                        </optgroup>
-                        <optgroup label="Meyve & Yemiş">
-                            <option value="Fındık">Fındık</option>
-                            <option value="Zeytin">Zeytin</option>
-                            <option value="Antep Fıstığı">Antep Fıstığı</option>
-                            <option value="İncir">İncir</option>
-                            <option value="Üzüm">Üzüm</option>
-                            <option value="Kayısı">Kayısı</option>
-                            <option value="Turunçgil">Turunçgil (Narenciye)</option>
-                            <option value="Muz">Muz</option>
-                            <option value="Elma">Elma</option>
-                        </optgroup>
-                        <optgroup label="Sebze & Diğer">
-                            <option value="Domates">Domates</option>
-                            <option value="Patates">Patates</option>
-                            <option value="Kırmızı Mercimek">Kırmızı Mercimek</option>
-                            <option value="Nohut">Nohut</option>
-                        </optgroup>
-                    </select>
-                </div>
-                <div>
-                    <button className="btn btn-outline-secondary btn-sm" onClick={fetchData}>
-                        <RefreshCcw size={16} /> Yenile
-                    </button>
-                </div>
+                {/* Crop Selector */}
+                <select className="form-select form-select-sm border-0 bg-light" style={{ width: '120px' }}
+                    onChange={handleCropChange} value={selectedCrop}>
+                    <option value="" disabled>Ürün Seç</option>
+                    <option value="Buğday">Buğday</option>
+                    <option value="Mısır">Mısır</option>
+                    <option value="Pamuk">Pamuk</option>
+                    <option value="Domates">Domates</option>
+                    <option value="Narenciye">Narenciye</option>
+                </select>
+
+                <button className="btn btn-light btn-sm text-secondary" onClick={fetchData}>
+                    <RefreshCcw size={14} />
+                </button>
             </div>
 
-            {error && <Alert variant="danger">{error}</Alert>}
-
-            {/* EXPERT ADVICE SECTION */}
-            {advice && (
-                <Card className="mb-4 border-0 shadow-sm" style={{ borderLeft: `5px solid ${advice.alerts?.some(a => a.level === 'critical') ? '#dc3545' : advice.alerts?.length > 0 ? '#ffc107' : '#198754'}` }}>
-                    <Card.Body>
-                        <div className="d-flex justify-content-between">
-                            <h5 className="text-dark fw-bold">🤖 AgroZeka: {advice.crop}</h5>
-                            {advice.summary?.includes("analiz ediliyor") && <Badge bg="info">Hybrid Analiz (IoT+MGM)</Badge>}
-                        </div>
-                        <p className="text-muted small mb-2">{advice.summary}</p>
-                        <hr />
-
-                        {/* Alerts */}
-                        {advice.alerts && advice.alerts.map((alert, idx) => (
-                            <Alert key={idx} variant={alert.level === 'critical' ? 'danger' : (alert.level === 'danger' ? 'danger' : 'warning')} className="mb-2 py-2">
-                                <strong>{alert.level === 'danger' ? 'RİSK' : 'DİKKAT'}:</strong> {alert.msg}
-                            </Alert>
-                        ))}
-
-                        {/* Actions */}
-                        {advice.actions && advice.actions.map((act, idx) => (
-                            <div key={idx} className="text-success fw-bold mb-1"><i className="bi bi-check-circle"></i> {act}</div>
-                        ))}
-
-                        {/* Empty State (Optimal) */}
-                        {(!advice.alerts || advice.alerts.length === 0) && (!advice.actions || advice.actions.length === 0) && (
-                            <div className="text-success d-flex align-items-center">
-                                <i className="bi bi-shield-check fs-4 me-2"></i>
-                                <div>
-                                    <strong>Durum Stabil:</strong> Bitki gelişimi ideal. MGM verilerine göre risk yok.
+            {/* 2. KPI HEADER */}
+            <Row className="mb-4 g-3">
+                <Col md={4}>
+                    <Card className="border-0 shadow-sm h-100 bg-white">
+                        <Card.Body className="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div className="text-muted small mb-1">Ortalama Sıcaklık</div>
+                                <div className="display-6 fw-bold text-dark">{kpis.avgTemp}°C</div>
+                            </div>
+                            <div className="bg-light rounded-circle p-3 text-primary">
+                                <Thermometer size={24} />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={4}>
+                    <Card className="border-0 shadow-sm h-100 bg-white">
+                        <Card.Body className="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div className="text-muted small mb-1">Ortalama Nem</div>
+                                <div className="display-6 fw-bold text-dark">%{kpis.avgHum}</div>
+                            </div>
+                            <div className="bg-light rounded-circle p-3 text-info">
+                                <Droplets size={24} />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={4}>
+                    <Card className={`border-0 shadow-sm h-100 ${kpis.activeAlerts > 0 ? 'bg-danger text-white' : 'bg-success text-white'}`}>
+                        <Card.Body className="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div className="text-white-50 small mb-1">Risk Durumu</div>
+                                <div className="fs-3 fw-bold">
+                                    {kpis.activeAlerts > 0 ? `${kpis.activeAlerts} Risk Var` : 'Her Şey Yolunda'}
                                 </div>
                             </div>
-                        )}
+                            <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                                {kpis.activeAlerts > 0 ? <AlertTriangle size={24} /> : <CheckCircle size={24} />}
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* 3. HERO AI SECTION */}
+            {advice && (
+                <Card className="mb-4 border-0 shadow-sm overflow-hidden">
+                    <div className={`p-1 ${advice.alerts?.some(a => a.level === 'critical') ? 'bg-danger' : 'bg-success'}`} />
+                    <Card.Body className="p-4">
+                        <Row className="align-items-center">
+                            <Col md={8}>
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="bg-success bg-opacity-10 p-2 rounded me-3">
+                                        <span className="fs-2">🤖</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="fw-bold mb-0 text-dark">AgroZeka Asistanı</h4>
+                                        <small className="text-muted">
+                                            {selectedCrop} ({selectedCity}) Analiz Raporu
+                                            {advice.summary?.includes("analiz ediliyor") && <Badge bg="info" className="ms-2">Hybrid Analiz</Badge>}
+                                        </small>
+                                    </div>
+                                </div>
+                                <p className="lead text-dark mb-4">
+                                    "{advice.summary}"
+                                </p>
+
+                                {/* Action Items as horizontal pills */}
+                                <div className="d-flex flex-wrap gap-2">
+                                    {advice.actions?.map((act, idx) => (
+                                        <Badge key={idx} bg="light" text="dark" className="border px-3 py-2 fw-normal d-flex align-items-center gap-2">
+                                            <i className="bi bi-check-circle-fill text-success"></i> {act}
+                                        </Badge>
+                                    ))}
+                                    {advice.alerts?.map((alert, idx) => (
+                                        <Badge key={`alert-${idx}`} bg={alert.level === 'critical' ? 'danger' : 'warning'} text="white" className="px-3 py-2 fw-normal d-flex align-items-center gap-2">
+                                            <i className="bi bi-exclamation-triangle-fill"></i> {alert.msg}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </Col>
+                            <Col md={4} className="text-center border-start opacity-75 d-none d-md-block">
+                                <Activity size={64} className="text-success mb-2" />
+                                <div className="text-muted small">Canlı Veri Akışı Aktif</div>
+                            </Col>
+                        </Row>
                     </Card.Body>
                 </Card>
             )}
 
-            {/* MAIN STATUS CONTENT */}
+            {/* 4. DEVICES GRID WITH SPARKLINES */}
             {devices.length === 0 ? (
-                <div className="text-center p-5 text-muted">
+                <div className="text-center p-5 text-muted border rounded bg-light">
                     <WifiOff size={48} className="mb-3" />
-                    <h4>Henüz Sensör Verisi Yok</h4>
-                    <p>Sensörlerden veri bekleniyor veya simülatör çalışmıyor.</p>
+                    <h4>Sensör Verisi Bekleniyor...</h4>
                 </div>
             ) : (
-                <Row>
-                    {devices.map(device => (
-                        <Col key={device.id} md={6} lg={4} className="mb-4">
-                            <Card
-                                className="h-100 shadow-sm border-0 cursor-pointer"
-                                style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-                                onClick={() => window.location.href = `/device/${device.serialNumber}`}
-                            >
-                                <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                                    <span className="fw-bold text-dark"><MapPin size={16} /> {device.name}</span>
-                                    <Badge bg={device.status === 'online' ? 'success' : 'secondary'}>
-                                        {device.status === 'online' ? <Wifi size={12} /> : <WifiOff size={12} />} {device.status}
-                                    </Badge>
-                                </Card.Header>
-                                <Card.Body>
-                                    <div className="d-flex justify-content-around text-center">
-                                        <div className="mb-2">
-                                            <div className="text-muted small">Hava Sıcaklığı</div>
-                                            <div className="display-6 fw-bold text-primary">
-                                                {getSensorValue(device, 't_air')}°C
-                                            </div>
+                <>
+                    <h5 className="mb-3 text-muted fw-bold">📡 Aktif Sensörler</h5>
+                    <Row>
+                        {devices.map(device => (
+                            <Col key={device.id} md={6} lg={4} className="mb-4">
+                                <Card className="h-100 shadow-sm border-0" onClick={() => window.location.href = `/device/${device.serialNumber}`} style={{ cursor: 'pointer' }}>
+                                    <Card.Header className="bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                                        <div className="fw-bold text-dark d-flex align-items-center gap-2">
+                                            <div className="bg-light p-1 rounded"><MapPin size={14} /></div>
+                                            {device.name}
                                         </div>
-                                        <div className="mb-2">
-                                            <div className="text-muted small">Nem</div>
-                                            <div className="display-6 fw-bold text-info">
-                                                %{getSensorValue(device, 'h_air')}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <hr />
-                                    <div className="d-flex justify-content-between px-3">
-                                        <span className="text-muted"><Droplets size={16} /> Toprak Nemi:</span>
-                                        <span className={`fw-bold ${parseFloat(getSensorValue(device, 'm_soil')) < 20 ? 'text-danger' : 'text-success'}`}>
-                                            %{getSensorValue(device, 'm_soil')}
-                                        </span>
-                                    </div>
-                                </Card.Body>
-                                <Card.Footer className="bg-light text-muted small text-end">
-                                    Son veri: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Yok'}
-                                </Card.Footer>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
+                                        <Badge bg={device.status === 'online' ? 'success' : 'secondary'} className="rounded-pill">
+                                            <span className={`me-1 d-inline-block rounded-circle ${device.status === 'online' ? 'bg-white' : 'bg-secondary'}`} style={{ width: 6, height: 6 }}></span>
+                                            {device.status}
+                                        </Badge>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <Row className="g-0 align-items-center py-2 border-bottom">
+                                            <Col xs={5} className="text-muted small">Sıcaklık</Col>
+                                            <Col xs={4} className="fs-5 fw-bold text-dark">
+                                                {getLatestValue(device, 't_air') !== null ? `${getLatestValue(device, 't_air')}°C` : '--'}
+                                            </Col>
+                                            <Col xs={3}>
+                                                {renderSparkline(getSensorData(device, 't_air'), '#0d6efd')}
+                                            </Col>
+                                        </Row>
+                                        <Row className="g-0 align-items-center py-2 border-bottom">
+                                            <Col xs={5} className="text-muted small">Nem</Col>
+                                            <Col xs={4} className="fs-5 fw-bold text-dark">
+                                                {getLatestValue(device, 'h_air') !== null ? `%${getLatestValue(device, 'h_air')}` : '--'}
+                                            </Col>
+                                            <Col xs={3}>
+                                                {renderSparkline(getSensorData(device, 'h_air'), '#0dcaf0')}
+                                            </Col>
+                                        </Row>
+                                        <Row className="g-0 align-items-center py-2">
+                                            <Col xs={5} className="text-muted small">Toprak Nemi</Col>
+                                            <Col xs={4} className={`fs-5 fw-bold ${getLatestValue(device, 'm_soil') < 20 ? 'text-danger' : 'text-success'}`}>
+                                                {getLatestValue(device, 'm_soil') !== null ? `%${getLatestValue(device, 'm_soil')}` : '--'}
+                                            </Col>
+                                            <Col xs={3}>
+                                                {renderSparkline(getSensorData(device, 'm_soil'), '#198754')}
+                                            </Col>
+                                        </Row>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
+                </>
             )}
         </div>
     );
