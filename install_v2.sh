@@ -9,8 +9,8 @@ git reset --hard origin/main
 
 # 2. Rebuild
 echo "🔨 Rebuilding..."
-docker-compose down
-docker-compose up -d --build
+sudo docker compose down
+sudo docker compose up -d --build
 
 # 3. Wait
 echo "⏳ Waiting for DB..."
@@ -18,11 +18,11 @@ sleep 15
 
 # 4. Generate Client & Push DB (The Fix)
 echo "♻️  Pushing Schema..."
-docker-compose exec -T backend npx prisma generate
-docker-compose exec -T backend npx prisma db push --accept-data-loss
+sudo docker compose exec -T backend npx prisma generate
+sudo docker compose exec -T backend npx prisma db push --accept-data-loss
 
 # 5. Seed
 echo "🌱 Seeding..."
-docker-compose exec -T backend node scripts/seed_crops.js
+sıdo docker compose exec -T backend node scripts/seed_crops.js
 
 echo "✅ DONE! Check dashboard now."
