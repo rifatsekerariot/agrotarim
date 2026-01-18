@@ -25,13 +25,16 @@ const AutomationPage = () => {
         sensorCode: 'temperature',
         condition: 'GREATER_THAN',
         threshold: '',
-        threshold2: '', // For BETWEEN condition
-        coolDownMinutes: '60', // Default 60 minutes
+        threshold2: '',
+        coolDownMinutes: '60',
+        repeatIntervalMinutes: '5',
+        maxRepeatMinutes: '10',
+        autoResolve: true,
         actionType: 'NOTIFICATION',
         actionTarget: '',
-        hexCommand: '', // For CONTROL_DEVICE
-        commandName: '', // For CONTROL_DEVICE
-        commandPort: '1' // For CONTROL_DEVICE
+        hexCommand: '',
+        commandName: '',
+        commandPort: '1'
     });
 
     useEffect(() => {
