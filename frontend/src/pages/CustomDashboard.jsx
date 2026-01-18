@@ -301,7 +301,6 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
 const WidgetMap = ({ widget, devices, telemetry, onUpdate }) => {
     // ... existing logic ...
     const [markers, setMarkers] = useState(widget.markers || []);
-    const [isEditing, setIsEditing] = useState(false);
     const [showModal, setShowModal] = useState(false);
     // ... hooks ...
 
