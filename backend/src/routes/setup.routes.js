@@ -53,7 +53,7 @@ router.post('/initialize', async (req, res) => {
                 data: {
                     username,
                     email: email || `${username}@agrometa.local`,
-                    password: hashedPassword,
+                    password_hash: hashedPassword,
                     role: 'ADMIN'
                 }
             });
