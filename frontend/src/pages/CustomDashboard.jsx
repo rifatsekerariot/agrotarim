@@ -671,6 +671,9 @@ const CustomDashboard = () => {
                         <>
                             {isEditing ? (
                                 <div className="d-flex gap-2 animate-fade-in">
+                                    <Button variant="primary" onClick={() => setShowModal(true)}>
+                                        <i className="bi bi-plus-lg me-1"></i> Widget Ekle
+                                    </Button>
                                     <Button variant="outline-danger" onClick={() => {
                                         if (window.confirm('Değişiklikleri iptal etmek istediğinize emin misiniz?')) {
                                             setIsEditing(false);
@@ -691,9 +694,6 @@ const CustomDashboard = () => {
                                 <div className="d-flex gap-2">
                                     <Button variant="outline-dark" onClick={() => setIsEditing(true)}>
                                         <i className="bi bi-pencil-square me-1"></i> Düzenle
-                                    </Button>
-                                    <Button variant="primary" onClick={() => setShowModal(true)}>
-                                        <i className="bi bi-plus-lg me-1"></i> Ekle
                                     </Button>
                                 </div>
                             )}
