@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/dashboard.controller');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../auth/auth.middleware');
 
 // ✅ SECURITY FIX: Add authentication to dashboard endpoints
 router.use(authenticateToken);

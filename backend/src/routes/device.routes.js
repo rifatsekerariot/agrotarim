@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const deviceController = require('../controllers/device.controller');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../auth/auth.middleware');
 
 // ✅ SECURITY FIX: Add authentication to all device endpoints
 router.use(authenticateToken);
