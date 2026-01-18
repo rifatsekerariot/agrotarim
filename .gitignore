@@ -50,6 +50,7 @@ prisma/migrations/*/migration_lock.toml
 
 # Uploads
 uploads/
+backend/uploads/
 
 # Generated API keys
 device_api_keys.txt

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Card, Table, Button, Form, Row, Col, Badge, Modal, Spinner, Dropdown, InputGroup, Alert } from 'react-bootstrap';
-import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy, MessageSquare } from 'lucide-react';
+import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy, MessageSquare, Download, UploadCloud, FileUp, AlertTriangle } from 'lucide-react';
 import SmsProvidersTab from '../components/SmsProvidersTab';
 import SmsProviderModal from '../components/SmsProviderModal';
 import api from '../utils/api';
@@ -33,7 +33,15 @@ const Settings = () => {
     const [smtpLoading, setSmtpLoading] = useState(false);
     const [smtpMessage, setSmtpMessage] = useState(null); // {type: 'success'|'error', text: ''}
     const [testEmailLoading, setTestEmailLoading] = useState(false);
-    const [testEmailAddress, setTestEmailAddress] = useState('');
+        const [testEmailAddress, setTestEmailAddress] = useState('');
+
+    // Backup & Restore State
+    const [backupLoading, setBackupLoading] = useState(false);
+    const [backupMessage, setBackupMessage] = useState(null);
+    const [restoreLoading, setRestoreLoading] = useState(false);
+    const [restoreMessage, setRestoreMessage] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
 
     // Modal States
     const [showDeviceModal, setShowDeviceModal] = useState(false);
@@ -252,9 +260,9 @@ const Settings = () => {
         setSmtpLoading(false);
     };
 
-    const handleTestEmail = async () => {
+        const handleTestEmail = async () => {
         if (!testEmailAddress) {
-            setSmtpMessage({ type: 'error', text: 'LÃ¼tfen test email adresi girin' });
+            setSmtpMessage({ type: 'error', text: 'Lütfen test email adresi girin' });
             return;
         }
 
@@ -265,15 +273,116 @@ const Settings = () => {
             const data = res.data;
 
             if (data.success) {
-                setSmtpMessage({ type: 'success', text: `Test email gÃ¶nderildi! (Message ID: ${data.messageId})` });
+                setSmtpMessage({ type: 'success', text: \Test email gönderildi! (Message ID: \)\ });
                 setTimeout(() => setSmtpMessage(null), 8000);
             } else {
-                setSmtpMessage({ type: 'error', text: data.error || 'Test email gÃ¶nderilemedi' });
+                setSmtpMessage({ type: 'error', text: data.error || 'Test email gönderilemedi' });
             }
         } catch (err) {
-            setSmtpMessage({ type: 'error', text: 'BaÄŸlantÄ± hatasÄ±: ' + err.message });
+            setSmtpMessage({ type: 'error', text: 'Baðlantý hatasý: ' + err.message });
         }
         setTestEmailLoading(false);
+    };
+
+    // ========== BACKUP & RESTORE ACTIONS ==========
+    const handleBackup = async () => {
+        setBackupLoading(true);
+        setBackupMessage(null);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(\\/settings/backup\, {
+                method: 'GET',
+                headers: {
+                    'Authorization': \Bearer \\
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Backup oluþturulamadý');
+            }
+
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'backup.zip';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/i);
+                if (filenameMatch) filename = filenameMatch[1];
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            setBackupMessage({ type: 'success', text: ' Yedekleme baþarýyla indirildi!' });
+            setTimeout(() => setBackupMessage(null), 5000);
+        } catch (err) {
+            setBackupMessage({ type: 'error', text: 'Hata: ' + err.message });
+        }
+        setBackupLoading(false);
+    };
+
+    const handleFileSelect = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0]);
+            setRestoreMessage(null);
+        }
+    };
+
+    const handleRestoreClick = () => {
+        if (!selectedFile) {
+            setRestoreMessage({ type: 'error', text: 'Lütfen bir yedek dosyasý (.zip) seçin.' });
+            return;
+        }
+        setShowRestoreModal(true);
+    };
+
+    const handleRestoreConfirm = async () => {
+        if (!selectedFile) return;
+        
+        setRestoreLoading(true);
+        setRestoreMessage(null);
+        setShowRestoreModal(false);
+
+        const formData = new FormData();
+        formData.append('backup', selectedFile);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(\\/settings/restore\, {
+                method: 'POST',
+                headers: {
+                    'Authorization': \Bearer \\
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Geri yükleme baþarýsýz');
+            }
+
+            setRestoreMessage({ 
+                type: 'success', 
+                text: \ Baþarýyla geri yüklendi! (Ayarlar: \, SMS: \, Sunucular: \, Cihazlar: \)\
+            });
+            
+            // Refresh data
+            setTimeout(() => {
+                fetchAll();
+                setSelectedFile(null);
+            }, 2000);
+
+        } catch (err) {
+            console.error('Restore error:', err);
+            setRestoreMessage({ type: 'error', text: 'Hata: ' + err.message });
+        }
+        setRestoreLoading(false);
     };
 
     if (loading) {
@@ -732,6 +841,32 @@ const Settings = () => {
                 provider={editingSmsId ? smsForm : null}
                 onSave={handleSaveSmsProvider}
             />
+
+            {/* Restore Confirmation Modal */}
+            <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered>
+                <Modal.Header closeButton className="bg-warning bg-opacity-10 border-warning">
+                    <Modal.Title className="text-warning d-flex align-items-center">
+                        <AlertTriangle size={24} className="me-2" />
+                        Geri Yükleme Onayý
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p className="fw-bold">Aþaðýdaki dosyadan geri yükleme yapýlacak:</p>
+                    <div className="bg-light p-2 rounded mb-3 text-monospace font-monospace">
+                        {selectedFile?.name}
+                    </div>
+                    <p>
+                        Bu iþlem veritabanýna yeni kayýtlar ekleyebilir veya mevcut ayarlarý deðiþtirebilir. 
+                        Devam etmek istediðinize emin misiniz?
+                    </p>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowRestoreModal(false)}>Ýptal</Button>
+                    <Button variant="warning" onClick={handleRestoreConfirm}>
+                        Evet, Geri Yükle
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };

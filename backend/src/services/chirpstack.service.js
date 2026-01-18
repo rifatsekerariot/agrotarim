@@ -159,20 +159,17 @@ class ChirpStackService {
             // Decode payload
             let decodedData = {};
 
-            console.log(`[ChirpStack] Payload keys: ${Object.keys(payload).join(', ')}`);
-
             // CASE A: Pre-decoded object (from ChirpStack codec)
             if (payload.object && Object.keys(payload.object).length > 0) {
                 decodedData = payload.object;
-                console.log(`[ChirpStack] Using pre-decoded object from server:`, JSON.stringify(decodedData));
+                console.log(`[ChirpStack] Using pre-decoded object from server`);
             } else {
-                console.warn(`[ChirpStack] ⚠️ Dropping message from ${deviceName}: No 'object' field. Configure a Codec in ChirpStack Device Profile!`);
-                console.log('[ChirpStack] Raw data (Base64):', data);
+                console.log('[ChirpStack] No pre-decoded object found in payload. Local decoding is disabled.');
                 return;
             }
 
             if (!decodedData || Object.keys(decodedData).length === 0) {
-                console.warn('[ChirpStack] Decode returned empty data');
+                console.log('[ChirpStack] Decode returned empty data');
                 return;
             }
 
