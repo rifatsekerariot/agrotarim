@@ -65,7 +65,7 @@ const MainLayout = ({ children }) => {
             <Navbar expand="lg" className={`${darkMode ? 'navbar-dark bg-dark' : 'bg-white'} shadow-sm sticky-top px-3 py-2`}>
                 <Container fluid>
                     <Navbar.Brand as={Link} to="/" className="fw-bold text-success d-flex align-items-center gap-2">
-                        <i className="bi bi-flower1"></i> AGROMETA
+                        <i className="bi bi-cpu"></i> SERA OTOMASYON
                     </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">
