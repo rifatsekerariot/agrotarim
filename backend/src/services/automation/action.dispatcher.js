@@ -13,7 +13,8 @@ class ActionDispatcher {
     async dispatch(actions, ruleName, value, ruleId = null) {
         if (!actions || actions.length === 0) return;
 
-        const message = `ALARM: "${ruleName}" tetiklendi! Değer: ${value}`;
+        // Tutarlı mesaj formatı
+        const message = `Alarm: ${ruleName} (Değer: ${value})`;
 
         for (const action of actions) {
             try {
