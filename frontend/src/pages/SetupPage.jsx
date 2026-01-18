@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Container, Card, Form, Button, Alert, ProgressBar } from 'react-bootstrap';
 import { Sprout, User, MapPin } from 'lucide-react';
 import axios from 'axios';
 
 const SetupPage = () => {
-    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -45,9 +43,9 @@ const SetupPage = () => {
                 farmLocation: formData.farmLocation
             });
 
-            // Success - redirect to login
+            // Success - redirect to login using window.location
             alert('✅ Kurulum tamamlandı! Şimdi giriş yapabilirsiniz.');
-            navigate('/login');
+            window.location.href = '/login';
         } catch (err) {
             setError(err.response?.data?.error || 'Kurulum başarısız oldu');
         } finally {
