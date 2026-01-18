@@ -75,14 +75,6 @@ function App() {
                     }
                 />
                 <Route
-                    path="/custom"
-                    element={
-                        <PrivateRoute>
-                            <CustomDashboard />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
                     path="/users"
                     element={
                         <PrivateRoute>
