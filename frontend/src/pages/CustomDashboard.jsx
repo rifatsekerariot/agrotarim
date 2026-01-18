@@ -387,11 +387,11 @@ const CustomDashboard = () => {
 
     const fetchConfig = async () => {
         try {
-            // Load from localStorage
-            const savedConfig = localStorage.getItem(`greenhouse-dashboard-${farmId}`);
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                if (config.widgets) {
+            // Load from Database (Farm Model)
+            const res = await fetch(`/api/dashboard/${farmId}`);
+            if (res.ok) {
+                const config = await res.json();
+                if (config && config.widgets) {
                     const rglWidgets = config.widgets.map((w, index) => ({
                         ...w,
                         sensorCodes: w.sensorCodes || (w.sensorCode ? [w.sensorCode] : []),
@@ -433,9 +433,17 @@ const CustomDashboard = () => {
         setTelemetry(telMap);
     };
 
-    const saveConfig = (newWidgets) => {
+    const saveConfig = async (newWidgets) => {
         setWidgets(newWidgets);
-        localStorage.setItem(`greenhouse-dashboard-${farmId}`, JSON.stringify({ widgets: newWidgets }));
+        try {
+            await fetch(`/api/dashboard/${farmId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ widgets: newWidgets })
+            });
+        } catch (err) {
+            console.error("Failed to save dashboard config", err);
+        }
     };
 
     const handleWidgetUpdate = (updatedWidget) => {
