@@ -31,17 +31,22 @@ const AutomationPage = () => {
         maxRepeatMinutes: '10',
         autoResolve: true,
         normalCheckEnabled: true,
-        actionType: 'NOTIFICATION',
-        actionTarget: '',
-        hexCommand: '',
-        commandName: '',
-        commandPort: '1',
+        // ELSE actions
         elseActionType: 'NOTIFICATION',
         elseActionTarget: '',
         elseHexCommand: '',
         elseCommandName: '',
         elseCommandPort: '1'
     });
+
+    // Multiple THEN actions (array)
+    const [actions, setActions] = useState([{
+        type: 'NOTIFICATION',
+        target: '',
+        hexCommand: '',
+        commandName: '',
+        commandPort: '1'
+    }]);
 
     useEffect(() => {
         if (token) {
@@ -151,20 +156,24 @@ const AutomationPage = () => {
         }
 
         try {
-            // Prepare action with optional payload
-            let action = {
-                type: formData.actionType,
-                target: formData.actionTarget
-            };
-
-            // Add payload for CONTROL_DEVICE
-            if (formData.actionType === 'CONTROL_DEVICE') {
-                action.payload = {
-                    command: formData.commandName || 'Custom Command',
-                    hexData: formData.hexCommand.toUpperCase(),
-                    port: parseInt(formData.commandPort) || 1
+            // Prepare actions array with optional payload
+            const preparedActions = actions.map(action => {
+                const preparedAction = {
+                    type: action.type,
+                    target: action.target
                 };
-            }
+
+                // Add payload for CONTROL_DEVICE
+                if (action.type === 'CONTROL_DEVICE') {
+                    preparedAction.payload = {
+                        command: action.commandName || 'Custom Command',
+                        hexData: action.hexCommand.toUpperCase(),
+                        port: parseInt(action.commandPort) || 1
+                    };
+                }
+
+                return preparedAction;
+            });
 
             // Prepare ELSE action
             let elseAction = null;
@@ -197,7 +206,7 @@ const AutomationPage = () => {
                 maxRepeatMinutes: parseInt(formData.maxRepeatMinutes) || 10,
                 autoResolve: formData.autoResolve,
                 normalCheckEnabled: formData.normalCheckEnabled,
-                actions: [action],
+                actions: preparedActions,
                 elseActions: elseAction ? [elseAction] : []
             };
 
@@ -214,6 +223,7 @@ const AutomationPage = () => {
             setShowModal(false);
             setEditId(null);
             fetchData();
+
             // Reset form
             setFormData({
                 name: '',
@@ -223,17 +233,53 @@ const AutomationPage = () => {
                 threshold: '',
                 threshold2: '',
                 coolDownMinutes: '60',
-                actionType: 'NOTIFICATION',
-                actionTarget: '',
+                repeatIntervalMinutes: '5',
+                maxRepeatMinutes: '10',
+                autoResolve: true,
+                normalCheckEnabled: true,
+                elseActionType: 'NOTIFICATION',
+                elseActionTarget: '',
+                elseHexCommand: '',
+                elseCommandName: '',
+                elseCommandPort: '1'
+            });
+
+            // Reset actions array
+            setActions([{
+                type: 'NOTIFICATION',
+                target: '',
                 hexCommand: '',
                 commandName: '',
                 commandPort: '1'
-            });
+            }]);
         } catch (error) {
             console.error("Rule Save Error Details:", error);
             const serverError = error.response?.data?.error || error.response?.data?.details || error.message;
             alert("İşlem Başarısız: " + JSON.stringify(serverError));
         }
+    };
+
+    // Action array helpers
+    const handleAddAction = () => {
+        setActions([...actions, {
+            type: 'NOTIFICATION',
+            target: '',
+            hexCommand: '',
+            commandName: '',
+            commandPort: '1'
+        }]);
+    };
+
+    const handleRemoveAction = (index) => {
+        if (actions.length > 1) {
+            setActions(actions.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleUpdateAction = (index, field, value) => {
+        const newActions = [...actions];
+        newActions[index][field] = value;
+        setActions(newActions);
     };
 
     return (
@@ -427,131 +473,157 @@ const AutomationPage = () => {
                         </Row>
 
                         <hr />
-                        <h6>Aksiyon</h6>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>Aksiyon Tipi</Form.Label>
-                                    <Form.Select
-                                        value={formData.actionType}
-                                        onChange={e => setFormData({ ...formData, actionType: e.target.value })}
-                                    >
-                                        <option value="NOTIFICATION">Sadece Bildirim</option>
-                                        <option value="SMS">SMS Gönder</option>
-                                        <option value="EMAIL">E-posta Gönder</option>
-                                        <option value="CONTROL_DEVICE">🚀 Cihaz Kontrol (LoRa)</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h6 className="mb-0">⚡ THEN: Aksiyonlar ({actions.length})</h6>
+                            <Button size="sm" variant="success" onClick={handleAddAction}>
+                                <i className="bi bi-plus-circle me-1"></i>
+                                Aksiyon Ekle
+                            </Button>
+                        </div>
 
-                            {/* Conditional Target Field */}
-                            {formData.actionType === 'CONTROL_DEVICE' ? (
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>Hedef Cihaz *</Form.Label>
-                                        <Form.Select
-                                            value={formData.actionTarget}
-                                            onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
-                                        >
-                                            <option value="">Cihaz Seç...</option>
-                                            {devices.map(d => (
-                                                <option key={d.id} value={d.id}>{d.name}</option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            ) : (
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label>
-                                            {formData.actionType === 'SMS' ? 'Telefon Numarası' :
-                                                formData.actionType === 'EMAIL' ? 'E-posta Adresi' :
-                                                    'Hedef (Opsiyonel)'}
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder={formData.actionType === 'SMS' ? '5XX...' : 'ornek@email.com'}
-                                            disabled={formData.actionType === 'NOTIFICATION'}
-                                            value={formData.actionTarget}
-                                            onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            )}
-                        </Row>
+                        {/* Actions Loop */}
+                        {actions.map((action, index) => (
+                            <Card key={index} className="mb-3 border-primary">
+                                <Card.Body>
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 className="text-primary mb-0">Aksiyon #{index + 1}</h6>
+                                        {actions.length > 1 && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline-danger"
+                                                onClick={() => handleRemoveAction(index)}
+                                            >
+                                                <i className="bi bi-trash"></i>
+                                            </Button>
+                                        )}
+                                    </div>
 
-                        {/* CONTROL_DEVICE Extended UI */}
-                        {formData.actionType === 'CONTROL_DEVICE' && (
-                            <div className="bg-light p-3 rounded mt-3 mb-3">
-                                <h6 className="text-primary mb-3">⚡ LoRa Komut Ayarları</h6>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group>
+                                                <Form.Label>Aksiyon Tipi</Form.Label>
+                                                <Form.Select
+                                                    value={action.type}
+                                                    onChange={e => handleUpdateAction(index, 'type', e.target.value)}
+                                                >
+                                                    <option value="NOTIFICATION">Sadece Bildirim</option>
+                                                    <option value="SMS">SMS Gönder</option>
+                                                    <option value="EMAIL">E-posta Gönder</option>
+                                                    <option value="CONTROL_DEVICE">🚀 Cihaz Kontrol (Lo Ra)</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
 
-                                <Row className="mb-3">
-                                    <Col md={8}>
-                                        <Form.Group>
-                                            <Form.Label>Komut Template (Opsiyonel)</Form.Label>
-                                            <Form.Select onChange={e => {
-                                                const templates = {
-                                                    '01FF01': 'Vana Aç',
-                                                    '01FF00': 'Vana Kapat',
-                                                    '02FF01': 'LED Aç',
-                                                    '02FF00': 'LED Kapat'
-                                                };
-                                                if (e.target.value) {
-                                                    setFormData({
-                                                        ...formData,
-                                                        hexCommand: e.target.value,
-                                                        commandName: templates[e.target.value]
-                                                    });
-                                                }
-                                            }}>
-                                                <option value="">Manuel gir...</option>
-                                                <option value="01FF01">🟢 Vana Aç (01FF01)</option>
-                                                <option value="01FF00">🔴 Vana Kapat (01FF00)</option>
-                                                <option value="02FF01">💡 LED Aç (02FF01)</option>
-                                                <option value="02FF00">🌙 LED Kapat (02FF00)</option>
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Group>
-                                            <Form.Label>Port</Form.Label>
-                                            <Form.Control
-                                                type="number"
-                                                value={formData.commandPort}
-                                                onChange={e => setFormData({ ...formData, commandPort: e.target.value })}
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
+                                        {/* Conditional Target Field */}
+                                        {action.type === 'CONTROL_DEVICE' ? (
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label>Hedef Cihaz *</Form.Label>
+                                                    <Form.Select
+                                                        value={action.target}
+                                                        onChange={e => handleUpdateAction(index, 'target', e.target.value)}
+                                                    >
+                                                        <option value="">Cihaz Seç...</option>
+                                                        {devices.map(d => (
+                                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                                        ))}
+                                                    </Form.Select>
+                                                </Form.Group>
+                                            </Col>
+                                        ) : (
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label>
+                                                        {action.type === 'SMS' ? 'Telefon Numarası' :
+                                                            action.type === 'EMAIL' ? 'E-posta Adresi' :
+                                                                'Hedef (Opsiyonel)'}
+                                                    </Form.Label>
+                                                    <Form.Control
+                                                        type="text"
+                                                        placeholder={action.type === 'SMS' ? '5XX...' : 'ornek@email.com'}
+                                                        disabled={action.type === 'NOTIFICATION'}
+                                                        value={action.target}
+                                                        onChange={e => handleUpdateAction(index, 'target', e.target.value)}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                        )}
+                                    </Row>
 
-                                <Row>
-                                    <Col md={8}>
-                                        <Form.Group>
-                                            <Form.Label>HEX Komut *</Form.Label>
-                                            <Form.Control
-                                                style={{ fontFamily: 'monospace', fontSize: '1.1em', letterSpacing: '2px' }}
-                                                placeholder="01FF3A"
-                                                value={formData.hexCommand}
-                                                onChange={e => setFormData({ ...formData, hexCommand: e.target.value.toUpperCase() })}
-                                            />
-                                            <Form.Text className="text-muted">
-                                                Hex format (örn: 01FF3A). Sadece 0-9, A-F karakterleri.
-                                            </Form.Text>
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={4}>
-                                        <Form.Group>
-                                            <Form.Label>Komut Adı</Form.Label>
-                                            <Form.Control
-                                                placeholder="Sulama Aç"
-                                                value={formData.commandName}
-                                                onChange={e => setFormData({ ...formData, commandName: e.target.value })}
-                                            />
-                                        </Form.Group>
-                                    </Col>
-                                </Row>
-                            </div>
-                        )}
+                                    {/* CONTROL_DEVICE Extended UI */}
+                                    {action.type === 'CONTROL_DEVICE' && (
+                                        <div className="bg-light p-3 rounded mt-3">
+                                            <h6 className="text-primary mb-3">⚡ LoRa Komut Ayarları</h6>
+
+                                            <Row className="mb-3">
+                                                <Col md={8}>
+                                                    <Form.Group>
+                                                        <Form.Label>Komut Template (Opsiyonel)</Form.Label>
+                                                        <Form.Select onChange={e => {
+                                                            const templates = {
+                                                                '01FF01': 'Vana Aç',
+                                                                '01FF00': 'Vana Kapat',
+                                                                '02FF01': 'LED Aç',
+                                                                '02FF00': 'LED Kapat'
+                                                            };
+                                                            if (e.target.value) {
+                                                                const newActions = [...actions];
+                                                                newActions[index].hexCommand = e.target.value;
+                                                                newActions[index].commandName = templates[e.target.value];
+                                                                setActions(newActions);
+                                                            }
+                                                        }}>
+                                                            <option value="">Manuel gir...</option>
+                                                            <option value="01FF01">🟢 Vana Aç (01FF01)</option>
+                                                            <option value="01FF00">🔴 Vana Kapat (01FF00)</option>
+                                                            <option value="02FF01">💡 LED Aç (02FF01)</option>
+                                                            <option value="02FF00">🌙 LED Kapat (02FF00)</option>
+                                                        </Form.Select>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col md={4}>
+                                                    <Form.Group>
+                                                        <Form.Label>Port</Form.Label>
+                                                        <Form.Control
+                                                            type="number"
+                                                            value={action.commandPort}
+                                                            onChange={e => handleUpdateAction(index, 'commandPort', e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                            </Row>
+
+                                            <Row>
+                                                <Col md={8}>
+                                                    <Form.Group>
+                                                        <Form.Label>HEX Komut *</Form.Label>
+                                                        <Form.Control
+                                                            style={{ fontFamily: 'monospace', fontSize: '1.1em', letterSpacing: '2px' }}
+                                                            placeholder="01FF3A"
+                                                            value={action.hexCommand}
+                                                            onChange={e => handleUpdateAction(index, 'hexCommand', e.target.value.toUpperCase())}
+                                                        />
+                                                        <Form.Text className="text-muted">
+                                                            Hex format (örn: 01FF3A). Sadece 0-9, A-F karakterleri.
+                                                        </Form.Text>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col md={4}>
+                                                    <Form.Group>
+                                                        <Form.Label>Komut Adı</Form.Label>
+                                                        <Form.Control
+                                                            placeholder="Sulama Aç"
+                                                            value={action.commandName}
+                                                            onChange={e => handleUpdateAction(index, 'commandName', e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                            </Row>
+                                        </div>
+                                    )}
+                                </Card.Body>
+                            </Card>
+                        ))}
 
                         {/* ELSE Actions Section */}
                         <hr />
