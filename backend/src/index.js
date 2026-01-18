@@ -43,6 +43,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/lora', loraRoutes);
 app.use('/api/device-models', deviceModelRoutes);
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
+app.use('/api/debug', require('./routes/debug.routes')); // Diagnostic endpoint
 app.use('/api/settings', require('./routes/settings.routes'));
 
 app.get('/', (req, res) => {
