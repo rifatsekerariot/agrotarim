@@ -11,69 +11,53 @@ function decode(buffer, fPort) {
         const channel = buffer[i++];
         const type = buffer[i++];
 
+        // Safety check: ensure we have enough bytes for the smallest payload part
+        if (i >= buffer.length && type !== 0x00) break;
+
         switch (type) {
             case 0x01: // Battery
                 data.battery = buffer[i++];
                 break;
 
-            case 0x03: // Temperature (2 bytes, signed) - Soil Temperature
-                data.t_soil = buffer.readInt16LE(i) / 10;
+            case 0x03: // Temperature (2 bytes)
+                if (i + 2 > buffer.length) break;
+                // Generic 'temperature' instead of 't_soil' to fit both Air and Soil sensors
+                data.temperature = buffer.readInt16LE(i) / 10;
                 i += 2;
                 break;
 
-            case 0x04: // Moisture/Humidity (1 byte or 2 bytes)
-                if (channel === 0x04) {
-                    // Soil moisture (2 bytes for higher precision)
-                    data.m_soil = buffer.readUInt16LE(i) / 10;
+            case 0x04: // Humidity/Moisture
+                // 0x04 type can be 1 byte (Humidity) or 2 bytes (Moisture) depending on sensor gen
+                // but usually EM500 uses logic based on channel or specific length
+                // Milesight standard: Humidity is 1 byte, Moisture is 2 bytes.
+                // Safest approach: Check channel or assume 1 byte for 0x04 unless context implies soil
+                if (channel === 0x04 && i + 2 <= buffer.length) {
+                    data.moisture = buffer.readUInt16LE(i) / 10;
                     i += 2;
                 } else {
-                    data.h_air = buffer[i++] / 2;
+                    data.humidity = buffer[i++] / 2;
                 }
                 break;
 
-            case 0x05: // Soil EC (Electrical Conductivity, 2 bytes)
-                data.ec_soil = buffer.readUInt16LE(i);
-                i += 2;
-                break;
-
-            case 0x06: // Soil pH (not common but some EM500)
-                data.ph_soil = buffer.readUInt16LE(i) / 100;
-                i += 2;
-                break;
-
             case 0x07: // CO2 (2 bytes)
+                if (i + 2 > buffer.length) break;
                 data.co2 = buffer.readUInt16LE(i);
                 i += 2;
                 break;
 
             case 0x09: // Barometric Pressure (2 bytes)
-                data.pressure = buffer.readUInt16LE(i) / 10;
-                i += 2;
-                break;
-
-            case 0x0C: // Distance (ultrasonic) (2 bytes)
-                data.distance = buffer.readUInt16LE(i);
-                i += 2;
-                break;
-
-            case 0x0F: // Soil Water Potential (2 bytes, signed)
-                data.swp = buffer.readInt16LE(i);
-                i += 2;
-                break;
-
-            case 0x10: // Pipe Pressure (4 bytes)
-                data.pipe_pressure = buffer.readInt32LE(i) / 1000;
-                i += 4;
-                break;
-
-            case 0x14: // Soil Dielectric Permittivity
-                data.soil_dielectric = buffer.readUInt16LE(i) / 10;
+                if (i + 2 > buffer.length) break;
+                data.pressure = buffer.readUInt16LE(i) / 10; // hPa
                 i += 2;
                 break;
 
             default:
+                // Skip unknown bytes safely? Hard to guess length. 
+                // Milesight TLV format usually implies known types.
+                // Just log and attempt to continue by skipping 1 byte or break
                 console.log(`[EM500] Unknown type 0x${type.toString(16)} at channel ${channel}`);
-                i++; // Skip at least one byte
+                // Simple heuristic: most data types are 2 bytes.
+                // But safer to break if unknown structure to avoid garbage data.
                 break;
         }
     }

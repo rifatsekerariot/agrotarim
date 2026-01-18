@@ -121,23 +121,28 @@ class ChirpStackService {
                 return;
             }
 
-            // Find device in database (Check devEui first, then serialNumber as fallback)
-            // We search using the normalized EUI as well as potential original formats
-            const candidates = await prisma.device.findMany({
-                where: {
-                    OR: [
-                        { devEui: { contains: devEui, mode: 'insensitive' } }, // Loose match
-                        { serialNumber: { contains: devEui, mode: 'insensitive' } }
-                    ]
-                },
-                include: { deviceModel: true, sensors: true }
+            // Robust Device Lookup:
+            // Fetch ID fields for all devices to perform normalized comparison in memory
+            // This handles cases where DB has "AA:BB:CC" and payload has "aabbcc"
+            const allDevices = await prisma.device.findMany({
+                select: { id: true, devEui: true, serialNumber: true }
             });
 
-            // Exact match filter (ignoring case and separators)
-            const device = candidates.find(d =>
+            const matchedRef = allDevices.find(d =>
                 normalizeId(d.devEui) === devEui ||
                 normalizeId(d.serialNumber) === devEui
             );
+
+            if (!matchedRef) {
+                console.log(`[ChirpStack] Device ${devEui} not registered (checked ${allDevices.length} candidates), skipping`);
+                return;
+            }
+
+            // Fetch full device details
+            const device = await prisma.device.findUnique({
+                where: { id: matchedRef.id },
+                include: { deviceModel: true, sensors: true }
+            });
 
             if (!device) {
                 console.log(`[ChirpStack] Device ${devEui} not registered, skipping`);
