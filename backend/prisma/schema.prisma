@@ -202,12 +202,16 @@ model TriggerRule {
   checkInterval Int    @default(0) // 0 = Real-time
   coolDownMinutes Int  @default(60)
   
-  // Repeat & Duration (NEW)
+  // Repeat & Duration
   repeatIntervalMinutes Int @default(5)   // Bildirim tekrar süresi (0 = tekrar yok)
   maxRepeatMinutes      Int @default(10)  // Maksimum tekrar süresi (0 = sınırsız)
   autoResolve           Boolean @default(true) // Değer normale dönünce otomatik yeşile dön
   
-  actions     RuleAction[]
+  // IF-THEN-ELSE Logic
+  normalCheckEnabled    Boolean @default(true) // Normal durum kontrolü aktif mi?
+  
+  actions     RuleAction[] @relation("TriggerActions")      // THEN: Alarm tetiklendiğinde
+  elseActions RuleAction[] @relation("ElseActions")         // ELSE: Normal duruma dönünce
   logs        AlertLog[]
   
   createdAt   DateTime @default(now())
@@ -217,11 +221,15 @@ model TriggerRule {
 model RuleAction {
   id            Int         @id @default(autoincrement())
   ruleId        Int
-  rule          TriggerRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  rule          TriggerRule @relation("TriggerActions", fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  // ELSE actions için (optional)
+  elseRuleId    Int?
+  elseRule      TriggerRule? @relation("ElseActions", fields: [elseRuleId], references: [id], onDelete: Cascade)
   
   type          String      // "NOTIFICATION", "SMS", "EMAIL", "CONTROL_DEVICE"
   target        String?     // Phone, Email, or Target Device ID
-  payload       Json?       // e.g. { command: "VALVE_OPEN" }
+  payload       Json?       // e.g. { command: "VALVE_OPEN", hexData: "01FF01" }
 }
 
 model AlertLog {

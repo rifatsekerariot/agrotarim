@@ -72,7 +72,8 @@ class RuleChecker {
                             }
                         }
                     },
-                    actions: true
+                    actions: true,        // THEN actions
+                    elseActions: true     // ELSE actions (normal durumda)
                 }
             });
 
@@ -115,9 +116,15 @@ class RuleChecker {
             );
 
             if (triggered) {
+                // IF koşulu sağlandı → THEN actions
                 await this.handleTriggeredRule(rule, sensor, latestValue);
             } else {
-                // Auto-resolve: Değer normale döndü
+                // ELSE: Normal duruma döndü
+                if (rule.normalCheckEnabled) {
+                    await this.handleNormalState(rule, sensor, latestValue);
+                }
+
+                // Auto-resolve alarms
                 if (rule.autoResolve) {
                     await this.autoResolveAlerts(rule);
                 }
@@ -175,6 +182,42 @@ class RuleChecker {
 
         // Update last trigger time
         this.lastChecked.set(rule.id, now);
+    }
+
+    /**
+     * Handle normal state - Execute ELSE actions
+     */
+    async handleNormalState(rule, sensor, latestValue) {
+        // Eğer ELSE actions yoksa skip
+        if (!rule.elseActions || rule.elseActions.length === 0) {
+            return;
+        }
+
+        // Son ELSE action ne zaman çalıştı?
+        const elseKey = `else_${rule.id}`;
+        const lastElseAction = this.lastChecked.get(elseKey) || 0;
+        const now = Date.now();
+
+        // Repeat interval - ELSE için de cooldown
+        const repeatIntervalMs = rule.repeatIntervalMinutes * 60 * 1000;
+
+        if (lastElseAction > 0 && (now - lastElseAction) < repeatIntervalMs) {
+            // Çok sık ELSE action çalıştırma
+            return;
+        }
+
+        console.log(`[RuleChecker] ✅ NORMAL STATE: "${rule.name}" | ${sensor.name} = ${latestValue} ${sensor.unit}`);
+
+        // ELSE actions'ı çalıştır
+        await actionDispatcher.dispatch(
+            rule.elseActions,
+            `${rule.name} (Normal)`,
+            latestValue,
+            rule.id
+        );
+
+        // Son ELSE action zamanını kaydet
+        this.lastChecked.set(elseKey, now);
     }
 
     /**
