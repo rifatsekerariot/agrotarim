@@ -132,7 +132,6 @@ model Sensor {
   unit        String   // "C", "%", "hPa"
   
   telemetry   Telemetry[]
-  alertRules  AlertRule[]
 }
 
 // Time-series data storage
