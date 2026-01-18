@@ -3,6 +3,7 @@ import { Container, Tabs, Tab, Card, Table, Button, Form, Row, Col, Badge, Modal
 import { Server, Cpu, Radio, Plus, Pencil, Trash2, RefreshCw, Check, X, Wifi, WifiOff, MoreVertical, Search, Filter, ChevronLeft, ChevronRight, Copy, MessageSquare } from 'lucide-react';
 import SmsProvidersTab from '../components/SmsProvidersTab';
 import SmsProviderModal from '../components/SmsProviderModal';
+import api from '../utils/api';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('devices');
@@ -59,10 +60,10 @@ const Settings = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             const [devRes, serverRes, smsRes, settingsRes] = await Promise.all([
-                fetch('/api/devices'),
-                fetch('/api/lora/servers'),
-                fetch('/api/sms/providers', { headers }),
-                fetch('/api/settings', { headers })
+                api.get('/api/devices'),
+                api.get('/api/lora/servers'),
+                api.get('/api/sms/providers'),
+                api.get('/api/settings')
             ]);
 
             if (devRes.ok) {
@@ -129,15 +130,19 @@ const Settings = () => {
         const url = editingId ? `/api/devices/${editingId}` : '/api/devices';
         const method = editingId ? 'PUT' : 'POST';
 
-        await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        if (editingId) {
+            await api.put(`/api/devices/${editingId}`, {
                 ...deviceForm,
                 deviceModelId: deviceForm.deviceModelId ? parseInt(deviceForm.deviceModelId) : null,
                 loraServerId: deviceForm.loraServerId ? parseInt(deviceForm.loraServerId) : null
-            })
-        });
+            });
+        } else {
+            await api.post('/api/devices', {
+                ...deviceForm,
+                deviceModelId: deviceForm.deviceModelId ? parseInt(deviceForm.deviceModelId) : null,
+                loraServerId: deviceForm.loraServerId ? parseInt(deviceForm.loraServerId) : null
+            });
+        }
         setShowDeviceModal(false);
         setEditingId(null);
         setDeviceForm({ name: '', serialNumber: '', devEui: '', deviceModelId: '', loraServerId: '', latitude: '', longitude: '' });
@@ -160,7 +165,7 @@ const Settings = () => {
 
     const handleDeleteDevice = async (id) => {
         if (!window.confirm('Bu cihazı silmek istediğinize emin misiniz?')) return;
-        await fetch(`/api/devices/${id}`, { method: 'DELETE' });
+        await api.delete(`/api/devices/${id}`);
         fetchAll();
     };
 
@@ -171,9 +176,13 @@ const Settings = () => {
         const url = editingId ? `/api/lora/servers/${editingId}` : '/api/lora/servers';
         const method = editingId ? 'PUT' : 'POST';
         try {
-            const res = await fetch(url, {
-                method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(serverForm)
-            });
+            let res;
+            if (editingId) {
+                res = await api.put(`/api/lora/servers/${editingId}`, serverForm);
+            } else {
+                res = await api.post('/api/lora/servers', serverForm);
+            }
+            // axios throws on error status, so if we are here it is success
             if (res.ok) {
                 alert(editingId ? '✅ Sunucu güncellendi!' : '✅ Sunucu eklendi!');
                 setShowServerModal(false); setEditingId(null);
@@ -187,48 +196,35 @@ const Settings = () => {
     const handleTestServer = async (id) => {
         setTestResult({ id, loading: true });
         try {
-            const res = await fetch(`/api/lora/servers/${id}/test`, { method: 'POST' });
-            const data = await res.json();
+            const res = await api.post(`/api/lora/servers/${id}/test`);
+            const data = res.data;
             setTestResult({ id, ...data });
             if (data.success) alert('✅ ' + data.message); else alert('❌ ' + (data.message || 'Test başarısız'));
         } catch (e) { setTestResult({ id, success: false }); alert('❌ Bağlantı hatası'); }
     };
     const handleDeleteServer = async (id) => {
         if (!window.confirm('Silmek istediğinize emin misiniz?')) return;
-        await fetch(`/api/lora/servers/${id}`, { method: 'DELETE' });
+        await api.delete(`/api/lora/servers/${id}`);
         fetchAll();
     };
     const handleSyncServer = async (id) => {
         // ... existing sync logic ...
         if (!window.confirm("Senkronizasyon yapılsın mı?")) return;
         try {
-            const res = await fetch(`/api/lora/servers/${id}/sync`, { method: 'POST' });
-            const data = await res.json();
+            const res = await api.post(`/api/lora/servers/${id}/sync`);
+            const data = res.data;
             if (data.success) { alert('✅ ' + data.message); fetchAll(); } else alert('❌ ' + data.message);
         } catch (e) { alert('❌ Hata'); }
     };
 
     // ========== SMS PROVIDERS ACTIONS ==========
     const handleTestSmsProvider = async (id, phoneNumber) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/sms/providers/${id}/test`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ testPhoneNumber: phoneNumber })
-        });
-        if (!res.ok) throw new Error('Test SMS gönderilemedi');
+        await api.post(`/api/sms/providers/${id}/test`, { testPhoneNumber: phoneNumber });
     };
 
     const handleDeleteSmsProvider = async (id) => {
         if (!window.confirm('Bu SMS provider\'ı silmek istediğinizden emin misiniz?')) return;
-        const token = localStorage.getItem('token');
-        await fetch(`/api/sms/providers/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await api.delete(`/api/sms/providers/${id}`);
         fetchAll();
     };
 
@@ -239,22 +235,12 @@ const Settings = () => {
     };
 
     const handleSaveSmsProvider = async (providerData) => {
-        const token = localStorage.getItem('token');
         const url = editingSmsId ? `/api/sms/providers/${editingSmsId}` : '/api/sms/providers';
-        const method = editingSmsId ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(providerData)
-        });
-
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error || 'Kaydetme başarısız');
+        if (editingSmsId) {
+            await api.put(url, providerData);
+        } else {
+            await api.post(url, providerData);
         }
 
         fetchAll();
@@ -268,21 +254,12 @@ const Settings = () => {
         setSmtpLoading(true);
         setSmtpMessage(null);
         try {
-            const token = localStorage.getItem('token');
             const settingsArray = Object.keys(smtpForm).map(key => ({ key, value: smtpForm[key] }));
 
-            const res = await fetch('/api/settings/bulk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(settingsArray)
-            });
+            await api.post('/api/settings/bulk', settingsArray);
 
-            if (res.ok) {
-                setSmtpMessage({ type: 'success', text: 'SMTP ayarları başarıyla kaydedildi!' });
-                setTimeout(() => setSmtpMessage(null), 5000);
-            } else {
-                throw new Error("Kaydedilemedi");
-            }
+            setSmtpMessage({ type: 'success', text: 'SMTP ayarları başarıyla kaydedildi!' });
+            setTimeout(() => setSmtpMessage(null), 5000);
         } catch (err) {
             setSmtpMessage({ type: 'error', text: 'Hata: ' + err.message });
         }
@@ -298,16 +275,10 @@ const Settings = () => {
         setTestEmailLoading(true);
         setSmtpMessage(null);
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/settings/test-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ to: testEmailAddress })
-            });
+            const res = await api.post('/api/settings/test-email', { to: testEmailAddress });
+            const data = res.data;
 
-            const data = await res.json();
-
-            if (res.ok && data.success) {
+            if (data.success) {
                 setSmtpMessage({ type: 'success', text: `Test email gönderildi! (Message ID: ${data.messageId})` });
                 setTimeout(() => setSmtpMessage(null), 8000);
             } else {

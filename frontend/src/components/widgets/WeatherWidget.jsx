@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Spinner } from 'react-bootstrap';
 import { Cloud, CloudRain, Sun, Wind, Droplets } from 'lucide-react';
+import api from '../../utils/api';
 
 const WeatherWidget = ({ farmId = 1 }) => {
     const [currentWeather, setCurrentWeather] = useState(null);
@@ -18,19 +19,12 @@ const WeatherWidget = ({ farmId = 1 }) => {
         try {
             setLoading(true);
             const [currentRes, forecastRes] = await Promise.all([
-                fetch(`/api/weather/current/${farmId}`),
-                fetch(`/api/weather/forecast/${farmId}`)
+                api.get(`/api/weather/current/${farmId}`),
+                api.get(`/api/weather/forecast/${farmId}`)
             ]);
 
-            if (currentRes.ok) {
-                const current = await currentRes.json();
-                setCurrentWeather(current);
-            }
-
-            if (forecastRes.ok) {
-                const forecast = await forecastRes.json();
-                setForecast(forecast.slice(0, 7));
-            }
+            setCurrentWeather(currentRes.data);
+            setForecast(forecastRes.data.slice(0, 7));
 
             setError(null);
         } catch (err) {

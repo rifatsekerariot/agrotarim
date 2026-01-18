@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Modal, Form, Alert, Badge, Card } from 'react-bootstrap';
 import { Users, Trash2, Key, Plus, RefreshCcw, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -26,26 +27,11 @@ const UserManagement = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                navigate('/login');
-                return;
-            }
-
-            const res = await fetch('/api/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setUsers(data);
-                setError(null);
-            } else {
-                if (res.status === 401) navigate('/login');
-                throw new Error('Kullanıcılar getirilemedi.');
-            }
+            const res = await api.get('/api/users');
+            setUsers(res.data);
+            setError(null);
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.error || 'Kullanıcılar getirilemedi.');
         } finally {
             setLoading(false);
         }
@@ -53,26 +39,12 @@ const UserManagement = () => {
 
     const handleAddUser = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(newUser)
-            });
-
-            if (res.ok) {
-                setShowAddModal(false);
-                setNewUser({ username: '', password: '' });
-                fetchUsers();
-            } else {
-                const err = await res.json();
-                alert(`Hata: ${err.error}`);
-            }
+            await api.post('/api/users', newUser);
+            setShowAddModal(false);
+            setNewUser({ username: '', password: '' });
+            fetchUsers();
         } catch (e) {
-            alert('Bir hata oluştu.');
+            alert(`Hata: ${e.response?.data?.error || 'Bir hata oluştu.'}`);
         }
     };
 
@@ -80,17 +52,8 @@ const UserManagement = () => {
         if (!window.confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
 
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`/api/users/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                fetchUsers();
-            } else {
-                alert('Silme işlemi başarısız.');
-            }
+            await api.delete(`/api/users/${id}`);
+            fetchUsers();
         } catch (e) {
             alert('Hata oluştu.');
         }
@@ -98,23 +61,10 @@ const UserManagement = () => {
 
     const handleResetPassword = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`/api/users/${resetData.id}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ newPassword: resetData.newPassword })
-            });
-
-            if (res.ok) {
-                setShowResetModal(false);
-                setResetData({ id: null, username: '', newPassword: '' });
-                alert('Parola başarıyla sıfırlandı.');
-            } else {
-                alert('Sıfırlama başarısız.');
-            }
+            await api.post(`/api/users/${resetData.id}/reset-password`, { newPassword: resetData.newPassword });
+            setShowResetModal(false);
+            setResetData({ id: null, username: '', newPassword: '' });
+            alert('Parola başarıyla sıfırlandı.');
         } catch (e) {
             alert('Hata oluştu.');
         }

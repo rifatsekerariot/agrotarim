@@ -123,7 +123,7 @@ exports.getAllDownlinkLogs = async (req, res) => {
         const userDevices = await prisma.device.findMany({
             where: {
                 farm: {
-                    userId: userId
+                    user_id: userId
                 }
             },
             select: { id: true }

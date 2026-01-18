@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Navbar, Container, Nav, Button, Toast, ToastContainer } from 'react-bootstrap';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Link from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const MainLayout = ({ children }) => {
     const location = useLocation();

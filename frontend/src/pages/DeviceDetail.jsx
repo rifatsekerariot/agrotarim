@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Row, Col, Button, Spinner, Alert } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, Thermometer, Droplets, Wind } from 'lucide-react';
+import api from '../utils/api';
 
 const DeviceDetail = () => {
     const { serial } = useParams();
@@ -14,16 +15,11 @@ const DeviceDetail = () => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const res = await fetch(`/api/telemetry/history/${serial}`);
-                if (!res.ok) throw new Error("Veri çekilemedi.");
-                const json = await res.json();
-
-                // Process data for charts
-                // Backend returns { deviceName, history: { t_air: [], h_air: [], ... } }
-                // We need to merge timestamps if possible or display separate charts
-                setData(json);
+                // ✅ FIX: Use api instance for automatic auth headers
+                const res = await api.get(`/api/telemetry/history/${serial}`);
+                setData(res.data);
             } catch (err) {
-                setError(err.message);
+                setError(err.response?.data?.error || "Veri çekilemedi.");
             } finally {
                 setLoading(false);
             }

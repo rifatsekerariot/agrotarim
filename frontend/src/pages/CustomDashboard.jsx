@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import L from 'leaflet';
-import axios from 'axios';
+import api from '../utils/api';
 import { getWidgetComponent, WIDGET_TYPES, WIDGET_SETTINGS } from '../utils/widgetRegistry';
 
 // Custom Hook for Width
@@ -388,14 +388,14 @@ const CustomDashboard = () => {
     const fetchConfig = async () => {
         try {
             console.log('[Dashboard] Fetching config for farm:', farmId);
-            const res = await fetch(`/api/dashboard/${farmId}`);
+            const res = await api.get(`/api/dashboard/${farmId}`);
 
-            if (!res.ok) {
+            if (res.status !== 200) {
                 console.error('[Dashboard] Failed to fetch config:', res.status);
                 return;
             }
 
-            const config = await res.json();
+            const config = res.data;
             console.log('[Dashboard] Loaded config:', config);
 
             if (config && config.widgets) {
@@ -427,13 +427,13 @@ const CustomDashboard = () => {
     };
 
     const fetchDevices = async () => {
-        const res = await fetch('/api/devices');
-        setDevices(await res.json());
+        const res = await api.get('/api/devices');
+        setDevices(res.data);
     };
 
     const fetchLiveData = async () => {
-        const res = await fetch('/api/devices');
-        const data = await res.json();
+        const res = await api.get('/api/devices');
+        const data = res.data;
         setDevices(data);
         const telMap = {};
         data.forEach(d => {

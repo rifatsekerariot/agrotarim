@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Modal, Form, Alert, Toast, ToastContainer } from 'react-bootstrap';
 import { useOutletContext } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import { Wifi, Thermometer, Droplets, Activity, Bell, Trash2, Plus, Edit } from 'lucide-react';
 
 const AutomationPage = () => {
@@ -59,17 +59,17 @@ const AutomationPage = () => {
     const fetchData = async () => {
         try {
             // Fetch Devices
-            const devicesRes = await axios.get('/api/devices', {
+            const devicesRes = await api.get('/api/devices', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDevices(devicesRes.data);
 
-            const rulesRes = await axios.get(`/api/automation/rules/${farmId}`, {
+            const rulesRes = await api.get(`/api/automation/rules/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRules(rulesRes.data);
 
-            const logsRes = await axios.get(`/api/automation/logs/${farmId}`, {
+            const logsRes = await api.get(`/api/automation/logs/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const newLogs = logsRes.data;
@@ -98,7 +98,7 @@ const AutomationPage = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Bu kuralı silmek istediğinize emin misiniz?")) return;
         try {
-            await axios.delete(`/api/automation/rules/${id}`, {
+            await api.delete(`/api/automation/rules/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData();
@@ -211,11 +211,11 @@ const AutomationPage = () => {
             };
 
             if (editId) {
-                await axios.put(`/api/automation/rules/${editId}`, payload, {
+                await api.put(`/api/automation/rules/${editId}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             } else {
-                await axios.post('/api/automation/rules', payload, {
+                await api.post('/api/automation/rules', payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             }

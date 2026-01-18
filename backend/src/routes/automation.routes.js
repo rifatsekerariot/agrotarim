@@ -52,7 +52,7 @@ router.post('/rules', authenticateToken, async (req, res) => {
         const userFarm = await prisma.farm.findFirst({
             where: {
                 id: parsedFarmId,
-                userId: userId
+                user_id: userId
             }
         });
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Table, Badge, Button, Form, Card, Spinner } from 'react-bootstrap';
-import axios from 'axios';
+import api from '../utils/api';
 
 const DownlinkLogsPage = () => {
     const [logs, setLogs] = useState([]);
@@ -25,7 +25,7 @@ const DownlinkLogsPage = () => {
 
     const fetchDevices = async () => {
         try {
-            const res = await axios.get('/api/devices', {
+            const res = await api.get('/api/devices', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDevices(res.data);
@@ -42,7 +42,7 @@ const DownlinkLogsPage = () => {
             if (filters.status !== 'all') params.append('status', filters.status);
             params.append('limit', filters.limit);
 
-            const res = await axios.get(`/api/lora/downlink-logs?${params}`, {
+            const res = await api.get(`/api/lora/downlink-logs?${params}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

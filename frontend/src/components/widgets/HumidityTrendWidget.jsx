@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts';
 import { Badge } from 'react-bootstrap';
+import api from '../../utils/api';
 
 const HumidityTrendWidget = ({ data, settings = {}, deviceSerial, sensorCode }) => {
     const currentValue = data?.value ?? null;
@@ -15,8 +16,8 @@ const HumidityTrendWidget = ({ data, settings = {}, deviceSerial, sensorCode }) 
 
         const fetchHistory = async () => {
             try {
-                const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=4`);
-                const json = await res.json();
+                const res = await api.get(`/api/telemetry/history/${deviceSerial}?hours=4`);
+                const json = res.data;
 
                 if (json[sensorCode] && json[sensorCode].length > 0) {
                     const formatted = json[sensorCode]

@@ -25,7 +25,7 @@ const validateFarmOwnership = async (req, res, next) => {
         const farm = await prisma.farm.findFirst({
             where: {
                 id: farmId,
-                userId: userId // ✅ User ownership validation
+                user_id: userId // ✅ User ownership validation
             }
         });
 
@@ -68,12 +68,12 @@ const validateDeviceOwnership = async (req, res, next) => {
             where: {
                 id: deviceId,
                 farm: {
-                    userId: userId // ✅ User ownership validation via farm
+                    user_id: userId // ✅ User ownership validation via farm
                 }
             },
             include: {
                 farm: {
-                    select: { id: true, userId: true }
+                    select: { id: true, user_id: true }
                 }
             }
         });
