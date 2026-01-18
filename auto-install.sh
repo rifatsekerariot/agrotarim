@@ -235,7 +235,8 @@ if [ "$FRONTEND_READY" != "true" ]; then
     echo -e "${RED}❌ Frontend build timeout or failed${NC}"
     echo ""
     echo "Checking frontend logs:"
-    docker logs sera_frontend --tail 30
+    # ✅ SECURITY: Filter sensitive data from logs
+    docker logs sera_frontend --tail 30 | grep -v "JWT_SECRET\|PASSWORD\|API_KEY"
     echo ""
     echo "Checking if dist/ exists:"
     docker exec sera_frontend ls -la /app/ 2>/dev/null || echo "Cannot access container"

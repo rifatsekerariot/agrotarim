@@ -53,20 +53,8 @@ services:
     networks:
       - sera-network
     restart: unless-stopped
-    command: >
-      sh -c "
-        echo '🔍 Waiting for database...' &&
-        until npx prisma db push 2>/dev/null; do
-          echo 'Database not ready, retrying in 3s...'
-          sleep 3
-        done &&
-        echo '✅ Database connected!' &&
-        echo '🔄 Running migrations...' &&
-        npx prisma migrate deploy &&
-        echo '✅ Migrations complete!' &&
-        echo '🚀 Starting backend...' &&
-        npm start
-      "
+    # ✅ FIX: Migration handled by auto-install.sh, not by container startup
+    # Backend starts directly with npm start (defined in Dockerfile CMD)
 
   frontend:
     build:

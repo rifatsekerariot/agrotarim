@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Card, Form, Button, Alert, ProgressBar } from 'react-bootstrap';
-import { Sprout, User, MapPin } from 'lucide-react';
+import { Sprout, User, MapPin, Lock, Mail } from 'lucide-react';
 import axios from 'axios';
 
 const SetupPage = () => {
@@ -17,6 +17,16 @@ const SetupPage = () => {
         farmLocation: ''
     });
 
+    // ✅ SECURITY: Client-side validation
+    const validatePassword = (pwd) => {
+        const errors = [];
+        if (pwd.length < 8) errors.push('en az 8 karakter');
+        if (!/[A-Z]/.test(pwd)) errors.push('bir büyük harf');
+        if (!/[a-z]/.test(pwd)) errors.push('bir küçük harf');
+        if (!/[0-9]/.test(pwd)) errors.push('bir rakam');
+        return errors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -27,8 +37,19 @@ const SetupPage = () => {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Şifre en az 6 karakter olmalıdır');
+        const pwdErrors = validatePassword(formData.password);
+        if (pwdErrors.length > 0) {
+            setError(`Şifre gereksinimleri: ${pwdErrors.join(', ')}`);
+            return;
+        }
+
+        if (!formData.username.match(/^[a-zA-Z0-9_]{3,20}$/)) {
+            setError('Kullanıcı adı 3-20 karakter olmalı (harf, rakam, alt çizgi)');
+            return;
+        }
+
+        if (!formData.farmName) {
+            setError('Sera adı gerekli');
             return;
         }
 
@@ -43,7 +64,7 @@ const SetupPage = () => {
                 farmLocation: formData.farmLocation
             });
 
-            // Success - redirect to login using window.location
+            // Success - redirect to login
             alert('✅ Kurulum tamamlandı! Şimdi giriş yapabilirsiniz.');
             window.location.href = '/login';
         } catch (err) {
@@ -53,111 +74,158 @@ const SetupPage = () => {
         }
     };
 
+    const nextStep = () => {
+        if (step === 1) {
+            // Validate user info
+            if (!formData.username || !formData.password || !formData.confirmPassword) {
+                setError('Lütfen tüm alanları doldurun');
+                return;
+            }
+            if (formData.password !== formData.confirmPassword) {
+                setError('Şifreler eşleşmiyor');
+                return;
+            }
+            const pwdErrors = validatePassword(formData.password);
+            if (pwdErrors.length > 0) {
+                setError(`Şifre gereksinimleri: ${pwdErrors.join(', ')}`);
+                return;
+            }
+        }
+        setError('');
+        setStep(step + 1);
+    };
+
+    const prevStep = () => {
+        setError('');
+        setStep(step - 1);
+    };
+
     return (
-        <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        }}>
-            <Container style={{ maxWidth: '600px' }}>
-                <Card className="shadow-lg border-0">
-                    <Card.Header className="bg-success text-white text-center py-4">
-                        <Sprout size={48} className="mb-2" />
-                        <h2 className="mb-0">AGROMETA</h2>
-                        <p className="mb-0 small">İlk Kurulum Sihirbazı</p>
+        <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+            <Container>
+                <div className="text-center mb-4">
+                    <Sprout size={64} className="text-success mb-3" />
+                    <h1 className="display-4">🌱 Sera Otomasyon</h1>
+                    <p className="text-muted">İlk Kurulum</p>
+                </div>
+
+                <Card className="mx-auto shadow-lg" style={{ maxWidth: '600px' }}>
+                    <Card.Header className="bg-success text-white">
+                        <ProgressBar now={(step / 2) * 100} className="mb-2" />
+                        <h5 className="mb-0">
+                            Adım {step}/2: {step === 1 ? 'Admin Hesabı' : 'Sera Bilgileri'}
+                        </h5>
                     </Card.Header>
                     <Card.Body className="p-4">
-                        <ProgressBar now={(step / 2) * 100} className="mb-4" />
-
                         {error && <Alert variant="danger">{error}</Alert>}
 
                         <Form onSubmit={handleSubmit}>
                             {step === 1 && (
                                 <>
-                                    <h5 className="mb-3 d-flex align-items-center gap-2">
-                                        <User size={20} /> Admin Kullanıcı Oluştur
-                                    </h5>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Kullanıcı Adı *</Form.Label>
+                                        <Form.Label>
+                                            <User size={18} className="me-2" />
+                                            Kullanıcı Adı *
+                                        </Form.Label>
                                         <Form.Control
-                                            type="text"
+                                            required
                                             placeholder="admin"
                                             value={formData.username}
-                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                            required
+                                            onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                            pattern="[a-zA-Z0-9_]{3,20}"
+                                            title="3-20 karakter (harf, rakam, alt çizgi)"
                                         />
+                                        <Form.Text className="text-muted">
+                                            3-20 karakter (harf, rakam, alt çizgi)
+                                        </Form.Text>
                                     </Form.Group>
+
                                     <Form.Group className="mb-3">
-                                        <Form.Label>E-posta</Form.Label>
+                                        <Form.Label>
+                                            <Mail size={18} className="me-2" />
+                                            E-posta (Opsiyonel)
+                                        </Form.Label>
                                         <Form.Control
                                             type="email"
                                             placeholder="admin@example.com"
                                             value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         />
-                                        <Form.Text>İsteğe bağlı</Form.Text>
                                     </Form.Group>
+
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Şifre *</Form.Label>
+                                        <Form.Label>
+                                            <Lock size={18} className="me-2" />
+                                            Şifre *
+                                        </Form.Label>
                                         <Form.Control
                                             type="password"
-                                            placeholder="En az 6 karakter"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                             required
+                                            placeholder="********"
+                                            value={formData.password}
+                                            onChange={e => setFormData({ ...formData, password: e.target.value })}
                                         />
+                                        <Form.Text className="text-muted">
+                                            Min 8 karakter, büyük harf, küçük harf ve rakam içermeli
+                                        </Form.Text>
                                     </Form.Group>
+
                                     <Form.Group className="mb-3">
                                         <Form.Label>Şifre Tekrar *</Form.Label>
                                         <Form.Control
                                             type="password"
-                                            placeholder="Şifrenizi tekrar girin"
-                                            value={formData.confirmPassword}
-                                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                             required
+                                            placeholder="********"
+                                            value={formData.confirmPassword}
+                                            onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
                                         />
                                     </Form.Group>
-                                    <Button variant="success" onClick={() => setStep(2)} className="w-100">
-                                        Devam Et →
+
+                                    <Button variant="success" className="w-100" onClick={nextStep}>
+                                        İleri →
                                     </Button>
                                 </>
                             )}
 
                             {step === 2 && (
                                 <>
-                                    <h5 className="mb-3 d-flex align-items-center gap-2">
-                                        <MapPin size={20} /> Tesis Bilgileri
-                                    </h5>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Sera / Tesis Adı *</Form.Label>
+                                        <Form.Label>
+                                            <Sprout size={18} className="me-2" />
+                                            Sera Adı *
+                                        </Form.Label>
                                         <Form.Control
-                                            type="text"
-                                            placeholder="Örn: 1 Nolu Sera"
-                                            value={formData.farmName}
-                                            onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
                                             required
+                                            placeholder="Sera 1"
+                                            value={formData.farmName}
+                                            onChange={e => setFormData({ ...formData, farmName: e.target.value })}
+                                            maxLength={100}
                                         />
                                     </Form.Group>
+
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Konum</Form.Label>
+                                        <Form.Label>
+                                            <MapPin size={18} className="me-2" />
+                                            Konum (Opsiyonel)
+                                        </Form.Label>
                                         <Form.Control
-                                            type="text"
-                                            placeholder="Örn: Adana / Seyhan"
+                                            placeholder="Adana"
                                             value={formData.farmLocation}
-                                            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                                            onChange={e => setFormData({ ...formData, farmLocation: e.target.value })}
                                         />
-                                        <Form.Text>İsteğe bağlı</Form.Text>
                                     </Form.Group>
 
                                     <div className="d-flex gap-2">
-                                        <Button variant="secondary" onClick={() => setStep(1)} className="w-50">
+                                        <Button variant="secondary" onClick={prevStep} className="flex-fill">
                                             ← Geri
                                         </Button>
                                         <Button
-                                            variant="success"
                                             type="submit"
+                                            variant="success"
                                             disabled={loading}
-                                            className="w-50"
+                                            className="flex-fill"
                                         >
-                                            {loading ? 'Kuruluyor...' : '🚀 Kurulumu Tamamla'}
+                                            {loading ? 'Kuruluyor...' : '✓ Kurulumu Tamamla'}
                                         </Button>
                                     </div>
                                 </>
@@ -166,8 +234,8 @@ const SetupPage = () => {
                     </Card.Body>
                 </Card>
 
-                <div className="text-center mt-3 text-white">
-                    <small>Bu kurulum yalnızca bir kez yapılır. Sistem hazır olduğunda giriş ekranına yönlendirileceksiniz.</small>
+                <div className="text-center mt-4 text-muted">
+                    <small>🔒 Güvenli bağlantı | Sera Otomasyon v1.0</small>
                 </div>
             </Container>
         </div>
