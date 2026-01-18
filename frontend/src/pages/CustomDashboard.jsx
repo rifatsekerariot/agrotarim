@@ -433,13 +433,9 @@ const CustomDashboard = () => {
         setTelemetry(telMap);
     };
 
-    const saveConfig = async (newWidgets) => {
+    const saveConfig = (newWidgets) => {
         setWidgets(newWidgets);
-        await fetch(`/api/expert/${farmId}/dashboard`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ widgets: newWidgets })
-        });
+        localStorage.setItem(`greenhouse-dashboard-${farmId}`, JSON.stringify({ widgets: newWidgets }));
     };
 
     const handleWidgetUpdate = (updatedWidget) => {
