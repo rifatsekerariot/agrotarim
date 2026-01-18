@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken } = require('../auth/auth.middleware');
+const authenticateToken = require('../auth/auth.middleware');
 
 // ✅ SECURITY FIX: All LoRa endpoints require authentication
 router.use(authenticateToken);
