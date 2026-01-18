@@ -407,26 +407,120 @@ const AutomationPage = () => {
                                         <option value="NOTIFICATION">Sadece Bildirim</option>
                                         <option value="SMS">SMS Gönder</option>
                                         <option value="EMAIL">E-posta Gönder</option>
+                                        <option value="CONTROL_DEVICE">🚀 Cihaz Kontrol (LoRa)</option>
                                     </Form.Select>
                                 </Form.Group>
                             </Col>
-                            <Col md={6}>
-                                <Form.Group>
-                                    <Form.Label>
-                                        {formData.actionType === 'SMS' ? 'Telefon Numarası' :
-                                            formData.actionType === 'EMAIL' ? 'E-posta Adresi' :
-                                                'Hedef (Opsiyonel)'}
-                                    </Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder={formData.actionType === 'SMS' ? '5XX...' : 'ornek@email.com'}
-                                        disabled={formData.actionType === 'NOTIFICATION'}
-                                        value={formData.actionTarget}
-                                        onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
-                                    />
-                                </Form.Group>
-                            </Col>
+
+                            {/* Conditional Target Field */}
+                            {formData.actionType === 'CONTROL_DEVICE' ? (
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Hedef Cihaz *</Form.Label>
+                                        <Form.Select
+                                            value={formData.actionTarget}
+                                            onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
+                                        >
+                                            <option value="">Cihaz Seç...</option>
+                                            {devices.map(d => (
+                                                <option key={d.id} value={d.id}>{d.name}</option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            ) : (
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>
+                                            {formData.actionType === 'SMS' ? 'Telefon Numarası' :
+                                                formData.actionType === 'EMAIL' ? 'E-posta Adresi' :
+                                                    'Hedef (Opsiyonel)'}
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder={formData.actionType === 'SMS' ? '5XX...' : 'ornek@email.com'}
+                                            disabled={formData.actionType === 'NOTIFICATION'}
+                                            value={formData.actionTarget}
+                                            onChange={e => setFormData({ ...formData, actionTarget: e.target.value })}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            )}
                         </Row>
+
+                        {/* CONTROL_DEVICE Extended UI */}
+                        {formData.actionType === 'CONTROL_DEVICE' && (
+                            <div className="bg-light p-3 rounded mt-3 mb-3">
+                                <h6 className="text-primary mb-3">⚡ LoRa Komut Ayarları</h6>
+
+                                <Row className="mb-3">
+                                    <Col md={8}>
+                                        <Form.Group>
+                                            <Form.Label>Komut Template (Opsiyonel)</Form.Label>
+                                            <Form.Select onChange={e => {
+                                                const templates = {
+                                                    '01FF01': 'Vana Aç',
+                                                    '01FF00': 'Vana Kapat',
+                                                    '02FF01': 'LED Aç',
+                                                    '02FF00': 'LED Kapat'
+                                                };
+                                                if (e.target.value) {
+                                                    setFormData({
+                                                        ...formData,
+                                                        hexCommand: e.target.value,
+                                                        commandName: templates[e.target.value]
+                                                    });
+                                                }
+                                            }}>
+                                                <option value="">Manuel gir...</option>
+                                                <option value="01FF01">🟢 Vana Aç (01FF01)</option>
+                                                <option value="01FF00">🔴 Vana Kapat (01FF00)</option>
+                                                <option value="02FF01">💡 LED Aç (02FF01)</option>
+                                                <option value="02FF00">🌙 LED Kapat (02FF00)</option>
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label>Port</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                value={formData.commandPort}
+                                                onChange={e => setFormData({ ...formData, commandPort: e.target.value })}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+
+                                <Row>
+                                    <Col md={8}>
+                                        <Form.Group>
+                                            <Form.Label>HEX Komut *</Form.Label>
+                                            <Form.Control
+                                                style={{ fontFamily: 'monospace', fontSize: '1.1em', letterSpacing: '2px' }}
+                                                placeholder="01FF3A"
+                                                value={formData.hexCommand}
+                                                onChange={e => setFormData({ ...formData, hexCommand: e.target.value.toUpperCase() })}
+                                            />
+                                            <Form.Text className="text-muted">
+                                                Hex format (örn: 01FF3A). Sadece 0-9, A-F karakterleri.
+                                            </Form.Text>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Group>
+                                            <Form.Label>Komut Adı</Form.Label>
+                                            <Form.Control
+                                                placeholder="Sulama Aç"
+                                                value={formData.commandName}
+                                                onChange={e => setFormData({ ...formData, commandName: e.target.value })}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+                            </div>
+                        )}
+
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
