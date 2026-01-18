@@ -28,7 +28,10 @@ const AutomationPage = () => {
         threshold2: '', // For BETWEEN condition
         coolDownMinutes: '60', // Default 60 minutes
         actionType: 'NOTIFICATION',
-        actionTarget: ''
+        actionTarget: '',
+        hexCommand: '', // For CONTROL_DEVICE
+        commandName: '', // For CONTROL_DEVICE
+        commandPort: '1' // For CONTROL_DEVICE
     });
 
     useEffect(() => {
@@ -93,14 +96,29 @@ const AutomationPage = () => {
     const handleEdit = (rule) => {
         setEditId(rule.id);
         const action = rule.actions[0] || { type: 'NOTIFICATION', target: '' };
+
+        // Parse payload for CONTROL_DEVICE
+        let hexCommand = '', commandName = '', commandPort = '1';
+        if (action.type === 'CONTROL_DEVICE' && action.payload) {
+            const payload = typeof action.payload === 'string' ? JSON.parse(action.payload) : action.payload;
+            hexCommand = payload.hexData || '';
+            commandName = payload.command || '';
+            commandPort = String(payload.port || 1);
+        }
+
         setFormData({
             name: rule.name,
             deviceId: rule.deviceId,
             sensorCode: rule.sensorCode,
             condition: rule.condition,
             threshold: rule.threshold,
+            threshold2: rule.threshold2 || '',
+            coolDownMinutes: String(rule.coolDownMinutes || 60),
             actionType: action.type,
-            actionTarget: action.target || ''
+            actionTarget: action.target || '',
+            hexCommand,
+            commandName,
+            commandPort
         });
         setShowModal(true);
     };
@@ -111,17 +129,44 @@ const AutomationPage = () => {
             return;
         }
 
+        // Validate CONTROL_DEVICE
+        if (formData.actionType === 'CONTROL_DEVICE') {
+            if (!formData.actionTarget) {
+                alert("Lütfen hedef cihaz seçin.");
+                return;
+            }
+            if (!formData.hexCommand || !/^[0-9A-Fa-f]+$/.test(formData.hexCommand)) {
+                alert("Lütfen geçerli bir HEX komut girin (örn: 01FF3A).");
+                return;
+            }
+        }
+
         try {
+            // Prepare action with optional payload
+            let action = {
+                type: formData.actionType,
+                target: formData.actionTarget
+            };
+
+            // Add payload for CONTROL_DEVICE
+            if (formData.actionType === 'CONTROL_DEVICE') {
+                action.payload = {
+                    command: formData.commandName || 'Custom Command',
+                    hexData: formData.hexCommand.toUpperCase(),
+                    port: parseInt(formData.commandPort) || 1
+                };
+            }
+
             const payload = {
                 farmId,
                 name: formData.name,
                 deviceId: formData.deviceId,
                 sensorCode: formData.sensorCode,
                 condition: formData.condition,
-                threshold: formData.threshold,
-                actions: [
-                    { type: formData.actionType, target: formData.actionTarget }
-                ]
+                threshold: parseFloat(formData.threshold),
+                threshold2: formData.threshold2 ? parseFloat(formData.threshold2) : null,
+                coolDownMinutes: parseInt(formData.coolDownMinutes) || 60,
+                actions: [action]
             };
 
             if (editId) {
@@ -135,7 +180,7 @@ const AutomationPage = () => {
             }
 
             setShowModal(false);
-            setEditId(null); // Reset edit mode
+            setEditId(null);
             fetchData();
             // Reset form
             setFormData({
@@ -144,8 +189,13 @@ const AutomationPage = () => {
                 sensorCode: 'temperature',
                 condition: 'GREATER_THAN',
                 threshold: '',
+                threshold2: '',
+                coolDownMinutes: '60',
                 actionType: 'NOTIFICATION',
-                actionTarget: ''
+                actionTarget: '',
+                hexCommand: '',
+                commandName: '',
+                commandPort: '1'
             });
         } catch (error) {
             console.error("Rule Save Error Details:", error);
