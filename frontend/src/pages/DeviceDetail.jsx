@@ -16,7 +16,7 @@ const DeviceDetail = () => {
         const fetchHistory = async () => {
             try {
                 // ✅ FIX: Use api instance for automatic auth headers
-                const res = await api.get(`/api/telemetry/history/${serial}`);
+                const res = await api.get(`/telemetry/history/${serial}`);
                 setData(res.data);
             } catch (err) {
                 setError(err.response?.data?.error || "Veri çekilemedi.");

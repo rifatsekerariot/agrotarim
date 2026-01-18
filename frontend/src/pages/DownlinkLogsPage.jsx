@@ -25,7 +25,7 @@ const DownlinkLogsPage = () => {
 
     const fetchDevices = async () => {
         try {
-            const res = await api.get('/api/devices', {
+            const res = await api.get('/devices', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDevices(res.data);
@@ -42,7 +42,7 @@ const DownlinkLogsPage = () => {
             if (filters.status !== 'all') params.append('status', filters.status);
             params.append('limit', filters.limit);
 
-            const res = await api.get(`/api/lora/downlink-logs?${params}`, {
+            const res = await api.get(`/lora/downlink-logs?${params}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

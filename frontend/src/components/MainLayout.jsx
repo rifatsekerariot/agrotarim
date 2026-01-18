@@ -28,7 +28,7 @@ const MainLayout = ({ children }) => {
 
         const checkForNewAlerts = async () => {
             try {
-                const response = await api.get('/api/automation/logs/1');
+                const response = await api.get('/automation/logs/1');
                 const logs = response.data;
                 if (logs.length > 0) {
                     const latest = logs[0];

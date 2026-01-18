@@ -27,7 +27,7 @@ const UserManagement = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/api/users');
+            const res = await api.get('/users');
             setUsers(res.data);
             setError(null);
         } catch (err) {
@@ -39,7 +39,7 @@ const UserManagement = () => {
 
     const handleAddUser = async () => {
         try {
-            await api.post('/api/users', newUser);
+            await api.post('/users', newUser);
             setShowAddModal(false);
             setNewUser({ username: '', password: '' });
             fetchUsers();
@@ -52,7 +52,7 @@ const UserManagement = () => {
         if (!window.confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
 
         try {
-            await api.delete(`/api/users/${id}`);
+            await api.delete(`/users/${id}`);
             fetchUsers();
         } catch (e) {
             alert('Hata oluştu.');
@@ -61,7 +61,7 @@ const UserManagement = () => {
 
     const handleResetPassword = async () => {
         try {
-            await api.post(`/api/users/${resetData.id}/reset-password`, { newPassword: resetData.newPassword });
+            await api.post(`/users/${resetData.id}/reset-password`, { newPassword: resetData.newPassword });
             setShowResetModal(false);
             setResetData({ id: null, username: '', newPassword: '' });
             alert('Parola başarıyla sıfırlandı.');

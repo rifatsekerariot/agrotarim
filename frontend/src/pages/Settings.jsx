@@ -60,10 +60,10 @@ const Settings = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             const [devRes, serverRes, smsRes, settingsRes] = await Promise.all([
-                api.get('/api/devices'),
-                api.get('/api/lora/servers'),
-                api.get('/api/sms/providers'),
-                api.get('/api/settings')
+                api.get('/devices'),
+                api.get('/lora/servers'),
+                api.get('/sms/providers'),
+                api.get('/settings')
             ]);
 
             if (devRes.ok) {
@@ -127,17 +127,17 @@ const Settings = () => {
     // ========== DEVICES TAB ACTIONS ==========
     const handleSaveDevice = async (e) => {
         e.preventDefault();
-        const url = editingId ? `/api/devices/${editingId}` : '/api/devices';
+        const url = editingId ? `/devices/${editingId}` : '/devices';
         const method = editingId ? 'PUT' : 'POST';
 
         if (editingId) {
-            await api.put(`/api/devices/${editingId}`, {
+            await api.put(`/devices/${editingId}`, {
                 ...deviceForm,
                 deviceModelId: deviceForm.deviceModelId ? parseInt(deviceForm.deviceModelId) : null,
                 loraServerId: deviceForm.loraServerId ? parseInt(deviceForm.loraServerId) : null
             });
         } else {
-            await api.post('/api/devices', {
+            await api.post('/devices', {
                 ...deviceForm,
                 deviceModelId: deviceForm.deviceModelId ? parseInt(deviceForm.deviceModelId) : null,
                 loraServerId: deviceForm.loraServerId ? parseInt(deviceForm.loraServerId) : null
@@ -165,7 +165,7 @@ const Settings = () => {
 
     const handleDeleteDevice = async (id) => {
         if (!window.confirm('Bu cihazı silmek istediğinize emin misiniz?')) return;
-        await api.delete(`/api/devices/${id}`);
+        await api.delete(`/devices/${id}`);
         fetchAll();
     };
 
@@ -173,14 +173,14 @@ const Settings = () => {
     const handleSaveServer = async (e) => {
         // ... existing save logic ...
         e.preventDefault();
-        const url = editingId ? `/api/lora/servers/${editingId}` : '/api/lora/servers';
+        const url = editingId ? `/lora/servers/${editingId}` : '/lora/servers';
         const method = editingId ? 'PUT' : 'POST';
         try {
             let res;
             if (editingId) {
-                res = await api.put(`/api/lora/servers/${editingId}`, serverForm);
+                res = await api.put(`/lora/servers/${editingId}`, serverForm);
             } else {
-                res = await api.post('/api/lora/servers', serverForm);
+                res = await api.post('/lora/servers', serverForm);
             }
             // axios throws on error status, so if we are here it is success
             if (res.ok) {
@@ -196,7 +196,7 @@ const Settings = () => {
     const handleTestServer = async (id) => {
         setTestResult({ id, loading: true });
         try {
-            const res = await api.post(`/api/lora/servers/${id}/test`);
+            const res = await api.post(`/lora/servers/${id}/test`);
             const data = res.data;
             setTestResult({ id, ...data });
             if (data.success) alert('✅ ' + data.message); else alert('❌ ' + (data.message || 'Test başarısız'));
@@ -204,14 +204,14 @@ const Settings = () => {
     };
     const handleDeleteServer = async (id) => {
         if (!window.confirm('Silmek istediğinize emin misiniz?')) return;
-        await api.delete(`/api/lora/servers/${id}`);
+        await api.delete(`/lora/servers/${id}`);
         fetchAll();
     };
     const handleSyncServer = async (id) => {
         // ... existing sync logic ...
         if (!window.confirm("Senkronizasyon yapılsın mı?")) return;
         try {
-            const res = await api.post(`/api/lora/servers/${id}/sync`);
+            const res = await api.post(`/lora/servers/${id}/sync`);
             const data = res.data;
             if (data.success) { alert('✅ ' + data.message); fetchAll(); } else alert('❌ ' + data.message);
         } catch (e) { alert('❌ Hata'); }
@@ -219,12 +219,12 @@ const Settings = () => {
 
     // ========== SMS PROVIDERS ACTIONS ==========
     const handleTestSmsProvider = async (id, phoneNumber) => {
-        await api.post(`/api/sms/providers/${id}/test`, { testPhoneNumber: phoneNumber });
+        await api.post(`/sms/providers/${id}/test`, { testPhoneNumber: phoneNumber });
     };
 
     const handleDeleteSmsProvider = async (id) => {
         if (!window.confirm('Bu SMS provider\'ı silmek istediğinizden emin misiniz?')) return;
-        await api.delete(`/api/sms/providers/${id}`);
+        await api.delete(`/sms/providers/${id}`);
         fetchAll();
     };
 
@@ -235,7 +235,7 @@ const Settings = () => {
     };
 
     const handleSaveSmsProvider = async (providerData) => {
-        const url = editingSmsId ? `/api/sms/providers/${editingSmsId}` : '/api/sms/providers';
+        const url = editingSmsId ? `/sms/providers/${editingSmsId}` : '/sms/providers';
 
         if (editingSmsId) {
             await api.put(url, providerData);
@@ -256,7 +256,7 @@ const Settings = () => {
         try {
             const settingsArray = Object.keys(smtpForm).map(key => ({ key, value: smtpForm[key] }));
 
-            await api.post('/api/settings/bulk', settingsArray);
+            await api.post('/settings/bulk', settingsArray);
 
             setSmtpMessage({ type: 'success', text: 'SMTP ayarları başarıyla kaydedildi!' });
             setTimeout(() => setSmtpMessage(null), 5000);
@@ -275,7 +275,7 @@ const Settings = () => {
         setTestEmailLoading(true);
         setSmtpMessage(null);
         try {
-            const res = await api.post('/api/settings/test-email', { to: testEmailAddress });
+            const res = await api.post('/settings/test-email', { to: testEmailAddress });
             const data = res.data;
 
             if (data.success) {

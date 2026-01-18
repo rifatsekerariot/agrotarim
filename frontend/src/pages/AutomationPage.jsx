@@ -59,17 +59,17 @@ const AutomationPage = () => {
     const fetchData = async () => {
         try {
             // Fetch Devices
-            const devicesRes = await api.get('/api/devices', {
+            const devicesRes = await api.get('/devices', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setDevices(devicesRes.data);
 
-            const rulesRes = await api.get(`/api/automation/rules/${farmId}`, {
+            const rulesRes = await api.get(`/automation/rules/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setRules(rulesRes.data);
 
-            const logsRes = await api.get(`/api/automation/logs/${farmId}`, {
+            const logsRes = await api.get(`/automation/logs/${farmId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const newLogs = logsRes.data;
@@ -98,7 +98,7 @@ const AutomationPage = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Bu kuralı silmek istediğinize emin misiniz?")) return;
         try {
-            await api.delete(`/api/automation/rules/${id}`, {
+            await api.delete(`/automation/rules/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData();
@@ -211,11 +211,11 @@ const AutomationPage = () => {
             };
 
             if (editId) {
-                await api.put(`/api/automation/rules/${editId}`, payload, {
+                await api.put(`/automation/rules/${editId}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             } else {
-                await api.post('/api/automation/rules', payload, {
+                await api.post('/automation/rules', payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
             }

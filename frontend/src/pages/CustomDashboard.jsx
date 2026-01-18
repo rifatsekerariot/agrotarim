@@ -191,8 +191,9 @@ const WidgetChart = ({ deviceSerial, sensorCode, sensorCodes = [], title, unit, 
         if (isInitial) setLoading(true);
         try {
             const hours = getHoursForRange(range);
-            const res = await fetch(`/api/telemetry/history/${deviceSerial}?hours=${hours}`);
-            const json = await res.json();
+            // Use api instance instead of fetch for consistency and auth even if public? Telemetry history might be protected.
+            const res = await api.get(`/telemetry/history/${deviceSerial}?hours=${hours}`);
+            const json = res.data;
 
             // Build combined data structure with all sensor values by timestamp
             const dataMap = new Map();
@@ -388,7 +389,7 @@ const CustomDashboard = () => {
     const fetchConfig = async () => {
         try {
             console.log('[Dashboard] Fetching config for farm:', farmId);
-            const res = await api.get(`/api/dashboard/${farmId}`);
+            const res = await api.get(`/dashboard/${farmId}`);
 
             if (res.status !== 200) {
                 console.error('[Dashboard] Failed to fetch config:', res.status);
@@ -427,12 +428,12 @@ const CustomDashboard = () => {
     };
 
     const fetchDevices = async () => {
-        const res = await api.get('/api/devices');
+        const res = await api.get('/devices');
         setDevices(res.data);
     };
 
     const fetchLiveData = async () => {
-        const res = await api.get('/api/devices');
+        const res = await api.get('/devices');
         const data = res.data;
         setDevices(data);
         const telMap = {};
@@ -455,20 +456,8 @@ const CustomDashboard = () => {
     const saveConfig = async (newWidgets) => {
         setWidgets(newWidgets);
         try {
-            const response = await fetch(`/api/dashboard/${farmId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ widgets: newWidgets })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                console.error("Dashboard save failed:", error);
-                alert("Ayarlar kaydedilemedi!");
-                return false;
-            }
-
-            const result = await response.json();
+            const response = await api.post(`/dashboard/${farmId}`, { widgets: newWidgets });
+            const result = response.data;
             console.log("Dashboard saved:", result);
             return true;
         } catch (err) {

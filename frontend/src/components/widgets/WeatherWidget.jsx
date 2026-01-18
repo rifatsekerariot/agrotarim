@@ -19,8 +19,8 @@ const WeatherWidget = ({ farmId = 1 }) => {
         try {
             setLoading(true);
             const [currentRes, forecastRes] = await Promise.all([
-                api.get(`/api/weather/current/${farmId}`),
-                api.get(`/api/weather/forecast/${farmId}`)
+                api.get(`/weather/current/${farmId}`),
+                api.get(`/weather/forecast/${farmId}`)
             ]);
 
             setCurrentWeather(currentRes.data);

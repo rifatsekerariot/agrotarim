@@ -16,7 +16,7 @@ const TempTrendWidget = ({ data, settings = {}, deviceSerial, sensorCode }) => {
 
         const fetchHistory = async () => {
             try {
-                const res = await api.get(`/api/telemetry/history/${deviceSerial}?hours=4`);
+                const res = await api.get(`/telemetry/history/${deviceSerial}?hours=4`);
                 const json = res.data;
 
                 if (json[sensorCode] && json[sensorCode].length > 0) {
