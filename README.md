@@ -41,16 +41,30 @@
 
 ## ⚡ Quick Start
 
-### 1. Clone Repository
+### Zero-Touch Installation (Recommended)
 
 ```bash
 git clone https://github.com/yourusername/sera-otomasyon.git
 cd sera-otomasyon
+chmod +x auto-install.sh
+sudo ./auto-install.sh
 ```
 
-### 2. Run Setup Script
+**That's it!** The script will:
+- ✅ Generate secure JWT_SECRET and database password
+- ✅ Create all necessary `.env` files
+- ✅ Build Docker images
+- ✅ Start all services
+- ✅ Run database migrations
+- ✅ Verify health
+
+**Access:** `http://localhost:5173`
+
+### Manual Installation
 
 ```bash
+git clone https://github.com/yourusername/sera-otomasyon.git
+cd sera-otomasyon
 chmod +x setup.sh
 ./setup.sh
 ```
