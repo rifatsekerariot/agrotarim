@@ -5,7 +5,9 @@
 const mqtt = require('mqtt');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { decodePayload } = require('../decoders');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+// const { decodePayload } = require('../decoders'); // Removed as per user request
 
 class ChirpStackService {
     constructor() {
@@ -156,10 +158,9 @@ class ChirpStackService {
             if (payload.object && Object.keys(payload.object).length > 0) {
                 decodedData = payload.object;
                 console.log(`[ChirpStack] Using pre-decoded object from server`);
-            }
-            // CASE B: Raw Base64 data (needs local decoding)
-            else if (data) {
-                decodedData = await this.decodePayload(device, data, fPort);
+            } else {
+                console.log('[ChirpStack] No pre-decoded object found in payload. Local decoding is disabled.');
+                return;
             }
 
             if (!decodedData || Object.keys(decodedData).length === 0) {
@@ -194,18 +195,12 @@ class ChirpStackService {
     /**
      * Decode payload based on device model
      */
+    /**
+     * Decode Payload - REMOVED
+     * Local decoding is disabled in favor of ChirpStack server-side decoding
+     */
     async decodePayload(device, base64Data, fPort) {
-        const buffer = Buffer.from(base64Data, 'base64');
-
-        // Get decoder type from device model
-        const decoderType = device.deviceModel?.decoderType || 'generic';
-        const modelName = device.deviceModel?.model || '';
-
-        // Try to decode using the appropriate decoder
-        const decoded = decodePayload(decoderType, modelName, buffer, fPort);
-
-        console.log(`[ChirpStack] Decoded (${decoderType}/${modelName}):`, decoded);
-        return decoded;
+        return {};
     }
 
     /**

@@ -23,10 +23,8 @@ async function init() {
             farm = await prisma.farm.create({
                 data: {
                     user_id: user.id,
-                    city: "Adana",
-                    district: "Seyhan",
-                    station_id: 17351, // Adana MGM
-                    crop_type: "Mısır" // Matches Akdeniz region in KB
+                    name: "Demo Sera",
+                    location: "Simulasyon Merkezi"
                 }
             });
         }
