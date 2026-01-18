@@ -437,13 +437,26 @@ const CustomDashboard = () => {
     const saveConfig = async (newWidgets) => {
         setWidgets(newWidgets);
         try {
-            await fetch(`/api/dashboard/${farmId}`, {
+            const response = await fetch(`/api/dashboard/${farmId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ widgets: newWidgets })
             });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.error("Dashboard save failed:", error);
+                alert("Ayarlar kaydedilemedi!");
+                return false;
+            }
+
+            const result = await response.json();
+            console.log("Dashboard saved:", result);
+            return true;
         } catch (err) {
             console.error("Failed to save dashboard config", err);
+            alert("Bağlantı hatası! Ayarlar kaydedilemedi.");
+            return false;
         }
     };
 
