@@ -121,18 +121,22 @@ class RuleChecker {
 
                 // Check cooldown period
                 if (now - lastTrigger < cooldownMs) {
-                    // Still in cooldown, skip
+                    const secondsSinceLastTrigger = Math.floor((now - lastTrigger) / 1000);
+                    console.log(`[RuleChecker] ⏸️ Rule "${rule.name}" in cooldown (${secondsSinceLastTrigger}s / ${rule.coolDownMinutes * 60}s)`);
                     return;
                 }
 
                 console.log(`[RuleChecker] ✅ TRIGGERED: "${rule.name}" | ${sensor.name} = ${latestValue} ${sensor.unit}`);
+
+                // Tutarlı mesaj formatı oluştur
+                const alertMessage = `Alarm: ${rule.name} (${sensor.name} = ${latestValue} ${sensor.unit})`;
 
                 // Create alert log
                 await prisma.alertLog.create({
                     data: {
                         ruleId: rule.id,
                         value: latestValue,
-                        message: `${rule.name}: ${sensor.name} = ${latestValue} ${sensor.unit}`,
+                        message: alertMessage,
                         isResolved: false
                     }
                 });
