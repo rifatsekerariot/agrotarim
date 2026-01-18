@@ -116,14 +116,47 @@ exports.getAllDownlinkLogs = async (req, res) => {
     try {
         const { limit = 100, status, deviceId } = req.query;
 
-        const whereClause = {};
+        // ✅ SECURITY FIX #8: Filter by user's devices only
+        const userId = req.user.userId;
+
+        // Get all devices owned by user
+        const userDevices = await prisma.device.findMany({
+            where: {
+                farm: {
+                    userId: userId
+                }
+            },
+            select: { id: true }
+        });
+
+        const userDeviceIds = userDevices.map(d => d.id);
+
+        if (userDeviceIds.length === 0) {
+            return res.json({
+                success: true,
+                count: 0,
+                stats: {},
+                logs: []
+            });
+        }
+
+        const whereClause = {
+            deviceId: { in: userDeviceIds } // ✅ Only user's devices
+        };
 
         if (status && status !== 'all') {
             whereClause.status = status;
         }
 
         if (deviceId) {
-            whereClause.deviceId = parseInt(deviceId);
+            const parsedDeviceId = parseInt(deviceId);
+            // ✅ Verify user owns this device
+            if (!userDeviceIds.includes(parsedDeviceId)) {
+                return res.status(403).json({
+                    error: 'Access denied: Device does not belong to you'
+                });
+            }
+            whereClause.deviceId = parsedDeviceId;
         }
 
         const logs = await prisma.downlinkLog.findMany({
@@ -137,9 +170,10 @@ exports.getAllDownlinkLogs = async (req, res) => {
             take: parseInt(limit)
         });
 
-        // Aggregate stats
+        // Aggregate stats (only for user's devices)
         const stats = await prisma.downlinkLog.groupBy({
             by: ['status'],
+            where: { deviceId: { in: userDeviceIds } },
             _count: true
         });
 

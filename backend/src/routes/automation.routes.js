@@ -47,6 +47,21 @@ router.post('/rules', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Invalid ID or threshold format' });
         }
 
+        // ✅ SECURITY FIX #8: Farm Ownership Validation
+        const userId = req.user.userId;
+        const userFarm = await prisma.farm.findFirst({
+            where: {
+                id: parsedFarmId,
+                userId: userId
+            }
+        });
+
+        if (!userFarm) {
+            return res.status(403).json({
+                error: 'Access denied: You do not own this farm or it does not exist'
+            });
+        }
+
         // Check availability
         const farmExists = await prisma.farm.findUnique({ where: { id: parsedFarmId } });
         if (!farmExists) return res.status(404).json({ error: `Farm with ID ${parsedFarmId} not found` });

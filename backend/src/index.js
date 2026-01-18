@@ -43,7 +43,13 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/lora', loraRoutes);
 app.use('/api/device-models', deviceModelRoutes);
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
-app.use('/api/debug', require('./routes/debug.routes')); // Diagnostic endpoint
+
+// ✅ SECURITY FIX #6: Debug endpoint only in development
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/debug', require('./routes/debug.routes'));
+    console.log('[Server] Debug endpoint enabled (development mode)');
+}
+
 app.use('/api/weather', require('./routes/weather.routes')); // Weather API
 app.use('/api/settings', require('./routes/settings.routes'));
 
@@ -51,10 +57,31 @@ app.get('/', (req, res) => {
     res.json({ message: 'AgroMeta API is running', version: '1.0.0' });
 });
 
-// Error Handling Middleware
+// ✅ SECURITY FIX #4: Error Handling - Prevent Information Leakage
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!', details: err.message });
+    // Log full error internally for debugging/monitoring
+    console.error({
+        timestamp: new Date().toISOString(),
+        error: err.message,
+        stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+        path: req.path,
+        method: req.method,
+        ip: req.ip
+    });
+
+    // Send generic error to client in production
+    if (process.env.NODE_ENV === 'production') {
+        res.status(err.status || 500).json({
+            error: 'Internal server error'
+        });
+    } else {
+        // Development: include details for debugging
+        res.status(err.status || 500).json({
+            error: 'Something went wrong!',
+            details: err.message,
+            stack: err.stack
+        });
+    }
 });
 
 // Initialize MQTT Service (Local broker)

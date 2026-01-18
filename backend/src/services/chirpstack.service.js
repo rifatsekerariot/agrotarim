@@ -46,6 +46,13 @@ class ChirpStackService {
             return;
         }
 
+        // ✅ SECURITY FIX #7: MQTT TLS Enforcement Warning
+        if (!server.mqttHost.startsWith('mqtts://') && process.env.NODE_ENV === 'production') {
+            console.warn(`⚠️  [ChirpStack] SECURITY WARNING: Server "${server.name}" using unencrypted MQTT`);
+            console.warn(`⚠️  URL: ${server.mqttHost}`);
+            console.warn(`⚠️  Recommendation: Use mqtts:// protocol for encrypted communication`);
+        }
+
         const options = {
             clientId: `agrometa_${server.id}_${Date.now()}`,
             clean: true,
