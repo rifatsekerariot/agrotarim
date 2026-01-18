@@ -73,6 +73,12 @@ const chirpStackService = require('./services/chirpstack.service');
 })();
 // console.log('[Server] ChirpStack service temporarily disabled');
 
+// Initialize Rule Checker for Automation
+const ruleChecker = require('./services/automation/rule.checker');
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+
+    // Start rule checker after server is ready
+    ruleChecker.start();
 });

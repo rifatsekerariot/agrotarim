@@ -25,6 +25,8 @@ const AutomationPage = () => {
         sensorCode: 'temperature',
         condition: 'GREATER_THAN',
         threshold: '',
+        threshold2: '', // For BETWEEN condition
+        coolDownMinutes: '60', // Default 60 minutes
         actionType: 'NOTIFICATION',
         actionTarget: ''
     });
