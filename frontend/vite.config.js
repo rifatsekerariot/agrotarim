@@ -26,21 +26,10 @@ export default defineConfig({
                     {
                         src: 'pwa-512x512.png',
                         sizes: '512x512',
-                        networkTimeoutSeconds: 10
-                    }
-                    },
-                    {
-                urlPattern: /\/api\/expert\/.*/i,
-                handler: 'NetworkFirst',
-                options: {
-                    cacheName: 'expert-cache',
-                    expiration: {
-                        maxEntries: 10,
-                        maxAgeSeconds: 60 * 10 // 10 minutes
                     },
                     networkTimeoutSeconds: 10
                 }
-            }
+        }
                 ]
 }
         })
