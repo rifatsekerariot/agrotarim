@@ -938,7 +938,8 @@ const CustomDashboard = () => {
                                 { type: WIDGET_TYPES.TEMP_TREND, icon: 'bi-thermometer-high', label: 'Sıcaklık Trendi', color: 'danger' },
                                 { type: WIDGET_TYPES.HUMIDITY_TREND, icon: 'bi-moisture', label: 'Nem Trendi', color: 'info' },
                                 { type: WIDGET_TYPES.FEELS_LIKE, icon: 'bi-person', label: 'Hissedilen', color: 'primary' },
-                                { type: WIDGET_TYPES.WATER_TEMP, icon: 'bi-droplet', label: 'Su Sıcaklığı', color: 'primary' }
+                                { type: WIDGET_TYPES.WATER_TEMP, icon: 'bi-droplet', label: 'Su Sıcaklığı', color: 'primary' },
+                                { type: WIDGET_TYPES.WEATHER, icon: 'bi-cloud-sun', label: 'Hava Durumu', color: 'info' }
                             ].map(t => (
                                 <div key={t.type} className="col-md-3 col-6">
                                     <div className={`card h-100 widget-selection-card text-center p-2 ${newWidget.type === t.type ? 'border-primary bg-primary bg-opacity-10' : 'border-light'}`}
