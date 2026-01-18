@@ -35,20 +35,6 @@ const Dashboard = () => {
     const farmId = 1;
 
     useEffect(() => {
-        // Fetch Expert Advice on mount to share with MeteoWarning
-        const fetchExpert = async () => {
-            try {
-                const res = await fetch(`/api/expert/${farmId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setExpertAdvice(data);
-                }
-            } catch (e) {
-                console.error("Expert fetch failed", e);
-            }
-        };
-        fetchExpert();
-
         const fetchProvinces = async () => {
             // ... existing logic ...
             try {

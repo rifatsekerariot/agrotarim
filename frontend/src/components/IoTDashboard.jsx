@@ -163,20 +163,9 @@ const IoTDashboard = ({ farmId, dailyData }) => {
     const fetchData = async () => {
         if (devices.length === 0) setLoading(true);
         try {
-            const [telRes, expRes, confRes, cityRes] = await Promise.all([
-                fetch(`/api/telemetry/farm/${farmId}`),
-                fetch(`/api/expert/${farmId}`),
-                fetch(`/api/expert/${farmId}/dashboard`),
-                fetch('/api/mgm/provinces')
-            ]);
+            const telRes = await fetch(`/api/telemetry/farm/${farmId}`);
 
-            // Load cities
-            if (cityRes.ok) {
-                const cityData = await cityRes.json();
-                setCities(cityData.sort((a, b) => a.il.localeCompare(b.il, 'tr')));
-            }
-
-            // Load crops (hardcoded for now, can be moved to backend)
+            // Load crops (hardcoded for now, relevant for greenhouse)
             setCrops([
                 { value: 'Buğday', label: 'Buğday' },
                 { value: 'Mısır', label: 'Mısır' },
