@@ -30,11 +30,17 @@ const AutomationPage = () => {
         repeatIntervalMinutes: '5',
         maxRepeatMinutes: '10',
         autoResolve: true,
+        normalCheckEnabled: true,
         actionType: 'NOTIFICATION',
         actionTarget: '',
         hexCommand: '',
         commandName: '',
-        commandPort: '1'
+        commandPort: '1',
+        elseActionType: 'NOTIFICATION',
+        elseActionTarget: '',
+        elseHexCommand: '',
+        elseCommandName: '',
+        elseCommandPort: '1'
     });
 
     useEffect(() => {
