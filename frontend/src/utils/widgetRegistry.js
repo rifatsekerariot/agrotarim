@@ -47,6 +47,8 @@ import WaterLeakWidget from '../components/widgets/WaterLeakWidget';
 import GreenhouseWidget from '../components/widgets/GreenhouseWidget';
 import MultiLocationWidget from '../components/widgets/MultiLocationWidget';
 
+// Weather
+import WeatherWidget from '../components/widgets/WeatherWidget';
 
 export const WIDGET_TYPES = {
     // Water
@@ -93,7 +95,10 @@ export const WIDGET_TYPES = {
 
     // Multi-Sensor (Phase 2)
     GREENHOUSE_STATUS: 'greenhouse_status',
-    MULTI_LOCATION: 'multi_location'
+    MULTI_LOCATION: 'multi_location',
+
+    // Weather
+    WEATHER: 'weather'
 };
 
 // Widget Settings Metadata - Complete for all widgets
@@ -308,6 +313,15 @@ export const WIDGET_SETTINGS = {
         settingsFields: [
             { key: 'locationCount', label: 'Lokasyon Sayısı', type: 'number', min: 1, max: 10 }
         ]
+    },
+
+    // Weather
+    [WIDGET_TYPES.WEATHER]: {
+        defaultSettings: { showForecast: true, days: 7 },
+        settingsFields: [
+            { key: 'showForecast', label: '7 Günlük Tahmin Göster', type: 'checkbox' },
+            { key: 'days', label: 'Tahmin Günü', type: 'number', min: 1, max: 7 }
+        ]
     }
 };
 
@@ -359,6 +373,9 @@ export const getWidgetComponent = (type) => {
         case WIDGET_TYPES.GREENHOUSE_STATUS: return GreenhouseWidget;
         case WIDGET_TYPES.MULTI_LOCATION: return MultiLocationWidget;
 
+        // Weather
+        case WIDGET_TYPES.WEATHER: return WeatherWidget;
+
         default: return null;
     }
 };
@@ -370,6 +387,7 @@ export const getWidgetConfig = (type) => {
     switch (type) {
         case WIDGET_TYPES.GREENHOUSE_STATUS: return { ...defaults, w: 4, h: 4, title: 'Sera Genel Durumu' };
         case WIDGET_TYPES.MULTI_LOCATION: return { ...defaults, w: 3, h: 6, title: 'Lokasyonlar' };
+        case WIDGET_TYPES.WEATHER: return { ...defaults, w: 3, h: 5, title: 'Hava Durumu' };
         case WIDGET_TYPES.SOIL_MOISTURE: return { ...defaults, w: 3, h: 3 };
         case WIDGET_TYPES.PWM_CONTROL: return { ...defaults, w: 3, h: 3 };
         case WIDGET_TYPES.RELAY_CONTROL: return { ...defaults, w: 2, h: 3 };
