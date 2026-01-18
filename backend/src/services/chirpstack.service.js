@@ -107,7 +107,9 @@ class ChirpStackService {
             const payload = JSON.parse(message.toString());
 
             // ChirpStack v4 message structure
-            const devEui = payload.deviceInfo?.devEui || payload.devEui;
+            const normalizeId = (id) => id ? id.toString().replace(/[:\-\s]/g, '').toLowerCase() : '';
+
+            const devEui = normalizeId(payload.deviceInfo?.devEui || payload.devEui);
             const deviceName = payload.deviceInfo?.deviceName || 'Unknown';
             const data = payload.data; // Base64 encoded payload
             const fPort = payload.fPort || 1;
@@ -120,15 +122,22 @@ class ChirpStackService {
             }
 
             // Find device in database (Check devEui first, then serialNumber as fallback)
-            const device = await prisma.device.findFirst({
+            // We search using the normalized EUI as well as potential original formats
+            const candidates = await prisma.device.findMany({
                 where: {
                     OR: [
-                        { devEui: devEui },
-                        { serialNumber: devEui } // Fallback for cases where S/N is the EUI
+                        { devEui: { contains: devEui, mode: 'insensitive' } }, // Loose match
+                        { serialNumber: { contains: devEui, mode: 'insensitive' } }
                     ]
                 },
                 include: { deviceModel: true, sensors: true }
             });
+
+            // Exact match filter (ignoring case and separators)
+            const device = candidates.find(d =>
+                normalizeId(d.devEui) === devEui ||
+                normalizeId(d.serialNumber) === devEui
+            );
 
             if (!device) {
                 console.log(`[ChirpStack] Device ${devEui} not registered, skipping`);
