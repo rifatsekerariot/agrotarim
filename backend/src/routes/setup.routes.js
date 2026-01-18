@@ -52,8 +52,7 @@ router.post('/initialize', async (req, res) => {
             const user = await tx.user.create({
                 data: {
                     username,
-                    password_hash: hashedPassword,
-                    role: 'ADMIN'
+                    password_hash: hashedPassword
                 }
             });
 
