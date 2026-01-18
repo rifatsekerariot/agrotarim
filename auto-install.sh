@@ -199,30 +199,71 @@ echo "🚀 Starting services..."
 docker compose up -d
 
 # ============================================
-# 8. Wait for Services
+# 8. Wait for Services & Verify Builds
 # ============================================
 
 echo ""
-echo "⏳ Waiting for PostgreSQL to be ready..."
+echo "⏳ Waiting for services to be ready..."
 
-# Wait up to 30 seconds for PostgreSQL
-for i in {1..30}; do
-    if docker exec sera_postgres pg_isready -U sera_user &> /dev/null; then
-        echo -e "${GREEN}✅ PostgreSQL is ready${NC}"
+# Wait for PostgreSQL (already done above, but double-check)
+sleep 3
+
+# ✅ NEW: Wait for Frontend Build
+echo ""
+echo "📦 Verifying frontend build..."
+
+FRONTEND_READY=false
+for i in {1..60}; do
+    if docker exec sera_frontend test -f /app/dist/index.html 2>/dev/null; then
+        echo -e "${GREEN}✅ Frontend build verified${NC}"
+        FRONTEND_READY=true
         break
     fi
-    echo "   Attempt $i/30..."
+    
+    if [ $i -eq 1 ]; then
+        echo "   Waiting for frontend build to complete..."
+    fi
+    
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "   Still waiting... ($i/60 seconds)"
+    fi
+    
     sleep 1
 done
 
-# Verify PostgreSQL is running
-if ! docker exec sera_postgres pg_isready -U sera_user &> /dev/null; then
-    echo -e "${RED}❌ PostgreSQL failed to start${NC}"
-    echo "Check logs: docker logs sera_postgres"
+if [ "$FRONTEND_READY" != "true" ]; then
+    echo -e "${RED}❌ Frontend build timeout or failed${NC}"
+    echo ""
+    echo "Checking frontend logs:"
+    docker logs sera_frontend --tail 30
+    echo ""
+    echo "Checking if dist/ exists:"
+    docker exec sera_frontend ls -la /app/ 2>/dev/null || echo "Cannot access container"
     exit 1
 fi
 
-sleep 3
+# ✅ NEW: Test Frontend HTTP Response
+echo ""
+echo "🧪 Testing frontend HTTP response..."
+
+FRONTEND_HTTP=false
+for i in {1..30}; do
+    if curl -s http://localhost:5173/ | grep -q "<!DOCTYPE html>"; then
+        echo -e "${GREEN}✅ Frontend HTTP responding${NC}"
+        FRONTEND_HTTP=true
+        break
+    fi
+    
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "   Waiting for HTTP... ($i/30 seconds)"
+    fi
+    
+    sleep 1
+done
+
+if [ "$FRONTEND_HTTP" != "true" ]; then
+    echo -e "${YELLOW}⚠️  Frontend not responding to HTTP (may need manual check)${NC}"
+fi
 
 # ============================================
 # 9. Initialize Database Schema

@@ -80,10 +80,11 @@ services:
       - "5173:5173" # Development
     depends_on:
       - backend
-    volumes:
-      # Development: enable hot reload
-      - ./frontend:/app
-      - /app/node_modules
+    # ✅ PRODUCTION FIX: Volumes disabled to preserve build
+    # Uncomment for development hot-reload:
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
     networks:
       - sera-network
     restart: unless-stopped

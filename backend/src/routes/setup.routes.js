@@ -52,15 +52,17 @@ router.post('/initialize', async (req, res) => {
             const user = await tx.user.create({
                 data: {
                     username,
-                    password_hash: hashedPassword
+                    password: hashedPassword,  // ✅ FIX: Use 'password' not 'password_hash'
+                    email: email || `${username}@local.host`,
+                    role: 'ADMIN',
+                    isActive: true
                 }
             });
 
             // Create first farm
-            // Create first farm
             const farm = await tx.farm.create({
                 data: {
-                    user_id: user.id,
+                    userId: user.id,  // ✅ FIX: Use 'userId' not 'user_id'
                     name: farmName || 'Sera 1',
                     location: farmLocation || 'Merkez'
                 }

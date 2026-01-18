@@ -11,11 +11,16 @@ RUN npm install --legacy-peer-deps
 # Copy application code
 COPY . .
 
-# ✅ FIX 6: Build for production
+# ✅ FIX: Build for production
 RUN npm run build
+
+# ✅ FIX: Verify build completed successfully
+RUN test -d dist || (echo "❌ Build failed: dist/ not found" && exit 1)
+RUN test -f dist/index.html || (echo "❌ Build failed: index.html not found" && exit 1)
+RUN echo "✅ Build verification passed"
 
 # Expose Vite preview port
 EXPOSE 5173
 
-# ✅ FIX 6: Use preview for production
+# ✅ Use built files with preview server
 CMD ["npm", "run", "preview", "--", "--host", "--port", "5173"]

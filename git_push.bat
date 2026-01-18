@@ -36,7 +36,7 @@ git remote add origin %repoUrl%
 :: Push
 echo [INFO] Pushing to GitHub...
 git branch -M main
-git push -u origin main
+git push origin main --force
 
 echo.
 echo [SUCCESS] Done!
