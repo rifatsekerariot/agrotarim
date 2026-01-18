@@ -46,14 +46,24 @@ echo -e "${GREEN}✅ Docker and Docker Compose installed${NC}"
 echo ""
 echo "🧹 Cleaning old containers and volumes..."
 
-# Stop and remove everything
+# Stop everything
 docker compose down -v 2>/dev/null || true
 
-# Remove old containers if they exist
+# Remove specific containers if they exist
 docker rm -f sera_backend sera_frontend sera_postgres 2>/dev/null || true
 
-# Remove old volumes if they exist
+# Remove specific volumes - FORCE CLEAN
 docker volume rm agrotarim_postgres_data 2>/dev/null || true
+docker volume rm sera-otomasyon_postgres_data 2>/dev/null || true
+
+# Prune all unused volumes (be careful!)
+echo "⚠️  Pruning all unused Docker volumes..."
+docker volume prune -f
+
+# List remaining volumes
+echo ""
+echo "Remaining volumes:"
+docker volume ls
 
 echo -e "${GREEN}✅ Cleanup complete${NC}"
 
