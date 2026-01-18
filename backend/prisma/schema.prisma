@@ -16,133 +16,137 @@ model User {
 }
 
 model Farm {
-  id          Int      @id @default(autoincrement())
-  user_id     Int
-  name        String   // Greenhouse/Facility name
-  location    String?  // Simple location description
-  latitude    Float?   // For weather API
-  longitude   Float?   // For weather API
-  user        User     @relation(fields: [user_id], references: [id])
-  devices     Device[]
-  dashboardConfig Json?    // Stores custom dashboard layout: { widgets: [] }
-  triggerRules TriggerRule[]
-  created_at  DateTime @default(now())
+  id              Int           @id @default(autoincrement())
+  user_id         Int
+  name            String // Greenhouse/Facility name
+  location        String? // Simple location description
+  latitude        Float? // For weather API
+  longitude       Float? // For weather API
+  user            User          @relation(fields: [user_id], references: [id])
+  devices         Device[]
+  dashboardConfig Json? // Stores custom dashboard layout: { widgets: [] }
+  triggerRules    TriggerRule[]
+  created_at      DateTime      @default(now())
 }
 
 // LoRaWAN Network Server Management (ChirpStack v4, TTN, etc.)
 model LoRaServer {
-  id          Int      @id @default(autoincrement())
-  name        String   // "Ana Sunucu", "Test Sunucu"
-  serverType  String   @default("chirpstack_v4") // chirpstack_v4, ttn_v3, custom
-  host        String   // "chirpstack.example.com"
-  port        Int      @default(8080)
-  
+  id         Int    @id @default(autoincrement())
+  name       String // "Ana Sunucu", "Test Sunucu"
+  serverType String @default("chirpstack_v4") // chirpstack_v4, ttn_v3, custom
+  host       String // "chirpstack.example.com"
+  port       Int    @default(8080)
+
   // Authentication
-  apiKey      String?  // ChirpStack API Token
-  tenantId    String?  // ChirpStack Tenant ID (v4)
-  
+  apiKey   String? // ChirpStack API Token
+  tenantId String? // ChirpStack Tenant ID (v4)
+
   // MQTT Connection
-  mqttEnabled Boolean  @default(true)
-  mqttHost    String?  // "tcp://chirpstack.example.com:1883"
+  mqttEnabled  Boolean @default(true)
+  mqttHost     String? // "tcp://chirpstack.example.com:1883"
   mqttUsername String?
   mqttPassword String?
-  mqttTopic   String?  @default("application/+/device/+/event/up")
-  
+  mqttTopic    String? @default("application/+/device/+/event/up")
+
   // HTTP Webhook (Alternative to MQTT)
-  httpEnabled Boolean  @default(false)
-  httpSecret  String?  // Webhook signature verification
-  
-  isActive    Boolean  @default(true)
-  lastSync    DateTime?
-  
-  devices     Device[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  httpEnabled Boolean @default(false)
+  httpSecret  String? // Webhook signature verification
+
+  isActive Boolean   @default(true)
+  lastSync DateTime?
+
+  devices   Device[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Device Model Templates (Milesight, Dragino, etc.)
 // Note: Decoder not needed - ChirpStack sends pre-decoded JSON
 model DeviceModel {
-  id          Int      @id @default(autoincrement())
-  brand       String   // "Milesight", "Dragino", "Custom"
-  model       String   // "EM300-TH", "EM500-SMTC"
-  category    String   // "temperature_humidity", "soil", "weather", "gateway"
-  
+  id       Int    @id @default(autoincrement())
+  brand    String // "Milesight", "Dragino", "Custom"
+  model    String // "EM300-TH", "EM500-SMTC"
+  category String // "temperature_humidity", "soil", "weather", "gateway"
+
   // Sensor Template - defines expected sensors for this model
-  sensorTemplate Json   // [{code: "temperature", name: "Sıcaklık", unit: "°C"}, ...]
-  
+  sensorTemplate Json // [{code: "temperature", name: "Sıcaklık", unit: "°C"}, ...]
+
   // Visual & Info
   description String?
-  
-  devices     Device[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  devices   Device[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([brand, model])
 }
 
 // The physical hardware box (Node/Gateway)
 model Device {
-  id            Int      @id @default(autoincrement())
-  farmId        Int
-  farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  name          String   // e.g. "North Field Station"
-  serialNumber  String   @unique // MAC or Unique Hardware ID
-  
+  id           Int    @id @default(autoincrement())
+  farmId       Int
+  farm         Farm   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  name         String // e.g. "North Field Station"
+  serialNumber String @unique // MAC or Unique Hardware ID
+
   // NEW: LoRaWAN Specific
-  devEui        String?  @unique // LoRaWAN Device EUI (16 hex chars)
-  appKey        String?  // Application Key for OTAA
-  
+  devEui String? @unique // LoRaWAN Device EUI (16 hex chars)
+  appKey String? // Application Key for OTAA
+
   // NEW: Relations
-  loraServerId  Int?
-  loraServer    LoRaServer?  @relation(fields: [loraServerId], references: [id], onDelete: SetNull)
-  
+  loraServerId Int?
+  loraServer   LoRaServer? @relation(fields: [loraServerId], references: [id], onDelete: SetNull)
+
   deviceModelId Int?
   deviceModel   DeviceModel? @relation(fields: [deviceModelId], references: [id], onDelete: SetNull)
-  
+
   // Legacy field (kept for backward compatibility, prefer deviceModel relation)
-  model         String?  // e.g. "AgroNode-V1"
-  firmwareVer   String?
-  
+  model       String? // e.g. "AgroNode-V1"
+  firmwareVer String?
+
   // Location
-  latitude      Float?
-  longitude     Float?
+  latitude  Float?
+  longitude Float?
 
   // Status Monitoring
-  batteryLevel  Int?     // Percentage
-  signalQuality Int?     // RSSI or percentage
-  status        String   @default("offline") // online, offline, maintenance
+  batteryLevel  Int? // Percentage
+  signalQuality Int? // RSSI or percentage
+  status        String    @default("offline") // online, offline, maintenance
   lastSeen      DateTime?
-  
+
+  // ✅ SECURITY PHASE 2: IoT Device Authentication
+  apiKey           String?   @unique
+  apiKeyCreatedAt  DateTime?
+
   telemetryMappings Json? // Store custom parsing rules: {"temp": "t_air", "hum": "h_air"}
 
-  sensors       Sensor[]
-  triggerRules  TriggerRule[]
-  downlinkLogs  DownlinkLog[] // LoRa command logs
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sensors      Sensor[]
+  triggerRules TriggerRule[]
+  downlinkLogs DownlinkLog[] // LoRa command logs
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 // A specific probe on a defined Device (e.g. "Air Temp", "Soil Moisture Depth 1")
 model Sensor {
-  id          Int      @id @default(autoincrement())
-  deviceId    Int
-  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  
-  name        String   // User friendly name: "Soil Sensor 1"
-  code        String   // System identifier: "soil_vwc_1", "air_temp"
-  type        String   // "temperature", "humidity", "moisture", "pressure"
-  unit        String   // "C", "%", "hPa"
-  
-  telemetry   Telemetry[]
+  id       Int    @id @default(autoincrement())
+  deviceId Int
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  name String // User friendly name: "Soil Sensor 1"
+  code String // System identifier: "soil_vwc_1", "air_temp"
+  type String // "temperature", "humidity", "moisture", "pressure"
+  unit String // "C", "%", "hPa"
+
+  telemetry Telemetry[]
 }
 
 // Time-series data storage
 model Telemetry {
-  id        BigInt   @id @default(autoincrement()) // BigInt for millions of rows
-  sensorId  Int
-  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
-  
+  id       BigInt @id @default(autoincrement()) // BigInt for millions of rows
+  sensorId Int
+  sensor   Sensor @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
   value     Float
   timestamp DateTime @default(now())
 
@@ -151,30 +155,30 @@ model Telemetry {
 
 // SMS Provider Integration
 model SmsProvider {
-  id            Int       @id @default(autoincrement())
-  name          String    @unique
-  displayName   String
-  isActive      Boolean   @default(true)
-  priority      Int       @default(0)
-  config        Json
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  smsLogs       SmsLog[]
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  displayName String
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  config      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  smsLogs     SmsLog[]
 }
 
 model SmsLog {
-  id                  BigInt    @id @default(autoincrement())
-  providerId          Int
-  provider            SmsProvider @relation(fields: [providerId], references: [id])
-  providerMessageId   String?
-  to                  String
-  message             String?
-  status              String    @default("pending")
-  errorMessage        String?
-  sentAt              DateTime?
-  deliveredAt         DateTime?
-  createdAt           DateTime  @default(now())
-  
+  id                BigInt      @id @default(autoincrement())
+  providerId        Int
+  provider          SmsProvider @relation(fields: [providerId], references: [id])
+  providerMessageId String?
+  to                String
+  message           String?
+  status            String      @default("pending")
+  errorMessage      String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime    @default(now())
+
   @@index([providerId])
   @@index([status])
   @@index([to])
@@ -183,94 +187,94 @@ model SmsLog {
 
 // Automation & Alerts
 model TriggerRule {
-  id          Int      @id @default(autoincrement())
-  farmId      Int
-  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  
-  name        String   // e.g. "Sera 1 Frost Warning"
-  deviceId    Int
-  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  sensorCode  String   // e.g. "temperature"
-  
+  id     Int  @id @default(autoincrement())
+  farmId Int
+  farm   Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  name       String // e.g. "Sera 1 Frost Warning"
+  deviceId   Int
+  device     Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sensorCode String // e.g. "temperature"
+
   // Logic
-  condition   String   // "GREATER_THAN", "LESS_THAN", "BETWEEN", "EQUALS"
-  threshold   Float
-  threshold2  Float?   // Optional for BETWEEN
-  
+  condition  String // "GREATER_THAN", "LESS_THAN", "BETWEEN", "EQUALS"
+  threshold  Float
+  threshold2 Float? // Optional for BETWEEN
+
   // Control
-  isActive    Boolean  @default(true)
-  checkInterval Int    @default(0) // 0 = Real-time
-  coolDownMinutes Int  @default(60)
-  
+  isActive        Boolean @default(true)
+  checkInterval   Int     @default(0) // 0 = Real-time
+  coolDownMinutes Int     @default(60)
+
   // Repeat & Duration
-  repeatIntervalMinutes Int @default(5)   // Bildirim tekrar süresi (0 = tekrar yok)
-  maxRepeatMinutes      Int @default(10)  // Maksimum tekrar süresi (0 = sınırsız)
+  repeatIntervalMinutes Int     @default(5) // Bildirim tekrar süresi (0 = tekrar yok)
+  maxRepeatMinutes      Int     @default(10) // Maksimum tekrar süresi (0 = sınırsız)
   autoResolve           Boolean @default(true) // Değer normale dönünce otomatik yeşile dön
-  
+
   // IF-THEN-ELSE Logic
-  normalCheckEnabled    Boolean @default(true) // Normal durum kontrolü aktif mi?
-  
-  actions     RuleAction[] @relation("TriggerActions")      // THEN: Alarm tetiklendiğinde
-  elseActions RuleAction[] @relation("ElseActions")         // ELSE: Normal duruma dönünce
+  normalCheckEnabled Boolean @default(true) // Normal durum kontrolü aktif mi?
+
+  actions     RuleAction[] @relation("TriggerActions") // THEN: Alarm tetiklendiğinde
+  elseActions RuleAction[] @relation("ElseActions") // ELSE: Normal duruma dönünce
   logs        AlertLog[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RuleAction {
-  id            Int         @id @default(autoincrement())
-  ruleId        Int
-  rule          TriggerRule @relation("TriggerActions", fields: [ruleId], references: [id], onDelete: Cascade)
-  
+  id     Int         @id @default(autoincrement())
+  ruleId Int
+  rule   TriggerRule @relation("TriggerActions", fields: [ruleId], references: [id], onDelete: Cascade)
+
   // ELSE actions için (optional)
-  elseRuleId    Int?
-  elseRule      TriggerRule? @relation("ElseActions", fields: [elseRuleId], references: [id], onDelete: Cascade)
-  
-  type          String      // "NOTIFICATION", "SMS", "EMAIL", "CONTROL_DEVICE"
-  target        String?     // Phone, Email, or Target Device ID
-  payload       Json?       // e.g. { command: "VALVE_OPEN", hexData: "01FF01" }
+  elseRuleId Int?
+  elseRule   TriggerRule? @relation("ElseActions", fields: [elseRuleId], references: [id], onDelete: Cascade)
+
+  type    String // "NOTIFICATION", "SMS", "EMAIL", "CONTROL_DEVICE"
+  target  String? // Phone, Email, or Target Device ID
+  payload Json? // e.g. { command: "VALVE_OPEN", hexData: "01FF01" }
 }
 
 model AlertLog {
-  id          Int         @id @default(autoincrement())
-  ruleId      Int
-  rule        TriggerRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  
-  value       Float
-  message     String
-  createdAt   DateTime    @default(now())
-  isResolved  Boolean     @default(false)
-  resolvedAt  DateTime?
+  id     Int         @id @default(autoincrement())
+  ruleId Int
+  rule   TriggerRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  value      Float
+  message    String
+  createdAt  DateTime  @default(now())
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
 }
 
 // LoRa Downlink Command Log
 model DownlinkLog {
-  id           BigInt    @id @default(autoincrement())
-  deviceId     Int
-  device       Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  
-  command      String    // Friendly command name
-  hexData      String    // Raw hex payload
-  port         Int       @default(1) // LoRaWAN FPort
-  
+  id       BigInt @id @default(autoincrement())
+  deviceId Int
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  command String // Friendly command name
+  hexData String // Raw hex payload
+  port    Int    @default(1) // LoRaWAN FPort
+
   status       String    @default("pending") // pending, sent, confirmed, failed
   sentAt       DateTime?
   confirmedAt  DateTime?
   errorMessage String?
-  
-  triggeredBy  String?   // "RULE", "MANUAL", "SCHEDULE"
-  ruleId       Int?
-  
-  createdAt    DateTime  @default(now())
-  
+
+  triggeredBy String? // "RULE", "MANUAL", "SCHEDULE"
+  ruleId      Int?
+
+  createdAt DateTime @default(now())
+
   @@index([deviceId, createdAt])
   @@index([status])
 }
 
 model SystemSetting {
   key         String   @id
-  value       String   // Encrypted value or JSON
+  value       String // Encrypted value or JSON
   description String?
   updatedAt   DateTime @updatedAt
 }
