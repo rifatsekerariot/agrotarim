@@ -147,23 +147,6 @@ model Telemetry {
   @@index([sensorId, timestamp]) // Crucial for fast graph queries
 }
 
-// Automation Rules
-model AlertRule {
-  id          Int      @id @default(autoincrement())
-  farmId      Int
-  farm        Farm     @relation(fields: [farmId], references: [id])
-  
-  // Optional: Bind to specific sensor, or applies to all sensors of a type
-  sensorId    Int?
-  sensor      Sensor?  @relation(fields: [sensorId], references: [id])
-  
-  metric      String   // "temperature", "battery"
-  condition   String   // "greater_than", "less_than"
-  threshold   Float
-  
-  // Notification configuration
-  contactType String   // "email", "sms", "app"
-  contactDest String   // "admin@example.com" or phone number
 // SMS Provider Integration
 model SmsProvider {
   id            Int       @id @default(autoincrement())
