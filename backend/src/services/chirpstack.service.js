@@ -119,9 +119,14 @@ class ChirpStackService {
                 return;
             }
 
-            // Find device in database
+            // Find device in database (Check devEui first, then serialNumber as fallback)
             const device = await prisma.device.findFirst({
-                where: { devEui: devEui },
+                where: {
+                    OR: [
+                        { devEui: devEui },
+                        { serialNumber: devEui } // Fallback for cases where S/N is the EUI
+                    ]
+                },
                 include: { deviceModel: true, sensors: true }
             });
 
