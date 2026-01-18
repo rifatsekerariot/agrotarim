@@ -347,29 +347,8 @@ const CustomDashboard = () => {
     const [isEditing, setIsEditing] = useState(false); // Global Edit Mode
 
     // Fetch Devices & Telemetry
-    useEffect(() => {
-        if (!token) return;
-        const fetchData = async () => {
-            try {
-                // Devices
-                const devRes = await axios.get('http://localhost:3000/api/devices', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setDevices(devRes.data);
-
-                // Telemetry (Latest)
-                const telRes = await axios.get('http://localhost:3000/api/telemetry/latest', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setTelemetry(telRes.data); // Use setTelemetry matching state name
-            } catch (err) {
-                console.error("Data fetch error:", err);
-            }
-        };
-        fetchData();
-        const interval = setInterval(fetchData, 5000);
-        return () => clearInterval(interval);
-    }, [token]);
+    // Unified data fetching logic is handled by fetchLiveData and fetchConfig below
+    // Removed duplicate useEffect with hardcoded localhost URL which causes CORS/Connection errors
 
 
 
