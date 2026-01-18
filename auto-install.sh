@@ -295,6 +295,14 @@ else
     docker exec sera_backend npx prisma generate
 fi
 
+# ✅ NEW: Verify tables actually exist
+echo "🔍 Verifying database tables..."
+if docker exec sera_backend npx prisma migrate status >/dev/null 2>&1; then
+     echo -e "${GREEN}✅ Database tables verified${NC}"
+else
+     echo -e "${YELLOW}⚠️  Could not verify specific tables, but proceeding...${NC}"
+fi
+
 # Generate Prisma client if not already done
 echo ""
 echo "📦 Generating Prisma client..."
@@ -318,10 +326,10 @@ echo ""
 echo "🧪 Running health checks..."
 
 # Check PostgreSQL
-if docker exec sera_postgres pg_isready -U sera_user &> /dev/null; then
+if docker exec sera_postgres pg_isready -U sera_user -d sera_db &> /dev/null; then
     echo -e "${GREEN}✅ PostgreSQL: Running${NC}"
 else
-    echo -e "${RED}❌ PostgreSQL: Failed${NC}"
+    echo -e "${RED}❌ PostgreSQL: Failed (check logs)${NC}"
 fi
 
 # Check Backend
