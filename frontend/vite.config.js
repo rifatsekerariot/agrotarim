@@ -34,11 +34,13 @@ export default defineConfig({
     ],
     server: {
         host: true,
-        allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org'],
+        allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org', 'localhost'],
         proxy: {
             '/api': {
-                target: 'http://localhost:3000',
-                changeOrigin: true
+                target: 'http://localhost:3009', // ✅ FIX: Correct backend port
+                changeOrigin: true,
+                secure: false,
+                ws: true
             }
         }
     }

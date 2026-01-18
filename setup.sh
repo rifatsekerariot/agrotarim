@@ -173,12 +173,24 @@ cd ..
 echo ""
 
 # ============================================
-# 5. Post-Setup Instructions
+# 6. Run Verification
 # ============================================
 
-echo "============================================"
-echo -e "${GREEN}✅ Setup Complete!${NC}"
-echo "============================================"
+echo "🔍 Running post-setup verification..."
+chmod +x verify-setup.sh
+./verify-setup.sh
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "============================================"
+    echo -e "${GREEN}✅ Setup Complete and Verified!${NC}"
+    echo "============================================"
+else
+    echo ""
+    echo -e "${YELLOW}⚠️  Setup completed but verification found issues${NC}"
+    echo "Review the output above and fix any errors"
+fi
+
 echo ""
 echo "📋 Next Steps:"
 echo ""

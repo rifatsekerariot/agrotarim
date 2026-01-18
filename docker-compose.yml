@@ -3,76 +3,94 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: agrometa_db
+    container_name: sera_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-agrometa}
+      POSTGRES_USER: ${POSTGRES_USER:-sera_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sera_password}
+      POSTGRES_DB: ${POSTGRES_DB:-sera_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - agrometa-network
-    restart: always
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    container_name: agrometa_mqtt
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
-    networks:
-      - agrometa-network
-    restart: always
+      - sera-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sera_user}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: agrometa_backend
+    container_name: sera_backend
     environment:
-      NODE_ENV: development
-      PORT: 3000
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-agrometa}
-      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+      # ✅ FIX 3: Production mode
+      NODE_ENV: ${NODE_ENV:-production}
+      # ✅ FIX 1: Correct port
+      PORT: 3009
+      # ✅ FIX 8: PostgreSQL format (not postgres)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera_user}:${POSTGRES_PASSWORD:-sera_password}@postgres:5432/${POSTGRES_DB:-sera_db}?schema=public
+      # ✅ FIX 2: No fallback - MUST be set in .env
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env file}
+      # Optional services
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     ports:
-      - "3000:3000"
+      - "3009:3009" # ✅ FIX 1: Correct port mapping
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
+      # Development: enable hot reload
       - ./backend:/app
       - /app/node_modules
     networks:
-      - agrometa-network
+      - sera-network
+    restart: unless-stopped
     command: >
-      sh -c " echo 'Waiting for Database...' && until npx prisma db push --accept-data-loss; do
-        echo 'Database not ready, retrying in 5s...'
-        sleep 5
-      done && echo 'Database connected!' && npm run dev "
+      sh -c "
+        echo '🔍 Waiting for database...' &&
+        until npx prisma db push 2>/dev/null; do
+          echo 'Database not ready, retrying in 3s...'
+          sleep 3
+        done &&
+        echo '✅ Database connected!' &&
+        echo '🔄 Running migrations...' &&
+        npx prisma migrate deploy &&
+        echo '✅ Migrations complete!' &&
+        echo '🚀 Starting backend...' &&
+        npm start
+      "
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: agrometa_frontend
-    ports:
-      - "5173:5173"
+    container_name: sera_frontend
     environment:
+      # API calls will be proxied through Vite
       VITE_API_URL: /api
+    ports:
+      - "5173:5173" # Development
+    depends_on:
+      - backend
     volumes:
+      # Development: enable hot reload
       - ./frontend:/app
       - /app/node_modules
     networks:
-      - agrometa-network
+      - sera-network
+    restart: unless-stopped
 
 networks:
-  agrometa-network:
+  sera-network:
     driver: bridge
 
 volumes:
   postgres_data:
+    driver: local

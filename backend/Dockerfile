@@ -2,17 +2,23 @@ FROM node:18-slim
 
 WORKDIR /app
 
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy package files
 COPY package*.json ./
 
-RUN apt-get update -y && apt-get install -y openssl
-RUN npm install
+# Install dependencies
+RUN npm ci --only=production
 
+# Copy application code
 COPY . .
-
 
 # Generate Prisma Client
 RUN npx prisma generate
 
-EXPOSE 3000
+# ✅ FIX 1: Correct port
+EXPOSE 3009
 
-CMD ["npm", "run", "dev"]
+# ✅ FIX 3: Use production start
+CMD ["npm", "start"]

@@ -5,7 +5,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3009; // ✅ FIX: Correct default port
 
 // Fix: Handle BigInt serialization for Prisma (Telemetry IDs)
 BigInt.prototype.toJSON = function () {
