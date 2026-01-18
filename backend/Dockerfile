@@ -8,8 +8,9 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (production only)
+# Using npm install instead of npm ci for flexibility with lock file
+RUN npm install --omit=dev --production
 
 # Copy application code
 COPY . .

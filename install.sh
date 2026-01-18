@@ -25,18 +25,6 @@ fi
 
 echo "✅ Docker and Docker Compose are installed"
 
-# Ensure bcrypt is in package.json
-echo ""
-echo "📝 Checking backend dependencies..."
-if ! grep -q '"bcrypt"' backend/package.json; then
-    echo "⚠️  Adding bcrypt to package.json..."
-    # Add bcrypt to dependencies
-    sed -i '/"dependencies": {/a \    "bcrypt": "^5.1.1",' backend/package.json
-    echo "✅ bcrypt added"
-else
-    echo "✅ bcrypt already present"
-fi
-
 # ============================================
 # 🔐 Generate JWT_SECRET if not exists
 # ============================================
