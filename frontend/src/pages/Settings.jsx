@@ -30,6 +30,9 @@ const Settings = () => {
         SMTP_HOST: '', SMTP_PORT: '587', SMTP_USER: '', SMTP_PASS: '', SMTP_SECURE: 'false', SMTP_FROM: ''
     });
     const [smtpLoading, setSmtpLoading] = useState(false);
+    const [smtpMessage, setSmtpMessage] = useState(null); // {type: 'success'|'error', text: ''}
+    const [testEmailLoading, setTestEmailLoading] = useState(false);
+    const [testEmailAddress, setTestEmailAddress] = useState('');
 
     // Modal States
     const [showDeviceModal, setShowDeviceModal] = useState(false);
@@ -263,6 +266,7 @@ const Settings = () => {
     const handleSaveSmtp = async (e) => {
         e.preventDefault();
         setSmtpLoading(true);
+        setSmtpMessage(null);
         try {
             const token = localStorage.getItem('token');
             const settingsArray = Object.keys(smtpForm).map(key => ({ key, value: smtpForm[key] }));
@@ -273,12 +277,46 @@ const Settings = () => {
                 body: JSON.stringify(settingsArray)
             });
 
-            if (res.ok) alert("✅ SMTP ayarları başarıyla kaydedildi!");
-            else throw new Error("Kaydedilemedi");
+            if (res.ok) {
+                setSmtpMessage({ type: 'success', text: 'SMTP ayarları başarıyla kaydedildi!' });
+                setTimeout(() => setSmtpMessage(null), 5000);
+            } else {
+                throw new Error("Kaydedilemedi");
+            }
         } catch (err) {
-            alert("❌ Hata: " + err.message);
+            setSmtpMessage({ type: 'error', text: 'Hata: ' + err.message });
         }
         setSmtpLoading(false);
+    };
+
+    const handleTestEmail = async () => {
+        if (!testEmailAddress) {
+            setSmtpMessage({ type: 'error', text: 'Lütfen test email adresi girin' });
+            return;
+        }
+
+        setTestEmailLoading(true);
+        setSmtpMessage(null);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/test-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ to: testEmailAddress })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setSmtpMessage({ type: 'success', text: `Test email gönderildi! (Message ID: ${data.messageId})` });
+                setTimeout(() => setSmtpMessage(null), 8000);
+            } else {
+                setSmtpMessage({ type: 'error', text: data.error || 'Test email gönderilemedi' });
+            }
+        } catch (err) {
+            setSmtpMessage({ type: 'error', text: 'Bağlantı hatası: ' + err.message });
+        }
+        setTestEmailLoading(false);
     };
 
     if (loading) {
@@ -546,12 +584,46 @@ const Settings = () => {
                                         <Form.Check type="switch" label="Güvenli Bağlantı (Secure/True)" checked={smtpForm.SMTP_SECURE === 'true'} onChange={e => setSmtpForm({ ...smtpForm, SMTP_SECURE: e.target.checked.toString() })} />
                                     </Col>
                                 </Row>
-                                <div className="d-flex justify-content-end gap-2">
+
+                                {/* Feedback Message */}
+                                {smtpMessage && (
+                                    <Alert variant={smtpMessage.type === 'success' ? 'success' : 'danger'} className="mb-3" dismissible onClose={() => setSmtpMessage(null)}>
+                                        {smtpMessage.text}
+                                    </Alert>
+                                )}
+
+                                <div className="d-flex justify-content-end gap-2 mb-4">
                                     <Button variant="primary" type="submit" disabled={smtpLoading}>
                                         {smtpLoading ? <Spinner size="sm" /> : <><Check size={18} className="me-1" /> Ayarları Kaydet</>}
                                     </Button>
                                 </div>
                             </Form>
+
+                            <hr />
+
+                            {/* Test Email Section */}
+                            <div className="mt-4">
+                                <h6 className="mb-3">Test Email Gönder</h6>
+                                <Row>
+                                    <Col md={8}>
+                                        <InputGroup className="mb-3">
+                                            <InputGroup.Text>📧</InputGroup.Text>
+                                            <Form.Control
+                                                type="email"
+                                                placeholder="test@example.com"
+                                                value={testEmailAddress}
+                                                onChange={e => setTestEmailAddress(e.target.value)}
+                                            />
+                                            <Button variant="outline-primary" onClick={handleTestEmail} disabled={testEmailLoading}>
+                                                {testEmailLoading ? <Spinner size="sm" /> : 'Test Et'}
+                                            </Button>
+                                        </InputGroup>
+                                    </Col>
+                                </Row>
+                                <small className="text-muted">
+                                    SMTP ayarlarını test etmek için bir email adresi girin. Test emaili şimdiki ayarlarla gönderilir.
+                                </small>
+                            </div>
                         </Card.Body>
                     </Card>
                 </Tab>

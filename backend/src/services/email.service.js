@@ -16,7 +16,20 @@ class EmailService {
             });
 
             // Convert array to object
-            const config = settings.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {});
+            const config = {};
+            settings.forEach(s => {
+                let value = s.value;
+                // Decrypt sensitive fields
+                if (s.key.includes('PASS') || s.key.includes('SECRET')) {
+                    try {
+                        const { decrypt } = require('../utils/encryption');
+                        value = decrypt(s.value);
+                    } catch (decErr) {
+                        console.warn(`[EmailService] Could not decrypt ${s.key}, using as-is`);
+                    }
+                }
+                config[s.key] = value;
+            });
 
             // Fallback to Env if DB is empty
             const host = config.SMTP_HOST || process.env.SMTP_HOST;
