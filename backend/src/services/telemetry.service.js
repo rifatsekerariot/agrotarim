@@ -97,8 +97,9 @@ const TelemetryService = {
             }
 
             // 4. Trigger Alert Engine
-            const AlertService = require('./alert.service');
-            AlertService.checkRules(device.farmId, readings).catch(err => console.error("Alert Trigger Failed:", err));
+            // Old AlertService removed. 
+            // Rules are now processed by RuleEngine in mqtt.service.js or explicitly here if needed.
+            // keeping it clean: no op.
 
             return { success: true, processed: operations.length };
 
