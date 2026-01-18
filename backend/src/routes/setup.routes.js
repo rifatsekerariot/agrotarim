@@ -52,7 +52,6 @@ router.post('/initialize', async (req, res) => {
             const user = await tx.user.create({
                 data: {
                     username,
-                    email: email || `${username}@agrometa.local`,
                     password_hash: hashedPassword,
                     role: 'ADMIN'
                 }
