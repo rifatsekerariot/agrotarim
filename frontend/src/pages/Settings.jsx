@@ -60,31 +60,19 @@ const Settings = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             const [devRes, serverRes, smsRes, settingsRes] = await Promise.all([
-                api.get('/devices'),
-                api.get('/lora/servers'),
-                api.get('/sms/providers'),
-                api.get('/settings')
+                api.get('/devices').catch(e => ({ data: [] })),
+                api.get('/lora/servers').catch(e => ({ data: [] })),
+                api.get('/sms/providers').catch(e => ({ data: [] })),
+                api.get('/settings').catch(e => ({ data: [] }))
             ]);
 
-            if (devRes.ok) {
-                const devData = await devRes.json();
-                setDevices(Array.isArray(devData) ? devData : []);
-            }
+            setDevices(Array.isArray(devRes.data) ? devRes.data : []);
+            setLoraServers(Array.isArray(serverRes.data) ? serverRes.data : []);
+            setSmsProviders(Array.isArray(smsRes.data) ? smsRes.data : []);
 
-            if (serverRes.ok) {
-                const serverData = await serverRes.json();
-                setLoraServers(Array.isArray(serverData) ? serverData : []);
-            }
-
-            if (smsRes.ok) {
-                const smsData = await smsRes.json();
-                setSmsProviders(Array.isArray(smsData) ? smsData : []);
-            }
-
-            if (settingsRes.ok) {
-                const settingsData = await settingsRes.json();
+            if (Array.isArray(settingsRes.data)) {
                 const newForm = { ...smtpForm };
-                settingsData.forEach(s => {
+                settingsRes.data.forEach(s => {
                     if (newForm.hasOwnProperty(s.key)) {
                         newForm[s.key] = s.value;
                     }
@@ -93,9 +81,7 @@ const Settings = () => {
             }
         } catch (e) {
             console.error('Fetch error:', e);
-            setDevices([]);
-            setLoraServers([]);
-            setSmsProviders([]);
+            // Default states are already set, but just in case
         }
         setLoading(false);
     };
@@ -182,15 +168,12 @@ const Settings = () => {
             } else {
                 res = await api.post('/lora/servers', serverForm);
             }
-            // axios throws on error status, so if we are here it is success
-            if (res.ok) {
-                alert(editingId ? '✅ Sunucu güncellendi!' : '✅ Sunucu eklendi!');
-                setShowServerModal(false); setEditingId(null);
-                setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
-                fetchAll();
-            } else {
-                const error = await res.json(); alert('❌ Hata: ' + (error.error || 'Sunucu kaydedilemedi'));
-            }
+
+            alert(editingId ? '✅ Sunucu güncellendi!' : '✅ Sunucu eklendi!');
+            setShowServerModal(false); setEditingId(null);
+            setServerForm({ name: '', serverType: 'chirpstack_v4', host: '', port: 8080, apiKey: '', tenantId: '', mqttEnabled: true, mqttHost: '', mqttTopic: 'application/+/device/+/event/up', httpEnabled: false });
+            fetchAll();
+
         } catch (e) {
             console.error(e);
             alert('❌ Bağlantı hatası: ' + (e.response?.data?.error || e.message || 'Sunucuya ulaşılamadı'));
