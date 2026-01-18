@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const TelemetryController = require('../controllers/telemetry.controller');
-// Add middleware if auth is needed. For ingestion, usually token-based or API key, 
-// for now keeping it open or you can add a basic API key check.
+const { authenticateToken } = require('../middleware/auth');
 
+// ✅ SECURITY FIX: POST remains open for IoT devices (add API key later)
+// GET endpoints require authentication to view data
 router.post('/', TelemetryController.ingest);
-router.get('/farm/:farmId', TelemetryController.getFarmStatus);
-router.get('/history/:serial', TelemetryController.getHistory);
+router.get('/farm/:farmId', authenticateToken, TelemetryController.getFarmStatus);
+router.get('/history/:serial', authenticateToken, TelemetryController.getHistory);
 
 module.exports = router;

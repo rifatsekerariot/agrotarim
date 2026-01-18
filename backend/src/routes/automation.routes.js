@@ -2,14 +2,16 @@ const router = require('express').Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const authenticateToken = require('../auth/auth.middleware');
+const { validateFarmOwnership } = require('../middleware/ownership');
 
 // GET /api/automation/rules/:farmId
-router.get('/rules/:farmId', authenticateToken, async (req, res) => {
+// ✅ SECURITY FIX: Added validateFarmOwnership middleware
+router.get('/rules/:farmId', authenticateToken, validateFarmOwnership, async (req, res) => {
     try {
         const farmId = parseInt(req.params.farmId);
 
-        // Security check: Ensure user owns the farm (simplified check)
-        // In a real app, logic should verify req.user.id linkage to farm
+        // ✅ Security check now handled by validateFarmOwnership middleware
+        // req.farm is already validated and attached by middleware
 
         const rules = await prisma.triggerRule.findMany({
             where: { farmId },

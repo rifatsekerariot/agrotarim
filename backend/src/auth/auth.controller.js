@@ -3,8 +3,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-const DEFAULT_PASSWORD = '12345';
+
+// ✅ SECURITY FIX: Enforce JWT_SECRET from environment
+// Throw error if not set (prevents using fallback in production)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET is not defined in environment variables!');
+    console.error('Please set JWT_SECRET in your .env file before starting the server.');
+    process.exit(1); // Exit immediately - cannot run without secure secret
+}
+
+// ⚠️ SECURITY WARNING: Default password should be changed by users
+const DEFAULT_PASSWORD = '12345'; // Users MUST change this on first login
 
 // Public registration disabled
 const register = async (req, res) => {

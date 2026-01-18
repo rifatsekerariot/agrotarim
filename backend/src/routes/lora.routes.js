@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { authenticateToken } = require('../middleware/auth');
+
+// ✅ SECURITY FIX: All LoRa endpoints require authentication
+router.use(authenticateToken);
 
 // ========== LoRa Server Management ==========
 
@@ -398,12 +402,15 @@ router.post('/servers/:id/sync', async (req, res) => {
 
 // ========== Manual Downlink & Logs ==========
 const loraController = require('../controllers/lora.controller');
+const { validateDeviceOwnership } = require('../middleware/ownership');
 
 // POST /api/lora/devices/:id/downlink - Manuel downlink gönder
-router.post('/devices/:id/downlink', loraController.sendManualDownlink);
+// ✅ SECURITY FIX: Added validateDeviceOwnership middleware
+router.post('/devices/:id/downlink', validateDeviceOwnership, loraController.sendManualDownlink);
 
 // GET /api/lora/devices/:id/downlink-logs - Cihaz downlink logları
-router.get('/devices/:id/downlink-logs', loraController.getDownlinkLogs);
+// ✅ SECURITY FIX: Added validateDeviceOwnership middleware
+router.get('/devices/:id/downlink-logs', validateDeviceOwnership, loraController.getDownlinkLogs);
 
 // GET /api/lora/downlink-logs - Tüm downlink logları
 router.get('/downlink-logs', loraController.getAllDownlinkLogs);
