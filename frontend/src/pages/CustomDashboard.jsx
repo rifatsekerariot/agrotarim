@@ -485,12 +485,18 @@ const CustomDashboard = () => {
     };
 
     const onLayoutChange = (layout) => {
+        // Only save if in edit mode to prevent unwanted saves
+        if (!isEditing) return;
+
         const updatedWidgets = widgets.map(w => {
             const layoutItem = layout.find(l => l.i === w.i);
             if (layoutItem) return { ...w, x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h };
             return w;
         });
-        saveConfig(updatedWidgets);
+
+        setWidgets(updatedWidgets);
+        // Don't auto-save, let user click "Kaydet" button
+        // saveConfig(updatedWidgets);
     };
 
     const handleAddWidget = () => {
