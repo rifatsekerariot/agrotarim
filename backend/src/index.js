@@ -22,6 +22,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
+const setupRoutes = require('./routes/setup.routes');
 const authRoutes = require('./routes/auth.routes');
 const mgmRoutes = require('./routes/mgm.routes');
 const telemetryRoutes = require('./routes/telemetry.routes');
@@ -34,6 +35,7 @@ const smsRoutes = require('./routes/sms.routes');
 const automationRoutes = require('./routes/automation.routes');
 
 // Prefix API routes
+app.use('/api/setup', setupRoutes); // No auth required
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sms', smsRoutes);
