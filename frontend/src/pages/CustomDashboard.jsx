@@ -539,6 +539,7 @@ const CustomDashboard = () => {
         }
         else if (finalType === WIDGET_TYPES.GREENHOUSE_STATUS) { finalW = 4; finalH = 4; }
         else if (finalType === WIDGET_TYPES.MULTI_LOCATION) { finalW = 3; finalH = 6; }
+        else if (finalType === WIDGET_TYPES.WEATHER) { finalW = 3; finalH = 5; }
         else if ([WIDGET_TYPES.ULTRASONIC_LEVEL, WIDGET_TYPES.SERVO_CONTROL, WIDGET_TYPES.RELAY_CONTROL].includes(finalType)) {
             finalW = 2; finalH = 3;
         }
