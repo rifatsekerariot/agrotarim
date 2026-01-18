@@ -334,7 +334,8 @@ const CustomDashboard = () => {
     const [widgets, setWidgets] = useState([]);
     const [devices, setDevices] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [viewMode, setViewMode] = useState('device'); // 'device' or 'custom'
+    // Removed viewMode toggle - always show custom dashboard
+    const viewMode = 'custom'; // Fixed to custom panel only
     const farmId = 1;
 
     // Modified newWidget state to support array of sensorCodes
@@ -632,17 +633,7 @@ const CustomDashboard = () => {
                 </div>
 
                 <div className="d-flex align-items-center gap-2">
-                    {/* View Switcher */}
-                    {!isEditing && (
-                        <div className="btn-group me-2" role="group">
-                            <Button variant={viewMode === 'device' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('device')}>
-                                <i className="bi bi-cpu me-1"></i> Cihazlar
-                            </Button>
-                            <Button variant={viewMode === 'custom' ? 'primary' : 'outline-primary'} onClick={() => setViewMode('custom')}>
-                                <i className="bi bi-grid-3x3 me-1"></i> Özel Panel
-                            </Button>
-                        </div>
-                    )}
+                    {/* View Switcher - REMOVED (always custom mode) */}
 
                     {viewMode === 'custom' && (
                         <>
