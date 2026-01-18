@@ -44,6 +44,7 @@ app.use('/api/lora', loraRoutes);
 app.use('/api/device-models', deviceModelRoutes);
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
 app.use('/api/debug', require('./routes/debug.routes')); // Diagnostic endpoint
+app.use('/api/weather', require('./routes/weather.routes')); // Weather API
 app.use('/api/settings', require('./routes/settings.routes'));
 
 app.get('/', (req, res) => {

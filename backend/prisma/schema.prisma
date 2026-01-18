@@ -20,6 +20,8 @@ model Farm {
   user_id     Int
   name        String   // Greenhouse/Facility name
   location    String?  // Simple location description
+  latitude    Float?   // For weather API
+  longitude   Float?   // For weather API
   user        User     @relation(fields: [user_id], references: [id])
   devices     Device[]
   dashboardConfig Json?    // Stores custom dashboard layout: { widgets: [] }
