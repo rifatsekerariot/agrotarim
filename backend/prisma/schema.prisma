@@ -118,6 +118,7 @@ model Device {
 
   sensors       Sensor[]
   triggerRules  TriggerRule[]
+  downlinkLogs  DownlinkLog[] // LoRa command logs
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -228,6 +229,30 @@ model AlertLog {
   createdAt   DateTime    @default(now())
   isResolved  Boolean     @default(false)
   resolvedAt  DateTime?
+}
+
+// LoRa Downlink Command Log
+model DownlinkLog {
+  id           BigInt    @id @default(autoincrement())
+  deviceId     Int
+  device       Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  
+  command      String    // Friendly command name
+  hexData      String    // Raw hex payload
+  port         Int       @default(1) // LoRaWAN FPort
+  
+  status       String    @default("pending") // pending, sent, confirmed, failed
+  sentAt       DateTime?
+  confirmedAt  DateTime?
+  errorMessage String?
+  
+  triggeredBy  String?   // "RULE", "MANUAL", "SCHEDULE"
+  ruleId       Int?
+  
+  createdAt    DateTime  @default(now())
+  
+  @@index([deviceId, createdAt])
+  @@index([status])
 }
 
 model SystemSetting {

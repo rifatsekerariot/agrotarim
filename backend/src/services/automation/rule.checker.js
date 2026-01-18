@@ -138,7 +138,7 @@ class RuleChecker {
                 });
 
                 // Dispatch actions (SMS, Email, Device Control, etc.)
-                await actionDispatcher.dispatch(rule.actions, rule.name, latestValue);
+                await actionDispatcher.dispatch(rule.actions, rule.name, latestValue, rule.id);
 
                 // Update last trigger time
                 this.lastChecked.set(rule.id, now);
