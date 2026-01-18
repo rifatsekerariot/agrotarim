@@ -1,5 +1,6 @@
-import Link from 'react-router-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Navbar, Container, Nav, Button, ToastContainer, Toast } from 'react-bootstrap';
 import { Moon, Sun } from 'lucide-react';
 import api from '../utils/api';
 
@@ -27,9 +28,7 @@ const MainLayout = ({ children }) => {
 
         const checkForNewAlerts = async () => {
             try {
-                const response = await axios.get('/api/automation/logs/1', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await api.get('/api/automation/logs/1');
                 const logs = response.data;
                 if (logs.length > 0) {
                     const latest = logs[0];
@@ -144,5 +143,4 @@ const MainLayout = ({ children }) => {
         </div>
     );
 };
-
 export default MainLayout;
