@@ -226,18 +226,28 @@ fi
 sleep 3
 
 # ============================================
-# 9. Run Database Migrations
+# 9. Initialize Database Schema
 # ============================================
 
 echo ""
-echo "🔄 Running database migrations..."
+echo "🔄 Initializing database schema..."
 
-docker exec sera_backend npx prisma migrate deploy || {
-    echo -e "${YELLOW}⚠️  Migration failed, trying alternative approach...${NC}"
-    docker exec sera_backend npx prisma db push --accept-data-loss
-}
+# For fresh installations, use db push (no migration history needed)
+if docker exec sera_backend npx prisma db push --accept-data-loss 2>&1 | tee /tmp/prisma_push.log; then
+    echo -e "${GREEN}✅ Database schema initialized${NC}"
+else
+    echo -e "${YELLOW}⚠️  db push had issues, checking logs...${NC}"
+    cat /tmp/prisma_push.log
+    
+    # Try to continue anyway
+    echo "Attempting to generate Prisma client..."
+    docker exec sera_backend npx prisma generate
+fi
 
-echo -e "${GREEN}✅ Database initialized${NC}"
+# Generate Prisma client if not already done
+echo ""
+echo "📦 Generating Prisma client..."
+docker exec sera_backend npx prisma generate
 
 # ============================================
 # 10. Restart Backend
