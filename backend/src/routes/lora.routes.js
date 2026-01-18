@@ -396,4 +396,16 @@ router.post('/servers/:id/sync', async (req, res) => {
     }
 });
 
+// ========== Manual Downlink & Logs ==========
+const loraController = require('../controllers/lora.controller');
+
+// POST /api/lora/devices/:id/downlink - Manuel downlink gönder
+router.post('/devices/:id/downlink', loraController.sendManualDownlink);
+
+// GET /api/lora/devices/:id/downlink-logs - Cihaz downlink logları
+router.get('/devices/:id/downlink-logs', loraController.getDownlinkLogs);
+
+// GET /api/lora/downlink-logs - Tüm downlink logları
+router.get('/downlink-logs', loraController.getAllDownlinkLogs);
+
 module.exports = router;

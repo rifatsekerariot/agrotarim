@@ -75,11 +75,11 @@ class LoRaCommandService {
 
             if (result.success) {
                 console.log(`[LoRaCommand] ✅ Successfully sent to ${device.name}`);
+                return { ...result, logId: log.id };
             } else {
                 console.error(`[LoRaCommand] ❌ Failed to send to ${device.name}:`, result.error);
+                return { ...result, logId: log.id };
             }
-
-            return result;
 
         } catch (error) {
             console.error('[LoRaCommand] Error:', error);
