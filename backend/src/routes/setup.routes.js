@@ -94,17 +94,15 @@ router.post('/initialize', setupLimiter, async (req, res) => {
             const user = await tx.user.create({
                 data: {
                     username,
-                    password: hashedPassword,
-                    email: email || `${username}@local.host`,
-                    role: 'ADMIN',
-                    isActive: true
+                    password_hash: hashedPassword,  // ✅ FIX: Match schema field name
+                    // Note: email, role, isActive don't exist in schema
                 }
             });
 
             // Create first farm
             const farm = await tx.farm.create({
                 data: {
-                    userId: user.id,
+                    user_id: user.id,  // ✅ FIX: Match schema field name
                     name: farmName || 'Sera 1',
                     location: farmLocation || 'Merkez'
                 }
