@@ -82,6 +82,9 @@ const MainLayout = ({ children }) => {
                             <Nav.Link as={Link} to="/automation" className={`px-3 fw-medium ${isActive('/automation') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
                                 <i className="bi bi-robot me-1"></i> Otomasyon
                             </Nav.Link>
+                            <Nav.Link as={Link} to="/downlink-logs" className={`px-3 fw-medium ${isActive('/downlink-logs') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
+                                <i className="bi bi-reception-4 me-1"></i> LoRa Logları
+                            </Nav.Link>
                         </Nav>
                         <div className="d-flex align-items-center gap-2">
                             <Button
