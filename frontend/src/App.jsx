@@ -8,6 +8,7 @@ import Settings from './pages/Settings';
 import CustomDashboard from './pages/CustomDashboard';
 import UserManagement from './pages/UserManagement';
 import AutomationPage from './pages/AutomationPage';
+import DownlinkLogsPage from './pages/DownlinkLogsPage';
 import SetupPage from './pages/SetupPage';
 
 import MainLayout from './components/MainLayout';
@@ -87,6 +88,14 @@ function App() {
                     element={
                         <PrivateRoute>
                             <AutomationPage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/downlink-logs"
+                    element={
+                        <PrivateRoute>
+                            <DownlinkLogsPage />
                         </PrivateRoute>
                     }
                 />
