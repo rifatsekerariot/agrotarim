@@ -18,15 +18,10 @@ model User {
 model Farm {
   id          Int      @id @default(autoincrement())
   user_id     Int
-  city        String
-  district    String
-  station_id  Int      // MGM Station ID
-  crop_type   String?
+  name        String   // Greenhouse/Facility name
+  location    String?  // Simple location description
   user        User     @relation(fields: [user_id], references: [id])
-  polygon     Json?    // Storing coordinates as JSON
-  plantingDate DateTime?
   devices     Device[]
-  alertRules  AlertRule[]
   dashboardConfig Json?    // Stores custom dashboard layout: { widgets: [] }
   triggerRules TriggerRule[]
   created_at  DateTime @default(now())
@@ -169,56 +164,6 @@ model AlertRule {
   // Notification configuration
   contactType String   // "email", "sms", "app"
   contactDest String   // "admin@example.com" or phone number
-  
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-}
-
-// Agricultural Knowledge Base
-model CropProfile {
-  id          Int      @id @default(autoincrement())
-  region      String   // e.g., "Karadeniz"
-  name        String   // e.g., "Buğday"
-  category    String?  // "Tahıl", "Meyve"
-  
-  // General Requirements
-  soilType    String?  // "Killi-tınlı", "Alüvyonal"
-  waterReq    String?  // "Yaz sulaması", "Bol su"
-  minRain     Int?     // mm (Annual)
-  
-  stages      CropStage[] // Relation to detailed stages
-  
-  description String?  // General notes
-  created_at  DateTime @default(now())
-}
-
-model CropStage {
-  id            Int         @id @default(autoincrement())
-  cropProfileId Int
-  cropProfile   CropProfile @relation(fields: [cropProfileId], references: [id], onDelete: Cascade)
-  
-  name          String      // "Filizlenme", "Olgunlaşma", "Hasat", "Genel"
-  
-  // Stage Specific Requirements
-  minTemp       Float?      // C
-  maxTemp       Float?      // C
-  idealMin      Float?      // C
-  idealMax      Float?      // C
-  
-  minHum        Float?      // %
-  maxHum        Float?      // %
-  
-  conditions    String?     // Specific text rules: "Kuru hava", "Yağış gerekli"
-}
-
-model WeatherLog {
-  id          Int      @id @default(autoincrement())
-  station_id  Int
-  raw_json    Json     // Original data from MGM for verification
-  risk_flags  Json     // Calculated risk flags
-  recorded_at DateTime @default(now())
-}
-
 // SMS Provider Integration
 model SmsProvider {
   id            Int       @id @default(autoincrement())
