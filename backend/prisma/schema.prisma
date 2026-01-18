@@ -202,6 +202,11 @@ model TriggerRule {
   checkInterval Int    @default(0) // 0 = Real-time
   coolDownMinutes Int  @default(60)
   
+  // Repeat & Duration (NEW)
+  repeatIntervalMinutes Int @default(5)   // Bildirim tekrar süresi (0 = tekrar yok)
+  maxRepeatMinutes      Int @default(10)  // Maksimum tekrar süresi (0 = sınırsız)
+  autoResolve           Boolean @default(true) // Değer normale dönünce otomatik yeşile dön
+  
   actions     RuleAction[]
   logs        AlertLog[]
   

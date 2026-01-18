@@ -115,40 +115,100 @@ class RuleChecker {
             );
 
             if (triggered) {
-                const now = Date.now();
-                const lastTrigger = this.lastChecked.get(rule.id) || 0;
-                const cooldownMs = rule.coolDownMinutes * 60 * 1000;
-
-                // Check cooldown period
-                if (now - lastTrigger < cooldownMs) {
-                    const secondsSinceLastTrigger = Math.floor((now - lastTrigger) / 1000);
-                    console.log(`[RuleChecker] ⏸️ Rule "${rule.name}" in cooldown (${secondsSinceLastTrigger}s / ${rule.coolDownMinutes * 60}s)`);
-                    return;
+                await this.handleTriggeredRule(rule, sensor, latestValue);
+            } else {
+                // Auto-resolve: Değer normale döndü
+                if (rule.autoResolve) {
+                    await this.autoResolveAlerts(rule);
                 }
-
-                console.log(`[RuleChecker] ✅ TRIGGERED: "${rule.name}" | ${sensor.name} = ${latestValue} ${sensor.unit}`);
-
-                // Tutarlı mesaj formatı oluştur
-                const alertMessage = `Alarm: ${rule.name} (${sensor.name} = ${latestValue} ${sensor.unit})`;
-
-                // Create alert log
-                await prisma.alertLog.create({
-                    data: {
-                        ruleId: rule.id,
-                        value: latestValue,
-                        message: alertMessage,
-                        isResolved: false
-                    }
-                });
-
-                // Dispatch actions (SMS, Email, Device Control, etc.)
-                await actionDispatcher.dispatch(rule.actions, rule.name, latestValue, rule.id);
-
-                // Update last trigger time
-                this.lastChecked.set(rule.id, now);
             }
         } catch (error) {
             console.error(`[RuleChecker] Error checking rule ${rule.id}:`, error);
+        }
+    }
+
+    /**
+     * Handle triggered rule with repeat logic
+     */
+    async handleTriggeredRule(rule, sensor, latestValue) {
+        const now = Date.now();
+        const lastTrigger = this.lastChecked.get(rule.id) || 0;
+        const timeSinceLastTrigger = now - lastTrigger;
+
+        // İlk tetiklenme mi?
+        const isFirstTrigger = lastTrigger === 0;
+
+        // Repeat interval (dakika -> ms)
+        const repeatIntervalMs = rule.repeatIntervalMinutes * 60 * 1000;
+        const maxRepeatMs = rule.maxRepeatMinutes * 60 * 1000;
+
+        // Maksimum süre aşıldı mı?
+        if (!isFirstTrigger && maxRepeatMs > 0 && timeSinceLastTrigger > maxRepeatMs) {
+            console.log(`[RuleChecker] 🔕 Rule "${rule.name}" max repeat duration exceeded (${Math.floor(timeSinceLastTrigger / 60000)}m / ${rule.maxRepeatMinutes}m)`);
+            return; // Bildirim gönderme ama alarm aktif
+        }
+
+        // Repeat interval kontrolü
+        if (!isFirstTrigger && repeatIntervalMs > 0 && timeSinceLastTrigger < repeatIntervalMs) {
+            console.log(`[RuleChecker] ⏸️ Rule "${rule.name}" in repeat interval (${Math.floor(timeSinceLastTrigger / 1000)}s / ${rule.repeatIntervalMinutes * 60}s)`);
+            return;
+        }
+
+        console.log(`[RuleChecker] ✅ TRIGGERED: "${rule.name}" | ${sensor.name} = ${latestValue} ${sensor.unit}`);
+
+        // Tutarlı mesaj formatı oluştur
+        const alertMessage = `Alarm: ${rule.name} (${sensor.name} = ${latestValue} ${sensor.unit})`;
+
+        // Create alert log (unresolved)
+        await prisma.alertLog.create({
+            data: {
+                ruleId: rule.id,
+                value: latestValue,
+                message: alertMessage,
+                isResolved: false,
+                resolvedAt: null
+            }
+        });
+
+        // Dispatch actions (SMS, Email, Device Control, etc.)
+        await actionDispatcher.dispatch(rule.actions, rule.name, latestValue, rule.id);
+
+        // Update last trigger time
+        this.lastChecked.set(rule.id, now);
+    }
+
+    /**
+     * Auto-resolve alerts when value returns to normal
+     */
+    async autoResolveAlerts(rule) {
+        try {
+            // Son 1 saatteki çözülmemiş alarmları bul
+            const unresolvedAlerts = await prisma.alertLog.findMany({
+                where: {
+                    ruleId: rule.id,
+                    isResolved: false,
+                    createdAt: {
+                        gte: new Date(Date.now() - 60 * 60 * 1000) // Son 1 saat
+                    }
+                }
+            });
+
+            if (unresolvedAlerts.length > 0) {
+                // Tümünü yeşile çevir
+                await prisma.alertLog.updateMany({
+                    where: {
+                        id: { in: unresolvedAlerts.map(a => a.id) }
+                    },
+                    data: {
+                        isResolved: true,
+                        resolvedAt: new Date()
+                    }
+                });
+
+                console.log(`[RuleChecker] ✅ Auto-resolved ${unresolvedAlerts.length} alerts for rule "${rule.name}"`);
+            }
+        } catch (error) {
+            console.error(`[RuleChecker] Error auto-resolving alerts for rule ${rule.id}:`, error);
         }
     }
 
