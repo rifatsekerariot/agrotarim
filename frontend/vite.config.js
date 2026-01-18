@@ -26,22 +26,20 @@ export default defineConfig({
                     {
                         src: 'pwa-512x512.png',
                         sizes: '512x512',
-                    },
-                    networkTimeoutSeconds: 10
-                }
-        }
+                        type: 'image/png'
+                    }
                 ]
-}
+            }
         })
     ],
-server: {
-    host: true,
+    server: {
+        host: true,
         allowedHosts: ['www.adanateknotarim.org', 'adanateknotarim.org'],
-            proxy: {
-        '/api': {
-            target: 'http://localhost:3000',
+        proxy: {
+            '/api': {
+                target: 'http://localhost:3000',
                 changeOrigin: true
+            }
         }
     }
-}
 })
