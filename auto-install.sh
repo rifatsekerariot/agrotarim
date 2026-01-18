@@ -274,6 +274,16 @@ echo ""
 echo "🔄 Initializing database schema..."
 
 # For fresh installations, use db push (no migration history needed)
+echo "⏳ Waiting for database connection..."
+for i in {1..30}; do
+    if docker exec sera_postgres pg_isready -U sera_user -d sera_db >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Database is ready${NC}"
+        break
+    fi
+    echo "   Waiting for postgres... ($i/30)"
+    sleep 2
+done
+
 if docker exec sera_backend npx prisma db push --accept-data-loss 2>&1 | tee /tmp/prisma_push.log; then
     echo -e "${GREEN}✅ Database schema initialized${NC}"
 else
