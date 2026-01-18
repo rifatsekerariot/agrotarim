@@ -127,24 +127,24 @@ const SetupPage = () => {
                                         <MapPin size={20} /> Çiftlik Bilgileri
                                     </h5>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Çiftlik Adı *</Form.Label>
+                                        <Form.Label>Şehir *</Form.Label>
                                         <Form.Control
                                             type="text"
-                                            placeholder="Örn: Adana Organik Çiftliği"
-                                            value={formData.farmName}
-                                            onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
+                                            placeholder="Örn: Adana"
+                                            value={formData.farmLocation}
+                                            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
                                             required
                                         />
                                     </Form.Group>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Konum</Form.Label>
+                                        <Form.Label>İlçe</Form.Label>
                                         <Form.Control
                                             type="text"
-                                            placeholder="Örn: Adana, Türkiye"
-                                            value={formData.farmLocation}
-                                            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                                            placeholder="Örn: Seyhan"
+                                            value={formData.farmName}
+                                            onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
                                         />
-                                        <Form.Text>İsteğe bağlı</Form.Text>
+                                        <Form.Text>İsteğe bağlı (Varsayılan: Merkez)</Form.Text>
                                     </Form.Group>
 
                                     <div className="d-flex gap-2">

@@ -59,9 +59,10 @@ router.post('/initialize', async (req, res) => {
             // Create first farm
             const farm = await tx.farm.create({
                 data: {
-                    name: farmName,
-                    location: farmLocation || 'Türkiye',
-                    user_id: user.id
+                    user_id: user.id,
+                    city: farmLocation || 'Adana',
+                    district: 'Merkez',
+                    station_id: 17300  // Default Adana MGM station
                 }
             });
 
