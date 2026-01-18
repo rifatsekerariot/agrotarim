@@ -388,24 +388,43 @@ const CustomDashboard = () => {
 
     const fetchConfig = async () => {
         try {
-            // Load from Database (Farm Model)
+            console.log('[Dashboard] Fetching config for farm:', farmId);
             const res = await fetch(`/api/dashboard/${farmId}`);
-            if (res.ok) {
-                const config = await res.json();
-                if (config && config.widgets) {
-                    const rglWidgets = config.widgets.map((w, index) => ({
+
+            if (!res.ok) {
+                console.error('[Dashboard] Failed to fetch config:', res.status);
+                return;
+            }
+
+            const config = await res.json();
+            console.log('[Dashboard] Loaded config:', config);
+
+            if (config && config.widgets) {
+                console.log('[Dashboard] Raw widgets from DB:', config.widgets);
+
+                const rglWidgets = config.widgets.map((w, index) => {
+                    const widget = {
                         ...w,
                         sensorCodes: w.sensorCodes || (w.sensorCode ? [w.sensorCode] : []),
                         w: w.w || (w.width ? w.width : 4),
                         h: w.h || 4,
                         x: w.x !== undefined ? w.x : (index * 4) % 12,
                         y: w.y !== undefined ? w.y : Math.floor(index / 3) * 4,
-                        i: w.i || w.id.toString()
-                    }));
-                    setWidgets(rglWidgets);
-                }
+                        i: w.i || (w.id ? w.id.toString() : `widget-${index}`)
+                    };
+                    console.log('[Dashboard] Processed widget:', widget);
+                    return widget;
+                });
+
+                console.log('[Dashboard] Setting widgets:', rglWidgets);
+                setWidgets(rglWidgets);
+            } else {
+                console.log('[Dashboard] No widgets found in config');
+                setWidgets([]);
             }
-        } catch (e) { console.error("Layout load failed", e); }
+        } catch (e) {
+            console.error("[Dashboard] Layout load failed:", e);
+        }
     };
 
     const fetchDevices = async () => {
