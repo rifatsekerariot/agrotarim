@@ -73,9 +73,6 @@ const MainLayout = ({ children }) => {
                             <Nav.Link as={Link} to="/" className={`px-3 fw-medium ${isActive('/') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
                                 <i className="bi bi-speedometer2 me-1"></i> Panel
                             </Nav.Link>
-                            <Nav.Link as={Link} to="/custom" className={`px-3 fw-medium ${isActive('/custom') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
-                                <i className="bi bi-grid-1x2 me-1"></i> Özel Panel
-                            </Nav.Link>
                             <Nav.Link as={Link} to="/settings" className={`px-3 fw-medium ${isActive('/settings') ? 'text-success active-link' : darkMode ? 'text-light' : 'text-secondary'}`}>
                                 <i className="bi bi-gear me-1"></i> Ayarlar
                             </Nav.Link>
