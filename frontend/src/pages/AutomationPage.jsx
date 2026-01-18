@@ -160,6 +160,24 @@ const AutomationPage = () => {
                 };
             }
 
+            // Prepare ELSE action
+            let elseAction = null;
+            if (formData.normalCheckEnabled && formData.elseActionType) {
+                elseAction = {
+                    type: formData.elseActionType,
+                    target: formData.elseActionTarget
+                };
+
+                // Add payload for ELSE CONTROL_DEVICE
+                if (formData.elseActionType === 'CONTROL_DEVICE') {
+                    elseAction.payload = {
+                        command: formData.elseCommandName || 'Else Command',
+                        hexData: formData.elseHexCommand.toUpperCase(),
+                        port: parseInt(formData.elseCommandPort) || 1
+                    };
+                }
+            }
+
             const payload = {
                 farmId,
                 name: formData.name,
@@ -169,7 +187,12 @@ const AutomationPage = () => {
                 threshold: parseFloat(formData.threshold),
                 threshold2: formData.threshold2 ? parseFloat(formData.threshold2) : null,
                 coolDownMinutes: parseInt(formData.coolDownMinutes) || 60,
-                actions: [action]
+                repeatIntervalMinutes: parseInt(formData.repeatIntervalMinutes) || 5,
+                maxRepeatMinutes: parseInt(formData.maxRepeatMinutes) || 10,
+                autoResolve: formData.autoResolve,
+                normalCheckEnabled: formData.normalCheckEnabled,
+                actions: [action],
+                elseActions: elseAction ? [elseAction] : []
             };
 
             if (editId) {
@@ -521,6 +544,104 @@ const AutomationPage = () => {
                                         </Form.Group>
                                     </Col>
                                 </Row>
+                            </div>
+                        )}
+
+                        {/* ELSE Actions Section */}
+                        <hr />
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                            <h6 className="mb-0">🔄 ELSE: Normal Durunda (İsteğe Bağlı)</h6>
+                            <Form.Check
+                                type="switch"
+                                label="Aktif"
+                                checked={formData.normalCheckEnabled}
+                                onChange={e => setFormData({ ...formData, normalCheckEnabled: e.target.checked })}
+                            />
+                        </div>
+
+                        {formData.normalCheckEnabled && (
+                            <div className="bg-light p-3 rounded mb-3">
+                                <p className="text-muted small mb-3">
+                                    Sensör değeri normale döndüğünde (koşul sağlanmadığında) bu aksiyonlar çalışacak.
+                                </p>
+
+                                <Row>
+                                    <Col md={6}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>ELSE Aksiyon Tipi</Form.Label>
+                                            <Form.Select
+                                                value={formData.elseActionType}
+                                                onChange={e => setFormData({ ...formData, elseActionType: e.target.value })}
+                                            >
+                                                <option value="NOTIFICATION">Platform Bildirimi</option>
+                                                <option value="SMS">SMS Gönder</option>
+                                                <option value="EMAIL">E-posta Gönder</option>
+                                                <option value="CONTROL_DEVICE">🚀 Cihaz Kontrol (LoRa)</option>
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+
+                                    {formData.elseActionType === 'CONTROL_DEVICE' ? (
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Hedef Cihaz</Form.Label>
+                                                <Form.Select
+                                                    value={formData.elseActionTarget}
+                                                    onChange={e => setFormData({ ...formData, elseActionTarget: e.target.value })}
+                                                >
+                                                    <option value="">Cihaz Seç...</option>
+                                                    {devices.map(d => (
+                                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                                    ))}
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    ) : (
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>
+                                                    {formData.elseActionType === 'SMS' ? 'Telefon Numarası' :
+                                                        formData.elseActionType === 'EMAIL' ? 'E-posta Adresi' : 'Hedef'}
+                                                </Form.Label>
+                                                <Form.Control
+                                                    placeholder={formData.elseActionType === 'SMS' ? '+905551234567' : 'admin@example.com'}
+                                                    value={formData.elseActionTarget}
+                                                    onChange={e => setFormData({ ...formData, elseActionTarget: e.target.value })}
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                    )}
+                                </Row>
+
+                                {/* ELSE CONTROL_DEVICE HEX */}
+                                {formData.elseActionType === 'CONTROL_DEVICE' && (
+                                    <Row>
+                                        <Col md={8}>
+                                            <Form.Group>
+                                                <Form.Label>ELSE HEX Komut *</Form.Label>
+                                                <Form.Control
+                                                    style={{ fontFamily: 'monospace', fontSize: '1.1em', letterSpacing: '2px' }}
+                                                    placeholder="01FF00"
+                                                    value={formData.elseHexCommand}
+                                                    onChange={e => setFormData({ ...formData, elseHexCommand: e.target.value.toUpperCase() })}
+                                                />
+                                                <Form.Text className="text-muted">
+                                                    Normal durumda gönderilecek komut (örn: Vana Kapat = 01FF00)
+                                                </Form.Text>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={4}>
+                                            <Form.Group>
+                                                <Form.Label>Komut Adı</Form.Label>
+                                                <Form.Control
+                                                    placeholder="Vana Kapat"
+                                                    value={formData.elseCommandName}
+                                                    onChange={e => setFormData({ ...formData, elseCommandName: e.target.value })}
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                )}
                             </div>
                         )}
 
