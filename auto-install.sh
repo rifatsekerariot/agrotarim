@@ -52,18 +52,16 @@ docker compose down -v 2>/dev/null || true
 # Remove specific containers if they exist
 docker rm -f sera_backend sera_frontend sera_postgres 2>/dev/null || true
 
-# Remove specific volumes - FORCE CLEAN
+# ✅ SECURITY: Remove only project-specific volumes (safer than prune -f)
+echo "Removing project volumes..."
+docker volume rm sera_postgres_data 2>/dev/null || true
 docker volume rm agrotarim_postgres_data 2>/dev/null || true
 docker volume rm sera-otomasyon_postgres_data 2>/dev/null || true
 
-# Prune all unused volumes (be careful!)
-echo "⚠️  Pruning all unused Docker volumes..."
-docker volume prune -f
-
-# List remaining volumes
+# List remaining volumes for verification
 echo ""
-echo "Remaining volumes:"
-docker volume ls
+echo "Current Docker volumes:"
+docker volume ls | grep -E "sera|agro" || echo "  (no project volumes found)"
 
 echo -e "${GREEN}✅ Cleanup complete${NC}"
 
@@ -84,12 +82,13 @@ else
     exit 1
 fi
 
-# Generate random PostgreSQL password
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-24)
+# Generate random PostgreSQL password (32 characters, alphanumeric only)
+DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/\n" | cut -c1-32)
 
+# ✅ SECURITY: Don't display full credentials, only lengths
 echo -e "${GREEN}✅ Credentials generated${NC}"
-echo "   JWT_SECRET: ${#JWT_SECRET} characters"
-echo "   DB_PASSWORD: ${#DB_PASSWORD} characters"
+echo "   JWT_SECRET: ${#JWT_SECRET} characters (hidden for security)"
+echo "   DB_PASSWORD: ${#DB_PASSWORD} characters (hidden for security)"
 
 # ============================================
 # 4. Create Root .env
@@ -300,10 +299,14 @@ echo "📋 Access Information:"
 echo "   - Frontend: http://localhost:5173"
 echo "   - Backend API: http://localhost:3009"
 echo ""
-echo "🔐 Generated Credentials:"
+echo "🔐 Security Information:"
+echo "   - All credentials stored securely in .env files"
 echo "   - Database User: sera_user"
-echo "   - Database Password: $DB_PASSWORD"
 echo "   - Database Name: sera_db"
+echo "   - Database Password: (see .env file)"
+echo "   - JWT Secret: (see .env file)"
+echo ""
+echo "⚠️  IMPORTANT: Keep .env files secure and never commit to git!"
 echo ""
 echo "📝 Configuration Files:"
 echo "   - Root .env: $(pwd)/.env"
