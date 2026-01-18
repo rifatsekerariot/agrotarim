@@ -124,27 +124,27 @@ const SetupPage = () => {
                             {step === 2 && (
                                 <>
                                     <h5 className="mb-3 d-flex align-items-center gap-2">
-                                        <MapPin size={20} /> Çiftlik Bilgileri
+                                        <MapPin size={20} /> Tesis Bilgileri
                                     </h5>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Şehir *</Form.Label>
+                                        <Form.Label>Sera / Tesis Adı *</Form.Label>
                                         <Form.Control
                                             type="text"
-                                            placeholder="Örn: Adana"
-                                            value={formData.farmLocation}
-                                            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                                            placeholder="Örn: 1 Nolu Sera"
+                                            value={formData.farmName}
+                                            onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
                                             required
                                         />
                                     </Form.Group>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>İlçe</Form.Label>
+                                        <Form.Label>Konum</Form.Label>
                                         <Form.Control
                                             type="text"
-                                            placeholder="Örn: Seyhan"
-                                            value={formData.farmName}
-                                            onChange={(e) => setFormData({ ...formData, farmName: e.target.value })}
+                                            placeholder="Örn: Adana / Seyhan"
+                                            value={formData.farmLocation}
+                                            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
                                         />
-                                        <Form.Text>İsteğe bağlı (Varsayılan: Merkez)</Form.Text>
+                                        <Form.Text>İsteğe bağlı</Form.Text>
                                     </Form.Group>
 
                                     <div className="d-flex gap-2">

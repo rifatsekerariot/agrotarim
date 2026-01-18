@@ -57,12 +57,12 @@ router.post('/initialize', async (req, res) => {
             });
 
             // Create first farm
+            // Create first farm
             const farm = await tx.farm.create({
                 data: {
                     user_id: user.id,
-                    city: farmLocation || 'Adana',
-                    district: 'Merkez',
-                    station_id: 17300  // Default Adana MGM station
+                    name: farmName || 'Sera 1',
+                    location: farmLocation || 'Merkez'
                 }
             });
 
