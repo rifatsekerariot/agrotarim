@@ -5,8 +5,6 @@
 const mqtt = require('mqtt');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 // const { decodePayload } = require('../decoders'); // Removed as per user request
 
 class ChirpStackService {
