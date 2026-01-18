@@ -191,7 +191,10 @@ const Settings = () => {
             } else {
                 const error = await res.json(); alert('❌ Hata: ' + (error.error || 'Sunucu kaydedilemedi'));
             }
-        } catch (e) { alert('❌ Bağlantı hatası'); }
+        } catch (e) {
+            console.error(e);
+            alert('❌ Bağlantı hatası: ' + (e.response?.data?.error || e.message || 'Sunucuya ulaşılamadı'));
+        }
     };
     const handleTestServer = async (id) => {
         setTestResult({ id, loading: true });

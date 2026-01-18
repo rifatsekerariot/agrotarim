@@ -109,7 +109,10 @@ const createProvider = async (req, res) => {
     try {
         const { name, displayName, isActive, priority, config } = req.body;
 
+        console.log('[SMS API] Create Provider Payload:', JSON.stringify(req.body, null, 2));
+
         if (!name || !config) {
+            console.error('[SMS API] Missing fields:', { name: !!name, config: !!config });
             return res.status(400).json({ error: 'Name and config are required' });
         }
 

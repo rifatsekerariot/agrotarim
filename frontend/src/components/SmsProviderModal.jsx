@@ -4,7 +4,7 @@ import { Modal, Form, Button, Row, Col, Alert, Badge } from 'react-bootstrap';
 const SmsProviderModal = ({ show, onHide, provider, onSave }) => {
     const isEdit = !!provider;
     const [formData, setFormData] = useState({
-        name: provider?.name || '',
+        name: provider?.name || 'netgsm',
         displayName: provider?.displayName || '',
         priority: provider?.priority || 50,
         isActive: provider?.isActive || false,

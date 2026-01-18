@@ -55,6 +55,8 @@ router.post('/servers', async (req, res) => {
             isActive
         } = req.body;
 
+        console.log('[LoRa API] Create Server Payload:', JSON.stringify(req.body, null, 2));
+
         const server = await prisma.loRaServer.create({
             data: {
                 name,
