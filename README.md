@@ -23,12 +23,14 @@ Aşağıdaki özellikler, sistemin görsel arayüzü ve yeteneklerine dayanmakta
 
 ### 1. 📡 Gelişmiş LoRaWAN Yönetimi ve Loglama
 Cihazlarınızla olan tüm iletişimi detaylı bir şekilde izleyin.
+![LoRa Logları](./docs/images/lora-logs.png)
 - **Downlink Logları:** Cihazlara gönderilen komutların (Vana Aç/Kapat vb.) durumlarını (Gönderilen, Bekleyen, Başarısız) anlık takip edin.
 - **Kuyruk Yönetimi:** İletilmeyi bekleyen komutları yönetin.
 - **Cihaz Bazlı Filtreleme:** Spesifik bir cihazın geçmiş tüm iletişim kayıtlarını inceleyin.
 
 ### 2. ⚡ Akıllı Otomasyon Merkezi (Rule Engine)
 Karmaşık senaryoları kod yazmadan yönetin.
+![Otomasyon Kuralı](./docs/images/automation-rule.png)
 - **Dinamik Kural Oluşturma:** "Sıcaklık 30°C üzerindeyse" gibi koşulları kolayca tanımlayın.
 - **Çoklu Aksiyon Desteği:** Bir kural tetiklendiğinde aynı anda birden fazla eylem gerçekleştirin:
     - 🚀 **LoRa Komutu Gönder:** Otomatik sulamayı başlatın.
@@ -38,14 +40,17 @@ Karmaşık senaryoları kod yazmadan yönetin.
 
 ### 3. 👥 Gelişmiş Kullanıcı Yönetimi
 Sistemi güvenli bir şekilde yönetin.
+![Kullanıcı Yönetimi](./docs/images/user-management.png)
 - **Rol Tabanlı Erişim:** Yönetici ve standart kullanıcı yetkilendirmeleri.
 - **Koltuk Yönetimi:** Yeni kullanıcılar ekleyin, mevcut kullanıcıları listeleyin.
 - **Güvenlik:** Kullanıcı şifrelerini güvenli bir şekilde sıfırlayın veya hesapları yönetin.
 
 ### 4. ⚙️ Sistem Ayarları ve Yedekleme
 Sisteminizi tam kontrol altında tutun.
+![Cihaz Envanteri](./docs/images/device-inventory.png)
 - **Cihaz Envanteri:** Tüm bağlı cihazlarınızı, bağlantı durumlarını (Online/Offline) ve sunucu bilgilerini tek ekranda görün.
 - **Sunucu Yapılandırması:** ChirpStack veya diğer LoRaWAN sunucularını sisteme entegre edin.
+![LoRa Sunucuları](./docs/images/lora-servers.png)
 - **Yedekleme & Geri Yükleme:** Kritik sistem ayarlarınızı tek tuşla yedekleyin ve ihtiyaç duyduğunuzda geri yükleyin.
 
 ---
