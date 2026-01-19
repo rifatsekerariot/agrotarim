@@ -33,7 +33,7 @@ const Settings = () => {
     const [smtpLoading, setSmtpLoading] = useState(false);
     const [smtpMessage, setSmtpMessage] = useState(null); // {type: 'success'|'error', text: ''}
     const [testEmailLoading, setTestEmailLoading] = useState(false);
-        const [testEmailAddress, setTestEmailAddress] = useState('');
+    const [testEmailAddress, setTestEmailAddress] = useState('');
 
     // Backup & Restore State
     const [backupLoading, setBackupLoading] = useState(false);
@@ -260,9 +260,9 @@ const Settings = () => {
         setSmtpLoading(false);
     };
 
-        const handleTestEmail = async () => {
+    const handleTestEmail = async () => {
         if (!testEmailAddress) {
-            setSmtpMessage({ type: 'error', text: 'L�tfen test email adresi girin' });
+            setSmtpMessage({ type: 'error', text: 'Lütfen test email adresi girin' });
             return;
         }
 
@@ -273,13 +273,13 @@ const Settings = () => {
             const data = res.data;
 
             if (data.success) {
-                setSmtpMessage({ type: 'success', text: \Test email g�nderildi! (Message ID: \)\ });
+                setSmtpMessage({ type: 'success', text: `Test email gönderildi! (Message ID: ${data.messageId})` });
                 setTimeout(() => setSmtpMessage(null), 8000);
             } else {
-                setSmtpMessage({ type: 'error', text: data.error || 'Test email g�nderilemedi' });
+                setSmtpMessage({ type: 'error', text: data.error || 'Test email gönderilemedi' });
             }
         } catch (err) {
-            setSmtpMessage({ type: 'error', text: 'Ba�lant� hatas�: ' + err.message });
+            setSmtpMessage({ type: 'error', text: 'Bağlantı hatası: ' + err.message });
         }
         setTestEmailLoading(false);
     };
@@ -290,15 +290,15 @@ const Settings = () => {
         setBackupMessage(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(\\/settings/backup\, {
+            const response = await fetch(`${api.defaults.baseURL}/settings/backup`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': \Bearer \\
+                    'Authorization': `Bearer ${token}`
                 }
             });
 
             if (!response.ok) {
-                throw new Error('Backup olu�turulamad�');
+                throw new Error('Backup oluşturulamadı');
             }
 
             const contentDisposition = response.headers.get('Content-Disposition');
@@ -318,7 +318,7 @@ const Settings = () => {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-            setBackupMessage({ type: 'success', text: ' Yedekleme ba�ar�yla indirildi!' });
+            setBackupMessage({ type: 'success', text: '✅ Yedekleme başarıyla indirildi!' });
             setTimeout(() => setBackupMessage(null), 5000);
         } catch (err) {
             setBackupMessage({ type: 'error', text: 'Hata: ' + err.message });
@@ -335,7 +335,7 @@ const Settings = () => {
 
     const handleRestoreClick = () => {
         if (!selectedFile) {
-            setRestoreMessage({ type: 'error', text: 'L�tfen bir yedek dosyas� (.zip) se�in.' });
+            setRestoreMessage({ type: 'error', text: 'Lütfen bir yedek dosyası (.zip) seçin.' });
             return;
         }
         setShowRestoreModal(true);
@@ -343,7 +343,7 @@ const Settings = () => {
 
     const handleRestoreConfirm = async () => {
         if (!selectedFile) return;
-        
+
         setRestoreLoading(true);
         setRestoreMessage(null);
         setShowRestoreModal(false);
@@ -353,10 +353,10 @@ const Settings = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(\\/settings/restore\, {
+            const response = await fetch(`${api.defaults.baseURL}/settings/restore`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': \Bearer \\
+                    'Authorization': `Bearer ${token}`
                 },
                 body: formData
             });
@@ -364,14 +364,14 @@ const Settings = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Geri y�kleme ba�ar�s�z');
+                throw new Error(data.error || 'Geri yükleme başarısız');
             }
 
-            setRestoreMessage({ 
-                type: 'success', 
-                text: \ Ba�ar�yla geri y�klendi! (Ayarlar: \, SMS: \, Sunucular: \, Cihazlar: \)\
+            setRestoreMessage({
+                type: 'success',
+                text: `✅ Başarıyla geri yüklendi! (Ayarlar: ${data.restored.systemSettings}, SMS: ${data.restored.smsProviders}, Sunucular: ${data.restored.loraServers}, Cihazlar: ${data.restored.devices})`
             });
-            
+
             // Refresh data
             setTimeout(() => {
                 fetchAll();
@@ -694,6 +694,138 @@ const Settings = () => {
                     </Card>
                 </Tab>
 
+                {/* ========== BACKUP & RESTORE TAB ========== */}
+                <Tab eventKey="backup" title={<><div className="d-flex align-items-center"><Download size={16} className="me-2" />Yedekleme & Geri Yükleme</div></>}>
+                    <Card className="border-0 shadow-sm">
+                        <Card.Header className="bg-white"><h6 className="mb-0">Sistem Yedekleme ve Kurtarma</h6></Card.Header>
+                        <Card.Body>
+                            <Tabs defaultActiveKey="backup-action" className="mb-4" variant="pills">
+                                <Tab eventKey="backup-action" title="Yedek Al (Backup)">
+                                    <div className="p-4 border rounded bg-light bg-opacity-50">
+                                        <Alert variant="info" className="mb-4">
+                                            <small>
+                                                <strong>Not:</strong> Bu işlem tüm sistem ayarlarınızı (Cihazlar, LoRa Sunucuları, SMS Providers, SMTP Ayarları) bir ZIP dosyası olarak bilgisayarınıza indirir.
+                                            </small>
+                                        </Alert>
+
+                                        {backupMessage && (
+                                            <Alert variant={backupMessage.type === 'success' ? 'success' : 'danger'} className="mb-3" dismissible onClose={() => setBackupMessage(null)}>
+                                                {backupMessage.text}
+                                            </Alert>
+                                        )}
+
+                                        <div className="text-center py-4">
+                                            <div className="bg-primary bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
+                                                <Download size={48} className="text-primary" />
+                                            </div>
+                                            <h5 className="mb-3">Sistem Yedeği Oluştur</h5>
+                                            <p className="text-muted mb-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                                                Sistem yapılandırmanızı güvenli bir şekilde yedekleyin.
+                                                İndirilen ZIP dosyası şifreler dahil tüm ayarları içerir, lütfen güvenli bir yerde saklayın.
+                                            </p>
+                                            <Button
+                                                variant="primary"
+                                                size="lg"
+                                                onClick={handleBackup}
+                                                disabled={backupLoading}
+                                                className="px-5 mt-3"
+                                            >
+                                                {backupLoading ? (
+                                                    <>
+                                                        <Spinner size="sm" className="me-2" />
+                                                        Yedekleniyor...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Download size={18} className="me-2" />
+                                                        Yedek Al ve İndir
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Tab>
+                                <Tab eventKey="restore-action" title="Geri Yükle (Restore)">
+                                    <div className="p-4 border rounded bg-light bg-opacity-50">
+                                        <Alert variant="warning" className="mb-4">
+                                            <small>
+                                                <strong>Dikkat:</strong> Geri yükleme işlemi mevcut yapılandırmaların üzerine yazabilir veya yeni kayıtlar oluşturabilir.
+                                                Dikkatli işlem yapınız.
+                                            </small>
+                                        </Alert>
+
+                                        {restoreMessage && (
+                                            <Alert variant={restoreMessage.type === 'success' ? 'success' : 'danger'} className="mb-3" dismissible onClose={() => setRestoreMessage(null)}>
+                                                {restoreMessage.text}
+                                            </Alert>
+                                        )}
+
+                                        <div className="text-center py-4">
+                                            <div className="bg-warning bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
+                                                <UploadCloud size={48} className="text-warning" />
+                                            </div>
+                                            <h5 className="mb-3">Yedekten Geri Yükle</h5>
+                                            <p className="text-muted mb-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                                                Daha önce alınmış bir yedek dosyasını (.zip) seçerek sistem ayarlarını geri yükleyin.
+                                            </p>
+
+                                            <div className="d-flex justify-content-center align-items-center gap-3 mb-3">
+                                                <Form.Control
+                                                    type="file"
+                                                    accept=".zip"
+                                                    onChange={handleFileSelect}
+                                                    style={{ maxWidth: '400px' }}
+                                                />
+                                            </div>
+
+                                            <Button
+                                                variant="warning"
+                                                size="lg"
+                                                onClick={handleRestoreClick}
+                                                disabled={!selectedFile || restoreLoading}
+                                                className="px-5 mt-2"
+                                            >
+                                                {restoreLoading ? (
+                                                    <>
+                                                        <Spinner size="sm" className="me-2" />
+                                                        Yükleniyor...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FileUp size={18} className="me-2" />
+                                                        Geri Yüklemeyi Başlat
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Tab>
+                            </Tabs>
+
+                            <hr />
+
+                            <div className="mt-4">
+                                <h6 className="mb-3">Yedekleme Kapsamı</h6>
+                                <Row>
+                                    <Col md={6}>
+                                        <ul className="list-unstyled">
+                                            <li className="mb-2"><Check size={16} className="text-success me-2" /> Sistem Ayarları (SMTP vb.)</li>
+                                            <li className="mb-2"><Check size={16} className="text-success me-2" /> SMS Provider Yapılandırmaları</li>
+                                            <li className="mb-2"><Check size={16} className="text-success me-2" /> LoRa Sunucu Ayarları</li>
+                                        </ul>
+                                    </Col>
+                                    <Col md={6}>
+                                        <ul className="list-unstyled">
+                                            <li className="mb-2"><Check size={16} className="text-success me-2" /> Cihaz Bilgileri</li>
+                                            <li className="mb-2"><Check size={16} className="text-success me-2" /> Yedekleme Tarihi & Versiyon</li>
+                                        </ul>
+                                    </Col>
+                                </Row>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Tab>
+
             </Tabs>
 
             {/* Device Modal */}
@@ -847,23 +979,23 @@ const Settings = () => {
                 <Modal.Header closeButton className="bg-warning bg-opacity-10 border-warning">
                     <Modal.Title className="text-warning d-flex align-items-center">
                         <AlertTriangle size={24} className="me-2" />
-                        Geri Y�kleme Onay�
+                        Geri Yükleme Onayı
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <p className="fw-bold">A�a��daki dosyadan geri y�kleme yap�lacak:</p>
+                    <p className="fw-bold">Aşağıdaki dosyadan geri yükleme yapılacak:</p>
                     <div className="bg-light p-2 rounded mb-3 text-monospace font-monospace">
                         {selectedFile?.name}
                     </div>
                     <p>
-                        Bu i�lem veritaban�na yeni kay�tlar ekleyebilir veya mevcut ayarlar� de�i�tirebilir. 
-                        Devam etmek istedi�inize emin misiniz?
+                        Bu işlem veritabanına yeni kayıtlar ekleyebilir veya mevcut ayarları değiştirebilir.
+                        Devam etmek istediğinize emin misiniz?
                     </p>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowRestoreModal(false)}>�ptal</Button>
+                    <Button variant="secondary" onClick={() => setShowRestoreModal(false)}>İptal</Button>
                     <Button variant="warning" onClick={handleRestoreConfirm}>
-                        Evet, Geri Y�kle
+                        Evet, Geri Yükle
                     </Button>
                 </Modal.Footer>
             </Modal>
